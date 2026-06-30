@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 // app/deporte/page.tsx
 import SportPageClient from "../components/SportPageClient";
 

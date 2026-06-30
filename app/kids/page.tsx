@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import FavoriteButton from "../components/FavoriteButton";
 
 const MONTHS = [

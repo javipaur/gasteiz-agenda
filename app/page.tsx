@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import HeroSection from "./components/HeroSection";
 import CategoriesGrid from "./components/CategoriesGrid";
 import HomeEvents from "./components/HomeEvents";
