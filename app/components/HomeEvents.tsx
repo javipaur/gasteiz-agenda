@@ -11,7 +11,7 @@ type Evento = {
 
 async function getEventos(): Promise<Evento[]> {
   try {
-    const BASE_URL = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://javierpalacio.es";
+    const BASE_URL = process.env.API_BASE_URL || "https://gasteizclick.javierpalacio.es";
     const res = await fetch(
       `${BASE_URL}/api/actividades/eventos/proximos`,
       {
