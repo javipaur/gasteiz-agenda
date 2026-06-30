@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // Últimas funciones de JS
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ], // Tipos del navegador y ESNext
+    "strict": true, // Habilita todas las comprobaciones estrictas
+    "forceConsistentCasingInFileNames": true, // Evita errores por mayúsculas/minúsculas en imports
+    "noEmit": true, // Next.js maneja la compilación
+    "esModuleInterop": true, // Para compatibilidad con módulos comunes
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx", // JSX moderno React 17+
+    "incremental": true, // Compilación incremental para más rápido
+    "baseUrl": ".", // Base para paths
+    "paths": {
+      "@/*": [
+        "./*"
+      ] // Alias @/ para tu proyecto
+    },
+    "allowJs": true,
+    "skipLibCheck": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+, "tailwind.config.js"  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
