@@ -24,12 +24,22 @@ function formatDate(dateStr: string) {
 
 export default async function KidsPage() {
   const BASE_URL = process.env.API_BASE_URL || "https://gasteizclick.javierpalacio.es";
-  const res = await fetch(
-    `${BASE_URL}/api/actividades/eventos/agenda/infantil`,
-    { next: { revalidate: 3600 } }
-  );
-  const json = await res.json();
-  const raw: any[] = Array.isArray(json) ? json : json.data ?? [];
+
+  let raw: any[] = [];
+  try {
+    const res = await fetch(
+      `${BASE_URL}/api/actividades/eventos/agenda/infantil`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) {
+      console.warn(`Kids API responded with ${res.status}`);
+    } else {
+      const json = await res.json();
+      raw = Array.isArray(json) ? json : json.data ?? [];
+    }
+  } catch (err) {
+    console.error("Error fetching kids events:", err);
+  }
 
   const eventos: Evento[] = raw.map((e) => ({
     id: e.id ?? crypto.randomUUID(),
