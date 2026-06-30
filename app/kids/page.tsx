@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import FavoriteButton from "../components/FavoriteButton";
+import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
 
 const MONTHS = [
   "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
@@ -25,36 +26,20 @@ function formatDate(dateStr: string) {
 }
 
 export default async function KidsPage() {
-  const BASE_URL = process.env.API_BASE_URL || "https://gasteizclick.javierpalacio.es";
-
   let raw: any[] = [];
   try {
-    const res = await fetch(
-      `${BASE_URL}/api/actividades/eventos/agenda/infantil`,
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) {
-      console.warn(`Kids API responded with ${res.status}`);
-    } else {
-      const json = await res.json();
-      raw = Array.isArray(json) ? json : json.data ?? [];
-    }
+    raw = await scrapeMunicipalCalendar({ dest: ["infantil"] });
   } catch (err) {
     console.error("Error fetching kids events:", err);
   }
 
   const eventos: Evento[] = raw.map((e) => ({
     id: e.id ?? crypto.randomUUID(),
-    title: e.title ?? e.nombre ?? e.titulo ?? "Evento sin título",
-    date: e.date ?? e.fecha ?? e.fecha_inicio ?? "",
-    image:
-      e.image && e.image.startsWith("http")
-        ? e.image
-        : e.imagen && e.imagen.startsWith("http")
-          ? e.imagen
-          : null,
-    location: e.location ?? e.ubicacion ?? e.poblacion ?? "",
-    link: e.link ?? e.url ?? "#",
+    title: e.title ?? "Evento sin título",
+    date: e.date ?? "",
+    image: e.image?.startsWith("http") ? e.image : null,
+    location: e.location ?? "",
+    link: e.link ?? "#",
   }));
 
   return (

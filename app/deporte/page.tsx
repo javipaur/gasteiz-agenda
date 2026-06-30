@@ -1,7 +1,10 @@
 export const dynamic = 'force-dynamic';
 
-// app/deporte/page.tsx
 import SportPageClient from "../components/SportPageClient";
+import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
+import { scrapeBuscametasCalendario } from "@/lib/sources/buscametas";
+import { scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
+import { scrapeSenderismo } from "@/lib/sources/senderismo";
 
 export type Evento = {
   id: string;
@@ -13,62 +16,57 @@ export type Evento = {
   category: "agenda" | "inscripciones" | "calendario" | "excursiones";
 };
 
-const BASE_URL = process.env.API_BASE_URL || "https://gasteizclick.javierpalacio.es";
-
-const ENDPOINTS: { url: string; category: Evento["category"] }[] = [
-  { url: `${BASE_URL}/api/actividades/carreras/agenda`, category: "agenda" },
-  { url: `${BASE_URL}/api/actividades/carreras/calendario`, category: "calendario" },
-  { url: `${BASE_URL}/api/actividades/carreras/inscripciones`, category: "inscripciones" },
-  { url: `${BASE_URL}/api/actividades/senderismo`, category: "excursiones" },
-];
-
-// Función para parsear fechas con fallback
 function parseDate(fecha?: string) {
   if (!fecha) return new Date().toISOString();
   const d = new Date(fecha);
   return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
 }
 
-// Función para procesar la URL de la imagen de manera robusta
 function getImageUrl(rawImage?: string) {
-  const fallback = "/images/fallback.png"; // Imagen local en public/images/fallback.png
+  const fallback = "/images/fallback.png";
   if (!rawImage) return fallback;
-
   const image = rawImage.trim();
   if (image.startsWith("http")) return image;
   if (image.startsWith("/")) return `https://gasteizclick.javierpalacio.es${image}`;
-
   return fallback;
 }
 
+function mapEvento(evento: any, category: Evento["category"]): Evento {
+  return {
+    id: evento.id ?? crypto.randomUUID(),
+    title: evento.title || evento.nombre || "Sin título",
+    date: parseDate(evento.date || evento.fecha_ini || evento.fecha),
+    image: getImageUrl(evento.image || evento.imagen),
+    location: evento.location || evento.poblacion || "Sin ubicación",
+    link: evento.link || evento.web || "#",
+    category,
+  };
+}
+
 export default async function DeportePage() {
-  const eventosArrays = await Promise.all(
-    ENDPOINTS.map(async ({ url, category }) => {
-      try {
-        const res = await fetch(url);
-        const json = await res.json();
-        const rawData = Array.isArray(json) ? json : json.data ?? json.eventos ?? [];
+  const [agenda, calendario, inscripciones, excursiones] = await Promise.allSettled([
+    scrapeMunicipalCalendar({ calendariosID: 168 }),
+    scrapeBuscametasCalendario(),
+    scrapeBuscametasInscripciones(),
+    scrapeSenderismo(),
+  ]);
 
-        return rawData.map((evento: any) => ({
-          id: evento.id ?? crypto.randomUUID(),
-          title: evento.title || evento.nombre || "Sin título",
-          date: parseDate(evento.date || evento.fecha_ini || evento.fecha),
-          image: getImageUrl(evento.image || evento.imagen),
-          location: evento.location || evento.poblacion || "Sin ubicación",
-          link: evento.link || evento.web || "#",
-          category,
-        }));
-      } catch (err) {
-        console.error(`Error fetching ${url}:`, err);
-        return [];
-      }
-    })
-  );
+  const eventos: Evento[] = [];
 
-  // Aplanar arrays y ordenar por fecha
-  const eventos = eventosArrays
-    .flat()
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  if (agenda.status === "fulfilled") {
+    eventos.push(...agenda.value.map((e) => mapEvento(e, "agenda")));
+  }
+  if (calendario.status === "fulfilled") {
+    eventos.push(...calendario.value.map((e) => mapEvento(e, "calendario")));
+  }
+  if (inscripciones.status === "fulfilled") {
+    eventos.push(...inscripciones.value.map((e) => mapEvento(e, "inscripciones")));
+  }
+  if (excursiones.status === "fulfilled") {
+    eventos.push(...excursiones.value.map((e) => mapEvento(e, "excursiones")));
+  }
+
+  eventos.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return <SportPageClient eventos={eventos} />;
 }

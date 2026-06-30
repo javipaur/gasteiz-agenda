@@ -1,5 +1,6 @@
 import MoviesPageClient from "../components/MoviesPageClient";
 import { scrapeBoulevard } from "@/app/services/boulevard";
+import { scrapeFlorida } from "@/lib/sources/cines";
 
 type Pelicula = {
   titulo: string;
@@ -11,24 +12,17 @@ type Pelicula = {
   cine: string;
 };
 
-const BASE_URL = process.env.API_BASE_URL || "https://gasteizclick.javierpalacio.es";
-const API_FLORIDA = `${BASE_URL}/api/cines/Florida`;
-
 async function getPeliculas(): Promise<Pelicula[]> {
   const [floridaRes, boulevardData] = await Promise.allSettled([
-    fetch(API_FLORIDA, { next: { revalidate: 3600 } }).then((r) =>
-      r.ok ? r.json() : { peliculas: [] }
-    ),
-    scrapeBoulevard(),
+    scrapeFlorida().then((data) => data.map((p: any) => ({ ...p, cine: "Florida" }))),
+    scrapeBoulevard().then((data) => data.map((p: any) => ({ ...p, cine: "Boulevard" }))),
   ]);
 
-  const fl: Pelicula[] = (
-    floridaRes.status === "fulfilled" ? floridaRes.value.peliculas || [] : []
-  ).map((p: any) => ({ ...p, cine: "Florida" }));
+  const fl: Pelicula[] =
+    floridaRes.status === "fulfilled" ? floridaRes.value : [];
 
-  const bl: Pelicula[] = (
-    boulevardData.status === "fulfilled" ? boulevardData.value : []
-  ).map((p: any) => ({ ...p, cine: "Boulevard" }));
+  const bl: Pelicula[] =
+    boulevardData.status === "fulfilled" ? boulevardData.value : [];
 
   return [...fl, ...bl];
 }
