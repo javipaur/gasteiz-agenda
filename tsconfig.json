@@ -16,7 +16,6 @@
     "isolatedModules": true,
     "jsx": "react-jsx", // JSX moderno React 17+
     "incremental": true, // Compilación incremental para más rápido
-    "baseUrl": ".", // Base para paths
     "paths": {
       "@/*": [
         "./*"
