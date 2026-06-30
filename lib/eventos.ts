@@ -73,22 +73,22 @@ export async function getProximosEventos(options?: {
   const allEvents: any[] = [];
 
   if (fever.status === "fulfilled") {
-    allEvents.push(...fever.value.map((e) => ({ ...e, source: "fever" })));
+    allEvents.push(...fever.value.map((e) => normalizeEvento({ ...e, source: "fever" })));
   }
   if (rula.status === "fulfilled") {
-    allEvents.push(...rula.value.map((e) => ({ ...e, source: "rula" })));
+    allEvents.push(...rula.value.map((e) => normalizeEvento({ ...e, source: "rula" })));
   }
   if (gasteizhoy.status === "fulfilled") {
-    allEvents.push(...gasteizhoy.value.map((e) => ({ ...e, source: "gasteizhoy" })));
+    allEvents.push(...gasteizhoy.value.map((e) => normalizeEvento({ ...e, source: "gasteizhoy" })));
   }
   if (vam.status === "fulfilled") {
-    allEvents.push(...vam.value.map((e) => ({ ...e, source: "vam" })));
+    allEvents.push(...vam.value.map((e) => normalizeEvento({ ...e, source: "vam" })));
   }
   if (municipal.status === "fulfilled") {
-    allEvents.push(...municipal.value.map((e) => ({ ...e, source: "vitoria-gasteiz" })));
+    allEvents.push(...municipal.value.map((e) => normalizeEvento({ ...e, source: "vitoria-gasteiz" })));
   }
   if (euskadi.status === "fulfilled") {
-    allEvents.push(...euskadi.value.map((e) => ({ ...e, source: "euskadi" })));
+    allEvents.push(...euskadi.value.map((e) => normalizeEvento({ ...e, source: "euskadi" })));
   }
 
   const hoy = new Date();
