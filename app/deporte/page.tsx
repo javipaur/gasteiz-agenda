@@ -1,10 +1,10 @@
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 import SportPageClient from "../components/SportPageClient";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
-import { scrapeBuscametasCalendario } from "@/lib/sources/buscametas";
-import { scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
+import { scrapeBuscametasCalendario, scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
 import { scrapeSenderismo } from "@/lib/sources/senderismo";
+import { getCachedOrFetch } from "@/lib/cache";
 
 export type Evento = {
   id: string;
@@ -23,11 +23,10 @@ function parseDate(fecha?: string) {
 }
 
 function getImageUrl(rawImage?: string) {
-  const fallback = "/images/fallback.png";
+  const fallback = "";
   if (!rawImage) return fallback;
   const image = rawImage.trim();
   if (image.startsWith("http")) return image;
-  if (image.startsWith("/")) return `https://gasteizclick.javierpalacio.es${image}`;
   return fallback;
 }
 
@@ -43,7 +42,7 @@ function mapEvento(evento: any, category: Evento["category"]): Evento {
   };
 }
 
-export default async function DeportePage() {
+async function fetchDeportes(): Promise<Evento[]> {
   const [agenda, calendario, inscripciones, excursiones] = await Promise.allSettled([
     scrapeMunicipalCalendar({ calendariosID: 168 }),
     scrapeBuscametasCalendario(),
@@ -68,5 +67,19 @@ export default async function DeportePage() {
 
   eventos.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+  return eventos;
+}
+
+async function getEventos(): Promise<Evento[]> {
+  return getCachedOrFetch("deporte-eventos", 5 * 60 * 1000, fetchDeportes);
+}
+
+export const metadata = {
+  title: "Agenda Deportiva en Vitoria-Gasteiz",
+  description: "Carreras, senderismo y eventos deportivos en Vitoria-Gasteiz."
+};
+
+export default async function DeportePage() {
+  const eventos = await getEventos();
   return <SportPageClient eventos={eventos} />;
 }

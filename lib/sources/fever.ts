@@ -13,10 +13,6 @@ export interface FeverEvent {
   category: string;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function timeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -41,6 +37,84 @@ function inferCategory(title: string, description: string): string {
   return "Cultura";
 }
 
+async function fetchDetailPage(url: string): Promise<FeverEvent | null> {
+  try {
+    const detailRes = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!detailRes.ok) return null;
+
+    const detailHtml = await detailRes.text();
+    const ldRe =
+      /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g;
+
+    let eventData: any = null;
+    let ldMatch: RegExpExecArray | null;
+    while ((ldMatch = ldRe.exec(detailHtml)) !== null) {
+      try {
+        const parsed = JSON.parse(ldMatch[1]);
+        if (parsed["@type"] === "Event") {
+          eventData = parsed;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (!eventData) return null;
+
+    const planId = url.match(/\/m\/(\d+)/)?.[1];
+    if (!planId) return null;
+
+    const locality = eventData.location?.address?.addressLocality || "";
+    const venueName = eventData.location?.name || "";
+    const title = eventData.name || "";
+
+    if (!title) return null;
+
+    const localityLower = locality.toLowerCase();
+    const vitoriaRelated =
+      !locality ||
+      /vitoria|gasteiz|álava|alava|lacua|salburua|zabalgana|arriaga|judimendi|sansomendi|abendaño/.test(
+        localityLower
+      );
+    if (!vitoriaRelated) return null;
+
+    const image =
+      typeof eventData.image === "string"
+        ? eventData.image
+        : eventData.image?.contentUrl || "";
+
+    const location =
+      locality && venueName
+        ? `${venueName}, ${locality}`
+        : locality || venueName || "Vitoria-Gasteiz";
+
+    const description = eventData.description || "";
+    const category = inferCategory(title, description);
+
+    return {
+      id: `fever-${planId}`,
+      title: title.trim(),
+      date: eventData.startDate || "",
+      image,
+      location,
+      link: url,
+      description: description.slice(0, 500),
+      category,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function scrapeFever(): Promise<FeverEvent[]> {
   const res = await fetch(
     `https://feverup.com/${LANGUAGE}/${CITY_SLUG}`,
@@ -50,6 +124,7 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
           "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
       next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(15000),
     }
   );
   const html = await res.text();
@@ -66,86 +141,14 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
     }
   }
 
+  const results = await Promise.allSettled(
+    [...urls].map(url => timeout(fetchDetailPage(url), 15000))
+  );
+
   const allEvents: FeverEvent[] = [];
-  let idx = 0;
-
-  for (const url of urls) {
-    idx++;
-    await delay(200);
-
-    try {
-      const detailRes = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-        next: { revalidate: 3600 },
-      });
-
-      if (!detailRes.ok) continue;
-
-      const detailHtml = await detailRes.text();
-      const ldRe =
-        /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g;
-
-      let eventData: any = null;
-      let ldMatch: RegExpExecArray | null;
-      while ((ldMatch = ldRe.exec(detailHtml)) !== null) {
-        try {
-          const parsed = JSON.parse(ldMatch[1]);
-          if (parsed["@type"] === "Event") {
-            eventData = parsed;
-            break;
-          }
-        } catch {
-          continue;
-        }
-      }
-
-      if (!eventData) continue;
-
-      const planId = url.match(/\/m\/(\d+)/)?.[1];
-      if (!planId) continue;
-
-      const locality = eventData.location?.address?.addressLocality || "";
-      const venueName = eventData.location?.name || "";
-      const title = eventData.name || "";
-
-      if (!title) continue;
-
-      const localityLower = locality.toLowerCase();
-      const vitoriaRelated =
-        !locality ||
-        /vitoria|gasteiz|álava|alava|lacua|salburua|zabalgana|arriaga|judimendi|sansomendi|abendaño/.test(
-          localityLower
-        );
-      if (!vitoriaRelated) continue;
-
-      const image =
-        typeof eventData.image === "string"
-          ? eventData.image
-          : eventData.image?.contentUrl || "";
-
-      const location =
-        locality && venueName
-          ? `${venueName}, ${locality}`
-          : locality || venueName || "Vitoria-Gasteiz";
-
-      const description = eventData.description || "";
-      const category = inferCategory(title, description);
-
-      allEvents.push({
-        id: `fever-${planId}`,
-        title: title.trim(),
-        date: eventData.startDate || "",
-        image,
-        location,
-        link: url,
-        description: description.slice(0, 500),
-        category,
-      });
-    } catch {
-      continue;
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) {
+      allEvents.push(r.value);
     }
   }
 

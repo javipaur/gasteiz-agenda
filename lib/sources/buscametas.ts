@@ -1,6 +1,5 @@
 import axios from "axios";
 import FormData from "form-data";
-import moment from "moment";
 import * as cheerio from "cheerio";
 
 type BuscametasEvento = {
@@ -26,7 +25,7 @@ export async function scrapeBuscametasCalendario(): Promise<BuscametasEvento[]> 
   data.append("zona", "alava");
   data.append("distancia_min", "0");
   data.append("distancia_max", "100");
-  data.append("desde", moment().format("YYYY-MM-DD"));
+  data.append("desde", new Date().toISOString().split("T")[0]);
   data.append("rangeInputModal", "50");
   data.append("idioma", "ES");
 

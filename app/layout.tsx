@@ -22,7 +22,6 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-
 export const metadata = {
   title: "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
   description:
@@ -39,16 +38,16 @@ export default function RootLayout({
       lang="es"
       className={`${fraunces.variable} ${workSans.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="bg-paper text-ink antialiased">
+      <body className="bg-bg text-fg antialiased">
         <FavoritesProvider>
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-red focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
           >
             Saltar al contenido principal
           </a>
           <Header />
-          <main id="main-content" className="pt-24 sm:pt-32 min-h-screen">{children}</main>
+          <main id="main-content" className="min-h-[100dvh]">{children}</main>
           <Footer />
         </FavoritesProvider>
       </body>

@@ -1,12 +1,13 @@
-import { scrapeFever, FeverEvent } from "./sources/fever";
-import { scrapeRula, RulaEvent } from "./sources/rula";
-import { scrapeGasteizHoy, GasteizHoyEvent } from "./sources/gasteizhoy";
-import { scrapeVamEvents, VamEvent } from "./sources/vam";
-import { scrapeMunicipalCalendar, MunicipialEvento } from "./sources/municipal";
-import { scrapeEuskadi, EuskadiEvent } from "./sources/euskadi";
+import { scrapeFever } from "./sources/fever";
+import { scrapeRula } from "./sources/rula";
+import { scrapeGasteizHoy } from "./sources/gasteizhoy";
+import { scrapeVamEvents } from "./sources/vam";
+import { scrapeMunicipalCalendar } from "./sources/municipal";
+import { scrapeEuskadi } from "./sources/euskadi";
+import { getCachedOrFetch } from "./cache";
 
 const CACHE_TTL = 5 * 60 * 1000;
-const cache = new Map<string, { data: any[]; timestamp: number }>();
+const memCache = new Map<string, { data: any[]; timestamp: number }>();
 
 export type Evento = {
   id: string;
@@ -36,31 +37,7 @@ function normalizeEvento(e: any): Evento {
   };
 }
 
-export async function getProximosEventos(options?: {
-  startDate?: string;
-  endDate?: string;
-}): Promise<Evento[]> {
-  const cacheKey = "proximos";
-  const now = Date.now();
-  const cached = cache.get(cacheKey);
-  if (cached && now - cached.timestamp < CACHE_TTL) {
-    let result = cached.data;
-    if (options?.startDate) {
-      const filterStart = new Date(options.startDate);
-      if (!isNaN(filterStart.getTime())) {
-        const filterEnd = options.endDate
-          ? new Date(options.endDate)
-          : new Date(filterStart);
-        filterEnd.setHours(23, 59, 59, 999);
-        result = result.filter((e) => {
-          const d = new Date(e.date);
-          return d >= filterStart && d <= filterEnd;
-        });
-      }
-    }
-    return result;
-  }
-
+async function fetchAllSources(): Promise<any[]> {
   const [fever, rula, gasteizhoy, vam, municipal, euskadi] = await Promise.allSettled([
     scrapeFever(),
     scrapeRula(),
@@ -91,6 +68,36 @@ export async function getProximosEventos(options?: {
     allEvents.push(...euskadi.value.map((e) => normalizeEvento({ ...e, source: "euskadi" })));
   }
 
+  return allEvents;
+}
+
+export async function getProximosEventos(options?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<Evento[]> {
+  const cacheKey = "proximos";
+  const now = Date.now();
+  const cached = memCache.get(cacheKey);
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    let result = cached.data;
+    if (options?.startDate) {
+      const filterStart = new Date(options.startDate);
+      if (!isNaN(filterStart.getTime())) {
+        const filterEnd = options.endDate
+          ? new Date(options.endDate)
+          : new Date(filterStart);
+        filterEnd.setHours(23, 59, 59, 999);
+        result = result.filter((e) => {
+          const d = new Date(e.date);
+          return d >= filterStart && d <= filterEnd;
+        });
+      }
+    }
+    return result;
+  }
+
+  const allEvents = await getCachedOrFetch("eventos-proximos", CACHE_TTL, fetchAllSources);
+
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
@@ -108,7 +115,7 @@ export async function getProximosEventos(options?: {
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  cache.set(cacheKey, { data: deduped, timestamp: now });
+  memCache.set(cacheKey, { data: deduped, timestamp: now });
 
   let result = deduped;
   if (options?.startDate) {

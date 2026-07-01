@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 import CulturePageClient from "../components/CulturePageClient";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
@@ -7,6 +7,7 @@ import { scrapeVamConciertos } from "@/lib/sources/vam";
 import { scrapeFever } from "@/lib/sources/fever";
 import { scrapeRula } from "@/lib/sources/rula";
 import { scrapeGasteizHoy } from "@/lib/sources/gasteizhoy";
+import { getCachedOrFetch } from "@/lib/cache";
 
 type Evento = {
   id: string;
@@ -40,7 +41,7 @@ function normalizeEvento(e: any, category: string, source: string): Evento {
   };
 }
 
-async function getEventos(): Promise<Evento[]> {
+async function fetchEventos(): Promise<Evento[]> {
   const [municipalEventos, municipalTeatro, jimmyJazz, municipalConcierto, vamConciertos, municipalExposiciones, fever, rula, gasteizhoy] = await Promise.allSettled([
     scrapeMunicipalCalendar({ tipo: [6] }),
     scrapeMunicipalCalendar({ tipo: [13] }),
@@ -84,6 +85,10 @@ async function getEventos(): Promise<Evento[]> {
   }
 
   return eventos.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+async function getEventos(): Promise<Evento[]> {
+  return getCachedOrFetch("cultura-eventos", 5 * 60 * 1000, fetchEventos);
 }
 
 export const metadata = {

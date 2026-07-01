@@ -1,6 +1,9 @@
+export const revalidate = 300;
+
 import MoviesPageClient from "../components/MoviesPageClient";
 import { scrapeBoulevard } from "@/app/services/boulevard";
 import { scrapeFlorida } from "@/lib/sources/cines";
+import { getCachedOrFetch } from "@/lib/cache";
 
 type Pelicula = {
   titulo: string;
@@ -12,7 +15,7 @@ type Pelicula = {
   cine: string;
 };
 
-async function getPeliculas(): Promise<Pelicula[]> {
+async function fetchPeliculas(): Promise<Pelicula[]> {
   const [floridaRes, boulevardData] = await Promise.allSettled([
     scrapeFlorida().then((data) => data.map((p: any) => ({ ...p, cine: "Florida" }))),
     scrapeBoulevard().then((data) => data.map((p: any) => ({ ...p, cine: "Boulevard" }))),
@@ -27,6 +30,10 @@ async function getPeliculas(): Promise<Pelicula[]> {
   return [...fl, ...bl];
 }
 
+async function getPeliculas(): Promise<Pelicula[]> {
+  return getCachedOrFetch("peliculas", 5 * 60 * 1000, fetchPeliculas);
+}
+
 export const metadata = {
   title: "Cartelera de Cine — Vitoria-Gasteiz",
   description:
@@ -35,6 +42,5 @@ export const metadata = {
 
 export default async function MoviesPage() {
   const peliculas = await getPeliculas();
-
   return <MoviesPageClient peliculas={peliculas} />;
 }

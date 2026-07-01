@@ -1,8 +1,8 @@
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 import HeroSection from "./components/HeroSection";
 import CategoriesGrid from "./components/CategoriesGrid";
-import HomeEvents from "./components/HomeEvents";
+import HomeEventsClient from "./components/HomeEventsClient";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos } from "@/lib/eventos";
 
@@ -13,7 +13,7 @@ export default async function HomeEventsPage() {
     <>
       <HeroSection eventos={eventos} />
       <CategoriesGrid />
-      <HomeEvents />
+      <HomeEventsClient eventos={eventos} />
       <Newsletter />
     </>
   );

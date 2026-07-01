@@ -25,12 +25,41 @@ function inferCategory(title: string, description: string, url: string): string 
   return "Otros";
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function fetchDetailPage(url: string): Promise<{
+  jsonld: any;
+  ok: boolean;
+}> {
+  try {
+    const detailRes = await fetch(url, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!detailRes.ok) return { jsonld: {}, ok: false };
+
+    const detailHtml = await detailRes.text();
+    const $detail = cheerio.load(detailHtml);
+    let jsonld: any = {};
+
+    $detail('script[type="application/ld+json"]').each((_, script) => {
+      try {
+        const data = JSON.parse($detail(script).text());
+        if (data["@type"] === "Event") {
+          Object.assign(jsonld, data);
+        }
+      } catch {}
+    });
+
+    return { jsonld, ok: !!jsonld.name };
+  } catch {
+    return { jsonld: {}, ok: false };
+  }
 }
 
 export async function scrapeRula(): Promise<RulaEvent[]> {
-  const res = await fetch(BASE_URL, { next: { revalidate: 3600 } });
+  const res = await fetch(BASE_URL, {
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(15000),
+  });
   const html = await res.text();
   const $ = cheerio.load(html);
 
@@ -67,40 +96,26 @@ export async function scrapeRula(): Promise<RulaEvent[]> {
       if (data["@type"] === "Event" && data.url) {
         homepageJsonldMap.set(data.url, data);
       }
-    } catch {
-      // skip invalid JSON
-    }
+    } catch {}
   });
 
   const uniqueUrls = [...new Set(listings.map((l) => l.href))];
+  const detailResults = await Promise.allSettled(
+    uniqueUrls.map(url => fetchDetailPage(url))
+  );
+
   const events: RulaEvent[] = [];
 
   for (let i = 0; i < uniqueUrls.length; i++) {
     const url = uniqueUrls[i];
-    await delay(150);
+    const detailResult = detailResults[i];
 
     let jsonld: any = {};
     let detailOk = false;
 
-    try {
-      const detailRes = await fetch(url, { next: { revalidate: 3600 } });
-      if (detailRes.ok) {
-        const detailHtml = await detailRes.text();
-        const $detail = cheerio.load(detailHtml);
-        $detail('script[type="application/ld+json"]').each((_, script) => {
-          try {
-            const data = JSON.parse($detail(script).text());
-            if (data["@type"] === "Event") {
-              Object.assign(jsonld, data);
-            }
-          } catch {
-            // skip
-          }
-        });
-        detailOk = !!jsonld.name;
-      }
-    } catch {
-      // detail fetch failed
+    if (detailResult.status === "fulfilled") {
+      jsonld = detailResult.value.jsonld;
+      detailOk = detailResult.value.ok;
     }
 
     if (!detailOk) {
