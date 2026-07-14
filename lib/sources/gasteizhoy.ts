@@ -80,21 +80,23 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
       });
   });
 
-  const CONCURRENCY = 5;
-  for (let i = 0; i < events.length; i += CONCURRENCY) {
-    const chunk = events.slice(i, i + CONCURRENCY);
-    const results = await Promise.allSettled(
-      chunk.map(async (e) => {
-        if (!e.link) return;
-        const ogImage = await fetchOgImage(e.link);
-        if (ogImage) e.image = ogImage;
-      })
-    );
-    results.forEach((r, j) => {
-      if (r.status === "rejected") {
-        console.warn(`Failed to fetch og:image for ${chunk[j].link}`);
-      }
-    });
+  if (!process.env.NEXT_BUILD) {
+    const CONCURRENCY = 5;
+    for (let i = 0; i < events.length; i += CONCURRENCY) {
+      const chunk = events.slice(i, i + CONCURRENCY);
+      const results = await Promise.allSettled(
+        chunk.map(async (e) => {
+          if (!e.link) return;
+          const ogImage = await fetchOgImage(e.link);
+          if (ogImage) e.image = ogImage;
+        })
+      );
+      results.forEach((r, j) => {
+        if (r.status === "rejected") {
+          console.warn(`Failed to fetch og:image for ${chunk[j].link}`);
+        }
+      });
+    }
   }
 
   return events;
