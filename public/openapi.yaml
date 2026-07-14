@@ -1,0 +1,894 @@
+openapi: 3.1.0
+info:
+  title: Gasteiz Click API
+  description: |
+    API pública de Gasteiz Click — agregador de eventos culturales de Vitoria-Gasteiz.
+
+    ## Autenticación
+    Todos los endpoints (excepto newsletter) requieren una API key enviada via:
+    - Header: `x-api-key: TU_API_KEY`
+    - Query param: `?api_key=TU_API_KEY`
+
+    ## Rate Limiting
+    - 100 peticiones por minuto por IP
+    - Headers de respuesta: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+    - Si se excede el límite: HTTP 429 con `Retry-After`
+
+    ## Caché
+    Las respuestas incluyen headers `Cache-Control`. Los clientes móviles deben respetarlos.
+  version: 1.0.0
+  contact:
+    name: Gasteiz Click
+    url: https://gasteizclick.javierpalacio.es
+
+servers:
+  - url: https://gasteizclick.javierpalacio.es
+    description: Producción
+  - url: http://localhost:3000
+    description: Desarrollo
+
+security:
+  - apiKey: []
+
+tags:
+  - name: events
+    description: Eventos agregados de todas las fuentes
+  - name: sources
+    description: Fuentes individuales
+  - name: cinema
+    description: Carteleras de cine
+  - name: sports
+    description: Deportes y carreras
+  - name: newsletter
+    description: Suscripción al newsletter
+
+paths:
+  /api/v1/events:
+    get:
+      tags: [events]
+      summary: Eventos agregados (recomendado para móvil)
+      description: |
+        Endpoint principal para consumo desde apps móviles. Agrega eventos de todas las fuentes,
+        elimina duplicados, y soporta filtros y paginación.
+      operationId: getEvents
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filtrar por categoría (ej: conciertos, teatro, exposiciones, infantil, cine, deporte)
+          example: teatro
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [fever, rula, gasteizhoy, vam, vitoria-gasteiz, euskadi]
+          description: Filtrar por fuente de datos
+          example: fever
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Buscar por título, ubicación o descripción
+          example: jazz
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Fecha de inicio (ISO YYYY-MM-DD)
+          example: "2026-07-14"
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Fecha de fin (ISO YYYY-MM-DD)
+          example: "2026-07-20"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: Número máximo de resultados
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Offset para paginación
+      responses:
+        "200":
+          description: Lista de eventos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Evento"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+              example:
+                data:
+                  - id: "abc-123"
+                    title: "Jazz en la Plaza"
+                    date: "2026-07-15T20:00:00.000Z"
+                    image: "https://example.com/img.jpg"
+                    location: "Plaza España, Vitoria-Gasteiz"
+                    link: "https://feverup.com/event/123"
+                    category: "Conciertos"
+                    source: "fever"
+                    time: "20:00"
+                    description: "Noche de jazz en la plaza principal"
+                meta:
+                  total: 120
+                  limit: 50
+                  offset: 0
+                  hasMore: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/eventos/proximos:
+    get:
+      tags: [events]
+      summary: Próximos eventos (endpoint original)
+      description: Retorna todos los eventos futuros agregados de todas las fuentes, sin paginación.
+      operationId: getProximosEventos
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Lista de eventos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Evento"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades:
+    get:
+      tags: [events]
+      summary: Actividades del calendario municipal
+      operationId: getActividades
+      responses:
+        "200":
+          description: Lista de actividades municipales
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/senderismo:
+    get:
+      tags: [events]
+      summary: Actividades de senderismo
+      operationId: getSenderismo
+      responses:
+        "200":
+          description: Lista de excursiones
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: cm-gazteiz
+                  category:
+                    type: string
+                    example: actividades
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActividadSenderismo"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/navidad:
+    get:
+      tags: [events]
+      summary: Eventos de Navidad
+      operationId: getNavidad
+      responses:
+        "200":
+          description: Lista de eventos navideños
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/conciertos:
+    get:
+      tags: [events]
+      summary: Conciertos (Jimmy Jazz Gasteiz)
+      operationId: getConciertos
+      responses:
+        "200":
+          description: Lista de conciertos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Concierto"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/conciertos/vam:
+    get:
+      tags: [events]
+      summary: Conciertos de VAM Cultura
+      operationId: getConciertosVam
+      responses:
+        "200":
+          description: Lista de conciertos VAM
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda:
+    get:
+      tags: [events]
+      summary: Agenda del calendario municipal
+      operationId: getAgenda
+      responses:
+        "200":
+          description: Agenda municipal
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda/eventos:
+    get:
+      tags: [events]
+      summary: Eventos municipales (tipo evento)
+      operationId: getAgendaEventos
+      responses:
+        "200":
+          description: Lista de eventos
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda/infantil:
+    get:
+      tags: [events]
+      summary: Eventos infantiles
+      operationId: getAgendaInfantil
+      responses:
+        "200":
+          description: Lista de eventos infantiles
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda/exposiciones:
+    get:
+      tags: [events]
+      summary: Exposiciones
+      operationId: getAgendaExposiciones
+      responses:
+        "200":
+          description: Lista de exposiciones
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda/concierto:
+    get:
+      tags: [events]
+      summary: Conciertos del calendario municipal
+      operationId: getAgendaConciertos
+      responses:
+        "200":
+          description: Lista de conciertos municipales
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda/teatro:
+    get:
+      tags: [events]
+      summary: Obras de teatro
+      operationId: getAgendaTeatro
+      responses:
+        "200":
+          description: Lista de obras de teatro
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/eventos/agenda/visitas:
+    get:
+      tags: [events]
+      summary: Visitas guiadas
+      operationId: getAgendaVisitas
+      responses:
+        "200":
+          description: Lista de visitas guiadas
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/carreras/agenda:
+    get:
+      tags: [sports]
+      summary: Agenda de carreras deportivas
+      operationId: getCarrerasAgenda
+      responses:
+        "200":
+          description: Lista de carreras
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/carreras/calendario:
+    get:
+      tags: [sports]
+      summary: Calendario de carreras (Buscametas)
+      operationId: getCarrerasCalendario
+      responses:
+        "200":
+          description: Calendario de carreras
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventos:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Carrera"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [sports]
+      summary: Carreras con filtros personalizados
+      operationId: postCarrerasCalendario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                zona:
+                  type: string
+                distancia:
+                  type: string
+                desde:
+                  type: string
+                  format: date
+                hasta:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Lista de carreras filtrada
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actividades/carreras/inscripciones:
+    get:
+      tags: [sports]
+      summary: Inscripciones abiertas a carreras
+      operationId: getCarrerasInscripciones
+      responses:
+        "200":
+          description: Carreras con inscripciones abiertas
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/fever:
+    get:
+      tags: [sources]
+      summary: Eventos de Fever
+      operationId: getFever
+      responses:
+        "200":
+          description: Eventos de Fever
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FeverEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/rula:
+    get:
+      tags: [sources]
+      summary: Eventos de La Genterula
+      operationId: getRula
+      responses:
+        "200":
+          description: Eventos de La Genterula
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RulaEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/gasteizhoy:
+    get:
+      tags: [sources]
+      summary: Eventos de GasteizHoy
+      operationId: getGasteizHoy
+      responses:
+        "200":
+          description: Eventos de GasteizHoy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GasteizHoyEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/vam:
+    get:
+      tags: [sources]
+      summary: Eventos de VAM Cultura
+      operationId: getVam
+      responses:
+        "200":
+          description: Eventos de VAM Cultura
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/VamEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/cines/boulevard:
+    get:
+      tags: [cinema]
+      summary: Cartelera de Yelmo Cines Boulevard
+      operationId: getBoulevard
+      responses:
+        "200":
+          description: Películas en cartelera
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  scrapedAt:
+                    type: string
+                    format: date-time
+                  total:
+                    type: integer
+                  peliculas:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Pelicula"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/cines/florida:
+    get:
+      tags: [cinema]
+      summary: Cartelera de Cine Florida
+      operationId: getFlorida
+      responses:
+        "200":
+          description: Películas en cartelera
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PeliculaFlorida"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/farmacias:
+    get:
+      tags: [sources]
+      summary: Farmacias de guardia
+      operationId: getFarmacias
+      responses:
+        "200":
+          description: Lista de farmacias de guardia
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Farmacia"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/newsletter/subscribe:
+    post:
+      tags: [newsletter]
+      summary: Suscribirse al newsletter
+      operationId: subscribe
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Suscripción exitosa
+        "400":
+          description: Email inválido
+
+  /api/newsletter/confirm:
+    get:
+      tags: [newsletter]
+      summary: Confirmar suscripción
+      operationId: confirmSubscription
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suscripción confirmada
+        "400":
+          description: Token inválido
+
+  /api/newsletter/unsubscribe:
+    get:
+      tags: [newsletter]
+      summary: Cancelar suscripción
+      operationId: unsubscribe
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suscripción cancelada
+        "400":
+          description: Token inválido
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: |
+        API key para autenticación. También se puede enviar como query param `?api_key=`.
+
+  schemas:
+    Evento:
+      type: object
+      description: Evento cultural normalizado
+      properties:
+        id:
+          type: string
+          description: Identificador único del evento
+        title:
+          type: string
+          description: Título del evento
+        date:
+          type: string
+          description: Fecha del evento (ISO 8601)
+        image:
+          type: string
+          nullable: true
+          description: URL de la imagen del evento
+        location:
+          type: string
+          description: Ubicación del evento
+        link:
+          type: string
+          description: URL original del evento
+        category:
+          type: string
+          description: Categoría del evento
+        source:
+          type: string
+          description: Fuente de datos (fever, rula, gasteizhoy, vam, vitoria-gasteiz, euskadi)
+        time:
+          type: string
+          description: Hora del evento
+        description:
+          type: string
+          description: Descripción del evento
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total de resultados que coinciden con los filtros
+        limit:
+          type: integer
+          description: Límite de resultados por página
+        offset:
+          type: integer
+          description: Offset actual
+        hasMore:
+          type: boolean
+          description: Si hay más resultados disponibles
+
+    FeverEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: fever-12345
+        title:
+          type: string
+        date:
+          type: string
+        image:
+          type: string
+        location:
+          type: string
+        link:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [Conciertos, Cine, Teatro, Exposiciones, Visitas, Gastronomía, Infantil, Talleres, Deporte, Cultura]
+
+    RulaEvent:
+      type: object
+      properties:
+        title:
+          type: string
+        date:
+          type: string
+        image:
+          type: string
+        location:
+          type: string
+        link:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+
+    GasteizHoyEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+        time:
+          type: string
+        image:
+          type: string
+        location:
+          type: string
+        link:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        source:
+          type: string
+          example: gasteizhoy
+
+    VamEvent:
+      type: object
+      properties:
+        title:
+          type: string
+        date:
+          type: string
+        image:
+          type: string
+          nullable: true
+        location:
+          type: string
+        link:
+          type: string
+        category:
+          type: string
+        source:
+          type: string
+          example: vam
+        description:
+          type: string
+        time:
+          type: string
+
+    ActividadSenderismo:
+      type: object
+      properties:
+        title:
+          type: string
+        date:
+          type: string
+        link:
+          type: string
+        image:
+          type: string
+        category:
+          type: string
+          example: excursiones
+        location:
+          type: string
+          example: Gazteiz
+
+    Concierto:
+      type: object
+      properties:
+        title:
+          type: string
+        date:
+          type: string
+          description: Fecha legible (ej: "Viernes 18 Julio 2026")
+        location:
+          type: string
+        image:
+          type: string
+          nullable: true
+        link:
+          type: string
+
+    Carrera:
+      type: object
+      properties:
+        title:
+          type: string
+        date:
+          type: string
+        image:
+          type: string
+        location:
+          type: string
+        link:
+          type: string
+
+    Pelicula:
+      type: object
+      description: Película de Yelmo Cines Boulevard
+      properties:
+        titulo:
+          type: string
+        duracion:
+          type: string
+        genero:
+          type: string
+        imagen:
+          type: string
+        link:
+          type: string
+        horarios:
+          type: array
+          items:
+            type: string
+          description: Lista de horarios (ej: ["16:30", "19:00", "21:30"])
+
+    PeliculaFlorida:
+      type: object
+      description: Película de Cine Florida
+      properties:
+        title:
+          type: string
+        horarios:
+          type: string
+          description: Horarios como texto
+
+    Farmacia:
+      type: object
+      properties:
+        nombre:
+          type: string
+        direccion:
+          type: string
+        ciudad:
+          type: string
+        telefono:
+          type: string
+        horario:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: API key no proporcionada o inválida
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Unauthorized – provide a valid x-api-key header or ?api_key= query param"
+
+    RateLimited:
+      description: Límite de peticiones excedido
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Segundos hasta poder hacer otra petición
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Rate limit exceeded. Try again later."
