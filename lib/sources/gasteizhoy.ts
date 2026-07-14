@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { fetchOgImage } from "@/lib/utils";
 
 const BASE_URL = "https://www.gasteizhoy.com/ociogasteiz/";
 
@@ -62,9 +63,6 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
         const timeText = $article.find(".mec-event-time").text().trim();
         const location = $article.find(".mec-event-loc-place").text().trim();
 
-        let image = "";
-        const ogImage = $('meta[property="og:image"]').attr("content") || "";
-
         const category = inferCategory(title, "");
 
         events.push({
@@ -72,7 +70,7 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
           title,
           date: dateStr,
           time: timeText,
-          image,
+          image: "",
           location,
           link: href,
           description: "",
@@ -81,6 +79,23 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
         });
       });
   });
+
+  const CONCURRENCY = 5;
+  for (let i = 0; i < events.length; i += CONCURRENCY) {
+    const chunk = events.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      chunk.map(async (e) => {
+        if (!e.link) return;
+        const ogImage = await fetchOgImage(e.link);
+        if (ogImage) e.image = ogImage;
+      })
+    );
+    results.forEach((r, j) => {
+      if (r.status === "rejected") {
+        console.warn(`Failed to fetch og:image for ${chunk[j].link}`);
+      }
+    });
+  }
 
   return events;
 }

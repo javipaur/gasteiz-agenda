@@ -27,6 +27,15 @@ function SparklesIcon({ className }: { className?: string }) {
   );
 }
 
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 3v10M6 9l4 4 4-4" />
+      <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" />
+    </svg>
+  );
+}
+
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 512 512" fill="currentColor">
@@ -93,23 +102,32 @@ export default function Footer() {
 
           <div>
             <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
-              App Android
+              Lleva la agenda contigo
             </h3>
             <p className="text-sm text-white/60 mb-4 leading-relaxed">
-              Lleva la agenda en tu bolsillo
+              Instala la web como app o descárgala desde Google Play.
             </p>
-            <a
-              href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] px-4 py-3 rounded-xl text-sm text-white"
-            >
-              <PlayStoreIcon className="w-5 h-5 shrink-0" />
-              <span className="flex flex-col leading-tight">
-                <span className="text-[10px] text-white/50 uppercase tracking-[0.1em]">Disponible en</span>
-                <span className="font-semibold">Google Play</span>
-              </span>
-            </a>
+            <div className="flex flex-col gap-2.5">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] px-4 py-3 rounded-xl text-sm text-white"
+              >
+                <PlayStoreIcon className="w-5 h-5 shrink-0" />
+                <span className="flex flex-col leading-tight">
+                  <span className="text-[10px] text-white/50 uppercase tracking-[0.1em]">Disponible en</span>
+                  <span className="font-semibold">Google Play</span>
+                </span>
+              </a>
+              <div className="inline-flex items-center gap-3 bg-white/5 px-4 py-3 rounded-xl text-sm text-white/50">
+                <DownloadIcon className="w-5 h-5 shrink-0" />
+                <span className="flex flex-col leading-tight">
+                  <span className="text-[10px] text-white/40 uppercase tracking-[0.1em]">Desde el navegador</span>
+                  <span className="font-semibold text-white/70">Instalar como app</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

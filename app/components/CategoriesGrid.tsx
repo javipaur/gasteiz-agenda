@@ -44,7 +44,8 @@ const categories = [
     desc: "Cartelera y festivales",
     icon: FilmIcon,
     color: "text-blue",
-    bgColor: "bg-blue/5",
+    bgColor: "bg-blue/10",
+    borderColor: "group-hover:border-blue/30",
   },
   {
     label: "Cultura",
@@ -52,7 +53,8 @@ const categories = [
     desc: "Teatro, conciertos, arte",
     icon: PaletteIcon,
     color: "text-accent",
-    bgColor: "bg-accent-soft",
+    bgColor: "bg-accent-subtle",
+    borderColor: "group-hover:border-accent/30",
   },
   {
     label: "Deporte",
@@ -60,7 +62,8 @@ const categories = [
     desc: "Running, trail, eventos",
     icon: ActivityIcon,
     color: "text-green",
-    bgColor: "bg-green/5",
+    bgColor: "bg-green/10",
+    borderColor: "group-hover:border-green/30",
   },
   {
     label: "Kids",
@@ -68,7 +71,8 @@ const categories = [
     desc: "Planes familiares",
     icon: SparklesIcon,
     color: "text-teal",
-    bgColor: "bg-teal/5",
+    bgColor: "bg-teal/10",
+    borderColor: "group-hover:border-teal/30",
   },
 ];
 
@@ -87,10 +91,10 @@ export default function CategoriesGrid() {
           <Link
             key={cat.href}
             href={cat.href}
-            className="group double-bezel-outer rounded-[1.25rem] p-1.5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:outline-accent/20"
+            className={`group double-bezel-outer rounded-[1.25rem] p-1.5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${cat.borderColor}`}
           >
             <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] p-5 md:p-6 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:bg-surface-hover">
-              <div className={`w-10 h-10 rounded-xl ${cat.bgColor} flex items-center justify-center mb-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105`}>
+              <div className={`w-10 h-10 rounded-xl ${cat.bgColor} flex items-center justify-center mb-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-110`}>
                 <cat.icon className={`w-5 h-5 ${cat.color}`} />
               </div>
               <div>

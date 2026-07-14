@@ -14,6 +14,15 @@ const navItems = [
   { name: "Deporte", href: "/deporte" },
 ];
 
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 3v10M6 9l4 4 4-4" />
+      <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" />
+    </svg>
+  );
+}
+
 function SearchIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -46,6 +55,7 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { count } = useFavorites();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
@@ -55,6 +65,15 @@ export default function Header() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   useEffect(() => {
@@ -93,6 +112,13 @@ export default function Header() {
     setSearchOpen(false);
     setIsMenuOpen(false);
   }, [searchQuery, router]);
+
+  const handleInstall = useCallback(async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  }, [deferredPrompt]);
 
   return (
     <>
@@ -196,6 +222,16 @@ export default function Header() {
                   </span>
                 )}
               </Link>
+
+              {deferredPrompt && (
+                <button
+                  onClick={handleInstall}
+                  className="hidden md:flex p-2 text-fg-muted hover:text-accent transition-colors rounded-full hover:bg-accent-soft"
+                  aria-label="Instalar app"
+                >
+                  <DownloadIcon className="w-4 h-4" />
+                </button>
+              )}
 
               <a
                 href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
