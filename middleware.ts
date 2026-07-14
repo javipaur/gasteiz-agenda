@@ -58,10 +58,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/api/docs" || pathname.startsWith("/api/docs/")) {
-    return NextResponse.next();
-  }
-
   if (PUBLIC_API_ROUTES.some((r) => pathname.startsWith(r))) {
     return NextResponse.next();
   }
