@@ -30,10 +30,29 @@ function inferCategory(title: string, description: string): string {
   return "Otros";
 }
 
-export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
-  const res = await fetch(BASE_URL, { next: { revalidate: 3600 } });
-  const html = await res.text();
+function extractListImages(html: string): Map<string, string> {
   const $ = cheerio.load(html);
+  const map = new Map<string, string>();
+
+  $(".mec-toggle-item-col").each((_, col) => {
+    const title = $(col).closest(".mec-event-article").find(".mec-toggle-title").text().trim();
+    if (!title) return;
+    const img = $(col).find(".mec-event-image a img").first().attr("src");
+    if (img && !map.has(title)) map.set(title, img.startsWith("http") ? img : `https://www.gasteizhoy.com${img}`);
+  });
+
+  return map;
+}
+
+export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
+  const [calendarRes, listRes] = await Promise.all([
+    fetch(BASE_URL, { next: { revalidate: 3600 } }),
+    fetch(`${BASE_URL}?view=list`, { next: { revalidate: 3600 } }).catch(() => null),
+  ]);
+
+  const calendarHtml = await calendarRes.text();
+  const $ = cheerio.load(calendarHtml);
+  const listImages = listRes ? extractListImages(await listRes.text()) : new Map<string, string>();
 
   const events: GasteizHoyEvent[] = [];
 
@@ -65,12 +84,14 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
 
         const category = inferCategory(title, "");
 
+        const image = listImages.get(title) || "";
+
         events.push({
           id: crypto.randomUUID(),
           title,
           date: dateStr,
           time: timeText,
-          image: "",
+          image,
           location,
           link: href,
           description: "",
@@ -80,13 +101,13 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
       });
   });
 
-  if (!process.env.NEXT_BUILD) {
+  const missing = events.filter((e) => !e.image && e.link);
+  if (missing.length && !process.env.NEXT_BUILD) {
     const CONCURRENCY = 5;
-    for (let i = 0; i < events.length; i += CONCURRENCY) {
-      const chunk = events.slice(i, i + CONCURRENCY);
+    for (let i = 0; i < missing.length; i += CONCURRENCY) {
+      const chunk = missing.slice(i, i + CONCURRENCY);
       const results = await Promise.allSettled(
         chunk.map(async (e) => {
-          if (!e.link) return;
           const ogImage = await fetchOgImage(e.link);
           if (ogImage) e.image = ogImage;
         })
