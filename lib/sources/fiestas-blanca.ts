@@ -111,7 +111,7 @@ async function fetchGasteizHoyPage(
       "User-Agent":
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
     },
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) return { events: [], hasNext: false };
@@ -227,7 +227,7 @@ async function fetchDay(dayStart: Date): Promise<any[]> {
     headers: {
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
     },
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(20000),
   });
 
   if (!res.ok) return [];
@@ -236,19 +236,41 @@ async function fetchDay(dayStart: Date): Promise<any[]> {
   return data.actividades?.resultados || [];
 }
 
+async function fetchAllDays(): Promise<any[]> {
+  const allRaw: any[] = [];
+  const days: Date[] = [];
+  const current = new Date(FIESTAS_START);
+
+  while (current <= FIESTAS_END) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < days.length; i += BATCH_SIZE) {
+    const batch = days.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(batch.map((d) => fetchDay(d)));
+    for (const r of results) {
+      if (r.status === "fulfilled") allRaw.push(...r.value);
+    }
+  }
+
+  return allRaw;
+}
+
 export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TTL) return cache;
 
-  try {
-    const allRaw: any[] = [];
-    const current = new Date(FIESTAS_START);
+  const isBuild = process.env.NEXT_PHASE === "phase-production-build";
 
-    while (current <= FIESTAS_END) {
-      const results = await fetchDay(current);
-      allRaw.push(...results);
-      current.setDate(current.getDate() + 1);
-    }
+  try {
+    const [allRaw, categoryMap] = await Promise.all([
+      fetchAllDays(),
+      isBuild
+        ? Promise.resolve(new Map<string, string[]>())
+        : fetchAllGasteizHoyCategories().catch(() => new Map<string, string[]>()),
+    ]);
 
     const seen = new Set<string>();
     const fiestas = allRaw
@@ -266,7 +288,6 @@ export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
         return a.timeStart.localeCompare(b.timeStart);
       });
 
-    const categoryMap = await fetchAllGasteizHoyCategories();
     for (const f of fiestas) {
       f.category = matchCategory(f.title, f.date, categoryMap);
     }
