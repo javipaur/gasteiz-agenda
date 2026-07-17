@@ -1,0 +1,212 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { InViewWrapper, EventCard } from "@/lib/shared";
+import { CATEGORY_COLORS } from "@/lib/categories";
+import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
+
+const BLANCA_COLORS: Record<string, string> = {
+  ...CATEGORY_COLORS,
+  "Conciertos La Blanca": "#C94A3D",
+  "Niños en La Blanca": "#4A9C8C",
+  "Blusas y Neskak": "#0166bf",
+  "Cofradía de la Virgen Blanca": "#7a12e2",
+  "Deporte en La Blanca": "#7CB342",
+  Vaquillas: "#A67C52",
+  Fuegos: "#FF6900",
+  Teatro: "#A67C52",
+  Humor: "#C97B8C",
+};
+
+const DAY_NAMES = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+];
+
+const MONTH_NAMES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
+function formatDateLong(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  return `${DAY_NAMES[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
+}
+
+function mapFiestaToCard(f: FiestaBlanca) {
+  return {
+    id: f.id,
+    title: f.title,
+    date: f.date,
+    image: f.image || undefined,
+    location: f.location || undefined,
+    link: f.url || undefined,
+    category: f.category || "Fiestas",
+    source: "La Blanca 2026",
+    time: f.timeStart || undefined,
+  };
+}
+
+export default function FiestasBlancaPageClient({
+  fiestas,
+}: {
+  fiestas: FiestaBlanca[];
+}) {
+  const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
+  const [selectedDay, setSelectedDay] = useState<string>("Todos");
+
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    fiestas.forEach((f) => {
+      if (f.category) {
+        f.category.split(", ").forEach((c) => cats.add(c));
+      }
+    });
+    return ["Todas", ...Array.from(cats).sort()];
+  }, [fiestas]);
+
+  const days = useMemo(() => {
+    const d = new Set<string>();
+    fiestas.forEach((f) => {
+      if (f.date) d.add(f.date);
+    });
+    return ["Todos", ...Array.from(d).sort()];
+  }, [fiestas]);
+
+  const filtered = useMemo(() => {
+    return fiestas.filter((f) => {
+      if (selectedCategory !== "Todas") {
+        const cats = f.category?.split(", ") || [];
+        if (!cats.includes(selectedCategory)) return false;
+      }
+      if (selectedDay !== "Todos" && f.date !== selectedDay) return false;
+      return true;
+    });
+  }, [fiestas, selectedCategory, selectedDay]);
+
+  const groupedByDay = useMemo(() => {
+    const map = new Map<string, FiestaBlanca[]>();
+    filtered.forEach((f) => {
+      const key = f.date || "sin-fecha";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(f);
+    });
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filtered]);
+
+  return (
+    <section className="pt-28 md:pt-32 pb-16 md:pb-24 px-4">
+      <div className="max-w-7xl mx-auto">
+        <InViewWrapper>
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-3">
+              <h1 className="font-display text-4xl md:text-5xl text-fg font-bold tracking-[-0.03em]">
+                Fiestas de la Virgen Blanca
+              </h1>
+              <span
+                className="h-px flex-1 bg-border max-w-20 hidden sm:block"
+                aria-hidden="true"
+              />
+            </div>
+            <p className="text-fg-muted text-lg">
+              Programa completo · 15 julio – 10 agosto 2026
+            </p>
+          </div>
+        </InViewWrapper>
+
+        <InViewWrapper>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
+                  selectedCategory === cat
+                    ? "bg-fg text-bg border-fg"
+                    : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </InViewWrapper>
+
+        <InViewWrapper>
+          <div className="flex flex-wrap gap-1.5 mb-10">
+            {days.map((day) => {
+              const label =
+                day === "Todos"
+                  ? "Todos"
+                  : formatDateLong(day);
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(day)}
+                  className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-300 ${
+                    selectedDay === day
+                      ? "bg-accent text-white border-accent"
+                      : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </InViewWrapper>
+
+        {groupedByDay.length > 0 ? (
+          groupedByDay.map(([day, events]) => (
+            <div key={day} className="mb-12">
+              <InViewWrapper>
+                <div className="flex items-center gap-3 mb-5">
+                  <h2 className="font-display text-xl md:text-2xl text-fg font-bold">
+                    {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
+                  </h2>
+                  <span className="text-xs font-mono text-fg-subtle bg-bg-muted px-2 py-0.5 rounded-full">
+                    {events.length}
+                  </span>
+                  <span
+                    className="h-px flex-1 bg-border"
+                    aria-hidden="true"
+                  />
+                </div>
+              </InViewWrapper>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                {events.map((f, i) => (
+                  <InViewWrapper key={f.id} delay={i * 0.03} blur>
+                    <EventCard
+                      evento={mapFiestaToCard(f)}
+                      categoryColors={BLANCA_COLORS}
+                    />
+                  </InViewWrapper>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-fg-muted py-16 font-mono text-sm">
+            No se encontraron eventos con los filtros seleccionados
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
