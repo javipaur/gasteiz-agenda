@@ -41,31 +41,22 @@ export default function FiestasBlancaSection({
   if (upcoming.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-24 px-4 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent">
+    <section className="py-20 md:py-28 px-5 sm:px-6 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-end justify-between mb-12">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl" aria-hidden="true">
-                  🎉
-                </span>
-                <h2 className="font-display text-3xl md:text-4xl text-fg font-bold tracking-[-0.02em]">
-                  La Blanca 2026
-                </h2>
-                <span
-                  className="h-px flex-1 bg-border max-w-20 hidden sm:block"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="text-fg-muted">
+              <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-3">
+                La Blanca 2026
+              </h2>
+              <p className="text-fg-muted text-base md:text-lg leading-relaxed">
                 Fiestas de la Virgen Blanca · 15 jul – 10 ago
               </p>
             </div>
 
             <a
               href="/fiestas-blanca"
-              className="hidden md:inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-amber-600 hover:text-amber-700 transition-colors duration-300"
+              className="hidden md:inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-amber-600 hover:text-amber-700 transition-colors duration-300 pb-1"
             >
               Ver todas
               <svg
@@ -82,7 +73,7 @@ export default function FiestasBlancaSection({
           </div>
         </InViewWrapper>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
           {upcoming.map((f, i) => (
             <InViewWrapper key={f.id} delay={i * 0.04} blur>
               <EventCard
@@ -94,7 +85,7 @@ export default function FiestasBlancaSection({
         </div>
 
         <InViewWrapper>
-          <div className="mt-10 text-center">
+          <div className="mt-14 text-center">
             <a
               href="/fiestas-blanca"
               className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-body text-sm hover:bg-amber-600 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]"

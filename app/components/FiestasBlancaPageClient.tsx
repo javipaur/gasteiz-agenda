@@ -110,32 +110,26 @@ export default function FiestasBlancaPageClient({
   }, [filtered]);
 
   return (
-    <section className="pt-28 md:pt-32 pb-16 md:pb-24 px-4">
+    <section className="pt-28 md:pt-32 pb-20 md:pb-28 px-5 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="mb-10">
-            <div className="flex items-center gap-3 mb-3">
-              <h1 className="font-display text-4xl md:text-5xl text-fg font-bold tracking-[-0.03em]">
-                Fiestas de la Virgen Blanca
-              </h1>
-              <span
-                className="h-px flex-1 bg-border max-w-20 hidden sm:block"
-                aria-hidden="true"
-              />
-            </div>
-            <p className="text-fg-muted text-lg">
+          <div className="mb-14">
+            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-4">
+              Fiestas de la Virgen Blanca
+            </h1>
+            <p className="text-fg-muted text-lg md:text-xl leading-relaxed max-w-2xl">
               Programa completo · 15 julio – 10 agosto 2026
             </p>
           </div>
         </InViewWrapper>
 
         <InViewWrapper>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-5">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
+                className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
                   selectedCategory === cat
                     ? "bg-fg text-bg border-fg"
                     : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
@@ -148,7 +142,7 @@ export default function FiestasBlancaPageClient({
         </InViewWrapper>
 
         <InViewWrapper>
-          <div className="flex flex-wrap gap-1.5 mb-10">
+          <div className="flex flex-wrap gap-2 mb-14">
             {days.map((day) => {
               const label =
                 day === "Todos"
@@ -158,7 +152,7 @@ export default function FiestasBlancaPageClient({
                 <button
                   key={day}
                   onClick={() => setSelectedDay(day)}
-                  className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-300 ${
+                  className={`px-3.5 py-2 text-xs rounded-full border transition-all duration-300 ${
                     selectedDay === day
                       ? "bg-accent text-white border-accent"
                       : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
@@ -173,23 +167,19 @@ export default function FiestasBlancaPageClient({
 
         {groupedByDay.length > 0 ? (
           groupedByDay.map(([day, events]) => (
-            <div key={day} className="mb-12">
+            <div key={day} className="mb-16">
               <InViewWrapper>
-                <div className="flex items-center gap-3 mb-5">
-                  <h2 className="font-display text-xl md:text-2xl text-fg font-bold">
+                <div className="flex items-center gap-3 mb-6 pb-3 border-b border-border">
+                  <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em]">
                     {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
                   </h2>
-                  <span className="text-xs font-mono text-fg-subtle bg-bg-muted px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-mono text-fg-subtle bg-bg-muted px-2.5 py-1 rounded-full">
                     {events.length}
                   </span>
-                  <span
-                    className="h-px flex-1 bg-border"
-                    aria-hidden="true"
-                  />
                 </div>
               </InViewWrapper>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
                 {events.map((f, i) => (
                   <InViewWrapper key={f.id} delay={i * 0.03} blur>
                     <EventCard
@@ -202,7 +192,7 @@ export default function FiestasBlancaPageClient({
             </div>
           ))
         ) : (
-          <p className="text-center text-fg-muted py-16 font-mono text-sm">
+          <p className="text-center text-fg-muted py-20 font-mono text-sm">
             No se encontraron eventos con los filtros seleccionados
           </p>
         )}

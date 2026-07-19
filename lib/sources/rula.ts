@@ -77,13 +77,20 @@ export async function scrapeRula(): Promise<RulaEvent[]> {
     const href = linkEl.attr("href") || "";
     if (!href.includes("/events/")) return;
 
+    const rawImage =
+      $el.find(".mec-event-image img").attr("data-src") ||
+      $el.find(".mec-event-image img").attr("src") ||
+      "";
+    const image = rawImage.startsWith("http")
+      ? rawImage
+      : rawImage
+        ? `${BASE_URL}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`
+        : "";
+
     listings.push({
       href,
       title: linkEl.text().trim(),
-      image:
-        $el.find(".mec-event-image img").attr("data-src") ||
-        $el.find(".mec-event-image img").attr("src") ||
-        "",
+      image,
       time: $el.find(".mec-event-time").text().replace(/^\s*/, "").trim(),
       location: $el.find(".mec-event-loc-place").text().trim(),
     });
