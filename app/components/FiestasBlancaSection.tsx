@@ -44,8 +44,8 @@ export default function FiestasBlancaSection({
     <section className="py-20 md:py-28 px-5 sm:px-6 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="mb-12">
-            <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-3">
+          <div className="mb-16">
+            <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-4">
               La Blanca 2026
             </h2>
             <p className="text-fg-muted text-base md:text-lg leading-relaxed">
@@ -54,7 +54,7 @@ export default function FiestasBlancaSection({
           </div>
         </InViewWrapper>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-7">
           {upcoming.map((f, i) => (
             <InViewWrapper key={f.id} delay={i * 0.04} blur>
               <EventCard

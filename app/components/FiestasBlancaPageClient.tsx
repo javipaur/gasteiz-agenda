@@ -127,7 +127,7 @@ export default function FiestasBlancaPageClient({
       <section className="px-5 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <InViewWrapper>
-            <div className="py-6 border-t border-border">
+            <div className="py-8 border-t border-border">
               <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-4">Categoría</p>
               <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
@@ -148,7 +148,7 @@ export default function FiestasBlancaPageClient({
           </InViewWrapper>
 
           <InViewWrapper>
-            <div className="py-6 border-t border-border">
+            <div className="py-8 border-t border-border">
               <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-4">Día</p>
               <div className="flex flex-wrap gap-2">
                 {days.map((day) => {
@@ -176,13 +176,13 @@ export default function FiestasBlancaPageClient({
         </div>
       </section>
 
-      <section className="px-5 sm:px-6 pt-10 pb-20 md:pb-28">
+      <section className="px-5 sm:px-6 pt-14 pb-20 md:pb-28">
         <div className="max-w-7xl mx-auto">
           {groupedByDay.length > 0 ? (
             groupedByDay.map(([day, events]) => (
-              <div key={day} className="mb-14 last:mb-0">
+              <div key={day} className="mb-16 last:mb-0">
                 <InViewWrapper>
-                  <div className="mb-8">
+                  <div className="mb-10">
                     <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em] mb-2">
                       {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
                     </h2>

@@ -30,6 +30,36 @@ function inferCategory(title: string, description: string): string {
   return "Otros";
 }
 
+const AD_IMAGE_PATTERNS = [
+  /banner/i,
+  /publicidad/i,
+  /patrocinad/i,
+  /anuncio/i,
+  /\.gif$/i,
+  /\/ads?\//i,
+  /\/ad-\w+/i,
+  /728\s*[:x]\s*90/i,
+  /300\s*[:x]\s*250/i,
+  /160\s*[:x]\s*600/i,
+  /320\s*[:x]\s*50/i,
+  /970\s*[:x]\s*250/i,
+  /googlead/i,
+  /doubleclick/i,
+  /googlesyndication/i,
+  /facebook\.com\/tr/i,
+  /fbcdn.*safety/i,
+  /pixel/i,
+  /track/i,
+  /spacer/i,
+  /blank\./i,
+  /1x1\./i,
+];
+
+function isAdImage(url: string): boolean {
+  if (!url) return false;
+  return AD_IMAGE_PATTERNS.some((p) => p.test(url));
+}
+
 function extractListImages(html: string): Map<string, string> {
   const $ = cheerio.load(html);
   const map = new Map<string, string>();
@@ -38,7 +68,10 @@ function extractListImages(html: string): Map<string, string> {
     const title = $(col).closest(".mec-event-article").find(".mec-toggle-title").text().trim();
     if (!title) return;
     const img = $(col).find(".mec-event-image a img").first().attr("src");
-    if (img && !map.has(title)) map.set(title, img.startsWith("http") ? img : `https://www.gasteizhoy.com${img}`);
+    if (img && !map.has(title)) {
+      const full = img.startsWith("http") ? img : `https://www.gasteizhoy.com${img}`;
+      if (!isAdImage(full)) map.set(title, full);
+    }
   });
 
   return map;
@@ -109,7 +142,7 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
       const results = await Promise.allSettled(
         chunk.map(async (e) => {
           const ogImage = await fetchOgImage(e.link);
-          if (ogImage) e.image = ogImage;
+          if (ogImage && !isAdImage(ogImage)) e.image = ogImage;
         })
       );
       results.forEach((r, j) => {
