@@ -110,99 +110,107 @@ export default function FiestasBlancaPageClient({
   }, [filtered]);
 
   return (
-    <section className="pt-32 md:pt-36 pb-20 md:pb-28 px-5 sm:px-6">
-      <div className="max-w-7xl mx-auto">
-        <InViewWrapper>
-          <div className="mb-16">
-            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-5">
+    <div className="min-h-screen">
+      <section className="pt-32 md:pt-36 pb-8 px-5 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <InViewWrapper>
+            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-4">
               Fiestas de la Virgen Blanca
             </h1>
             <p className="text-fg-muted text-lg md:text-xl leading-relaxed max-w-2xl">
               Programa completo · 15 julio – 10 agosto 2026
             </p>
-          </div>
-        </InViewWrapper>
+          </InViewWrapper>
+        </div>
+      </section>
 
-        <InViewWrapper>
-          <div className="mb-8">
-            <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-3">Categoría</p>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
-                    selectedCategory === cat
-                      ? "bg-fg text-bg border-fg"
-                      : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        </InViewWrapper>
-
-        <InViewWrapper>
-          <div className="mb-16">
-            <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-3">Día</p>
-            <div className="flex flex-wrap gap-2">
-              {days.map((day) => {
-                const label =
-                  day === "Todos"
-                    ? "Todos"
-                    : formatDateLong(day);
-                return (
+      <section className="px-5 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <InViewWrapper>
+            <div className="py-6 border-t border-border">
+              <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-4">Categoría</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
                   <button
-                    key={day}
-                    onClick={() => setSelectedDay(day)}
-                    className={`px-3.5 py-2 text-xs rounded-full border transition-all duration-300 ${
-                      selectedDay === day
-                        ? "bg-accent text-white border-accent"
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
+                      selectedCategory === cat
+                        ? "bg-fg text-bg border-fg"
                         : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
                     }`}
                   >
-                    {label}
+                    {cat}
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        </InViewWrapper>
-
-        {groupedByDay.length > 0 ? (
-          groupedByDay.map(([day, events]) => (
-            <div key={day} className="mb-16">
-              <InViewWrapper>
-                <div className="mb-6">
-                  <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em] mb-1.5">
-                    {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
-                  </h2>
-                  <span className="text-xs font-mono text-fg-subtle">
-                    {events.length} {events.length === 1 ? "evento" : "eventos"}
-                  </span>
-                </div>
-              </InViewWrapper>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-                {events.map((f, i) => (
-                  <InViewWrapper key={f.id} delay={i * 0.03} blur>
-                    <EventCard
-                      evento={mapFiestaToCard(f)}
-                      categoryColors={BLANCA_COLORS}
-                    />
-                  </InViewWrapper>
                 ))}
               </div>
             </div>
-          ))
-        ) : (
-          <p className="text-center text-fg-muted py-20 font-mono text-sm">
-            No se encontraron eventos con los filtros seleccionados
-          </p>
-        )}
-      </div>
-    </section>
+          </InViewWrapper>
+
+          <InViewWrapper>
+            <div className="py-6 border-t border-border">
+              <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-4">Día</p>
+              <div className="flex flex-wrap gap-2">
+                {days.map((day) => {
+                  const label =
+                    day === "Todos"
+                      ? "Todos"
+                      : formatDateLong(day);
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDay(day)}
+                      className={`px-3.5 py-2 text-xs rounded-full border transition-all duration-300 ${
+                        selectedDay === day
+                          ? "bg-accent text-white border-accent"
+                          : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </InViewWrapper>
+        </div>
+      </section>
+
+      <section className="px-5 sm:px-6 pt-10 pb-20 md:pb-28">
+        <div className="max-w-7xl mx-auto">
+          {groupedByDay.length > 0 ? (
+            groupedByDay.map(([day, events]) => (
+              <div key={day} className="mb-14 last:mb-0">
+                <InViewWrapper>
+                  <div className="mb-8">
+                    <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em] mb-2">
+                      {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
+                    </h2>
+                    <span className="text-xs font-mono text-fg-subtle">
+                      {events.length} {events.length === 1 ? "evento" : "eventos"}
+                    </span>
+                  </div>
+                </InViewWrapper>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+                  {events.map((f, i) => (
+                    <InViewWrapper key={f.id} delay={i * 0.03} blur>
+                      <EventCard
+                        evento={mapFiestaToCard(f)}
+                        categoryColors={BLANCA_COLORS}
+                      />
+                    </InViewWrapper>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-fg-muted py-20 font-mono text-sm">
+              No se encontraron eventos con los filtros seleccionados
+            </p>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
