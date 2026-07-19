@@ -110,11 +110,11 @@ export default function FiestasBlancaPageClient({
   }, [filtered]);
 
   return (
-    <section className="pt-28 md:pt-32 pb-20 md:pb-28 px-5 sm:px-6">
+    <section className="pt-32 md:pt-36 pb-20 md:pb-28 px-5 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="mb-14">
-            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-4">
+          <div className="mb-16">
+            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-5">
               Fiestas de la Virgen Blanca
             </h1>
             <p className="text-fg-muted text-lg md:text-xl leading-relaxed max-w-2xl">
@@ -124,44 +124,50 @@ export default function FiestasBlancaPageClient({
         </InViewWrapper>
 
         <InViewWrapper>
-          <div className="flex flex-wrap gap-2 mb-5">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
-                  selectedCategory === cat
-                    ? "bg-fg text-bg border-fg"
-                    : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          <div className="mb-8">
+            <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-3">Categoría</p>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
+                    selectedCategory === cat
+                      ? "bg-fg text-bg border-fg"
+                      : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
         </InViewWrapper>
 
         <InViewWrapper>
-          <div className="flex flex-wrap gap-2 mb-14">
-            {days.map((day) => {
-              const label =
-                day === "Todos"
-                  ? "Todos"
-                  : formatDateLong(day);
-              return (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDay(day)}
-                  className={`px-3.5 py-2 text-xs rounded-full border transition-all duration-300 ${
-                    selectedDay === day
-                      ? "bg-accent text-white border-accent"
-                      : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+          <div className="mb-16">
+            <p className="text-xs font-mono uppercase tracking-wider text-fg-subtle mb-3">Día</p>
+            <div className="flex flex-wrap gap-2">
+              {days.map((day) => {
+                const label =
+                  day === "Todos"
+                    ? "Todos"
+                    : formatDateLong(day);
+                return (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDay(day)}
+                    className={`px-3.5 py-2 text-xs rounded-full border transition-all duration-300 ${
+                      selectedDay === day
+                        ? "bg-accent text-white border-accent"
+                        : "bg-transparent text-fg-muted border-border hover:border-fg-muted hover:text-fg"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </InViewWrapper>
 
@@ -169,12 +175,12 @@ export default function FiestasBlancaPageClient({
           groupedByDay.map(([day, events]) => (
             <div key={day} className="mb-16">
               <InViewWrapper>
-                <div className="flex items-center gap-3 mb-6 pb-3 border-b border-border">
-                  <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em]">
+                <div className="mb-6">
+                  <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em] mb-1.5">
                     {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
                   </h2>
-                  <span className="text-xs font-mono text-fg-subtle bg-bg-muted px-2.5 py-1 rounded-full">
-                    {events.length}
+                  <span className="text-xs font-mono text-fg-subtle">
+                    {events.length} {events.length === 1 ? "evento" : "eventos"}
                   </span>
                 </div>
               </InViewWrapper>

@@ -44,32 +44,13 @@ export default function FiestasBlancaSection({
     <section className="py-20 md:py-28 px-5 sm:px-6 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-3">
-                La Blanca 2026
-              </h2>
-              <p className="text-fg-muted text-base md:text-lg leading-relaxed">
-                Fiestas de la Virgen Blanca · 15 jul – 10 ago
-              </p>
-            </div>
-
-            <a
-              href="/fiestas-blanca"
-              className="hidden md:inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-amber-600 hover:text-amber-700 transition-colors duration-300 pb-1"
-            >
-              Ver todas
-              <svg
-                className="w-3 h-3"
-                viewBox="0 0 12 12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              >
-                <path d="M2.5 9.5l7-7M3.5 2.5h6v6" />
-              </svg>
-            </a>
+          <div className="mb-12">
+            <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-3">
+              La Blanca 2026
+            </h2>
+            <p className="text-fg-muted text-base md:text-lg leading-relaxed">
+              Fiestas de la Virgen Blanca · 15 jul – 10 ago
+            </p>
           </div>
         </InViewWrapper>
 
