@@ -92,7 +92,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   const { day, month, year } = formatSpanishDate(displayDate.date);
 
   return (
-    <section className="px-4 pt-28 pb-16 md:pt-36 md:pb-24">
+    <section className="px-5 sm:px-6 pt-28 pb-16 md:pt-36 md:pb-24">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
           <div className="flex items-center gap-3 mb-6">
@@ -105,7 +105,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
 
         <InViewWrapper>
           <div className="mb-2 flex items-end gap-4 md:gap-6">
-            <span className="font-display text-[5rem] md:text-[9rem] leading-[0.85] font-black text-fg tracking-[-0.04em] select-none">
+            <span className="font-display text-[3.5rem] sm:text-[5rem] md:text-[9rem] leading-[0.85] font-black text-fg tracking-[-0.04em] select-none">
               {day}
             </span>
             <div className="pb-2 md:pb-4">
@@ -150,14 +150,14 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                       : "none",
                 }}
               >
-                <span className="font-mono text-[10px] uppercase tracking-[0.15em]">
+                <span className="font-mono text-[11px] uppercase tracking-[0.15em]">
                   {dayItem.label}
                 </span>
                 <span className="font-display text-2xl font-bold leading-tight">
                   {new Date(dayItem.date).getDate()}
                 </span>
                 <span
-                  className={`font-mono text-[9px] uppercase tracking-wider ${
+                  className={`font-mono text-[10px] uppercase tracking-wider ${
                     selectedDay === idx ? "text-white/70" : "text-fg-subtle"
                   }`}
                 >

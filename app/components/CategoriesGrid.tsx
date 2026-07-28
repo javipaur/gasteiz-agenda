@@ -78,7 +78,7 @@ const categories = [
 
 export default function CategoriesGrid() {
   return (
-    <section className="px-4 py-16 md:py-24 max-w-7xl mx-auto">
+    <section className="px-5 sm:px-6 py-16 md:py-24 max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-8">
         <h2 className="font-display text-3xl md:text-4xl text-fg font-bold tracking-[-0.02em]">
           Explora

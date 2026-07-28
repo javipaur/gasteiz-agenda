@@ -30,7 +30,7 @@ export default function FavoriteButton({ event, className = "" }: Props) {
         toggleFavorite(event);
       }}
       aria-label={fav ? "Quitar de favoritos" : "Añadir a favoritos"}
-      className={`z-10 flex items-center justify-center w-9 h-9 rounded-full backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-110 active:scale-[0.92] ${fav ? "bg-white/30 text-accent" : "bg-black/30 text-white/80 hover:text-white hover:bg-black/50"} ${className}`}
+      className={`z-10 flex items-center justify-center w-11 h-11 rounded-full backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-110 active:scale-[0.92] ${fav ? "bg-white/30 text-accent" : "bg-black/30 text-white/80 hover:text-white hover:bg-black/50"} ${className}`}
       style={{ boxShadow: fav ? '0 0 12px rgba(201, 74, 61, 0.3)' : 'inset 0 1px 0 rgba(255,255,255,0.15)' }}
     >
       <HeartIcon filled={fav} className="w-[18px] h-[18px]" />

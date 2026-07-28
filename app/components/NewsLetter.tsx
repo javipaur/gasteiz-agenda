@@ -56,7 +56,7 @@ export default function Newsletter() {
   }
 
   return (
-    <section className="px-4 py-20 md:py-28 max-w-7xl mx-auto">
+    <section className="px-5 sm:px-6 py-20 md:py-28 max-w-7xl mx-auto">
       <div
         ref={ref}
         className="double-bezel-outer rounded-[1.75rem] p-2"

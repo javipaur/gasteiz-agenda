@@ -131,7 +131,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 text-center text-white/40 text-sm py-6 font-mono text-xs">
+        <div className="border-t border-white/10 text-center text-white/40 text-sm py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-mono text-xs">
           &copy; {new Date().getFullYear()} Gasteiz Click
         </div>
       </div>

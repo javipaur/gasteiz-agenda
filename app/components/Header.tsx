@@ -124,9 +124,10 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-[var(--z-nav)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`fixed left-0 right-0 z-[var(--z-nav)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           scrolled ? "mt-0" : "mt-0 md:mt-4"
         }`}
+        style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className={`
           mx-auto transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
@@ -202,7 +203,7 @@ export default function Header() {
                       setSearchOpen(true);
                     }
                   }}
-                  className={`p-2 rounded-full transition-all duration-300 ${
+                  className={`p-2.5 min-w-[44px] min-h-[44px] rounded-full transition-all duration-300 ${
                     searchOpen ? "hidden" : "flex"
                   } text-fg-muted hover:text-fg hover:bg-bg-muted`}
                   aria-label="Buscar"
@@ -213,7 +214,7 @@ export default function Header() {
 
               <Link
                 href="/favoritos"
-                className={`relative hidden md:flex items-center justify-center p-2 rounded-full transition-all duration-300 ${
+                className={`relative hidden md:flex items-center justify-center p-2.5 min-w-[44px] min-h-[44px] rounded-full transition-all duration-300 ${
                   pathname === "/favoritos"
                     ? "text-accent bg-accent-soft"
                     : "text-fg-muted hover:text-fg hover:bg-bg-muted"
@@ -222,7 +223,7 @@ export default function Header() {
               >
                 <Heart size={16} strokeWidth={1.5} />
                 {count > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-accent text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 bg-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                     {count > 9 ? "9+" : count}
                   </span>
                 )}
@@ -231,7 +232,7 @@ export default function Header() {
               {deferredPrompt && (
                 <button
                   onClick={handleInstall}
-                  className="hidden md:flex p-2 text-fg-muted hover:text-accent transition-colors rounded-full hover:bg-accent-soft"
+                  className="hidden md:flex p-2.5 min-w-[44px] min-h-[44px] text-fg-muted hover:text-accent transition-colors rounded-full hover:bg-accent-soft"
                   aria-label="Instalar app"
                 >
                   <DownloadIcon className="w-4 h-4" />
@@ -242,14 +243,14 @@ export default function Header() {
                 href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden md:flex p-2 text-fg-muted hover:text-fg transition-colors rounded-full hover:bg-bg-muted"
+                className="hidden md:flex p-2.5 min-w-[44px] min-h-[44px] text-fg-muted hover:text-fg transition-colors rounded-full hover:bg-bg-muted"
                 aria-label="App Android"
               >
                 <PlayStoreIcon className="w-4 h-4" />
               </a>
 
               <button
-                className="md:hidden relative w-9 h-9 flex items-center justify-center rounded-full bg-bg-muted border border-border text-fg-muted hover:text-fg transition-all duration-300"
+                className="md:hidden relative w-11 h-11 flex items-center justify-center rounded-full bg-bg-muted border border-border text-fg-muted hover:text-fg transition-all duration-300"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
                 aria-expanded={isMenuOpen}

@@ -1,0 +1,35 @@
+{
+  "name": "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
+  "short_name": "Gasteiz Click",
+  "description": "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFCF9",
+  "theme_color": "#C94A3D",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["entertainment", "lifestyle", "events"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

@@ -67,7 +67,7 @@ export default function InstallBanner() {
   if (!showBanner || dismissed) return null;
 
   return (
-    <section className="px-4 py-8 max-w-7xl mx-auto">
+    <section className="px-5 sm:px-6 py-8 max-w-7xl mx-auto">
       <div className="relative overflow-hidden rounded-[1.25rem] bg-fg text-white p-6 md:p-8">
         <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
@@ -107,7 +107,7 @@ export default function InstallBanner() {
 
             <button
               onClick={handleDismiss}
-              className="p-2 text-white/40 hover:text-white/70 transition-colors"
+              className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors"
               aria-label="Cerrar"
             >
               <CloseIcon className="w-4 h-4" />

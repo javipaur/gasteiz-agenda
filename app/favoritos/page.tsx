@@ -1,18 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import Link from "next/link";
-
-const MONTHS = [
-  "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
-  "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
-];
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return {
     day: isNaN(d.getTime()) ? "??" : d.getDate(),
-    month: isNaN(d.getTime()) ? "???" : MONTHS[d.getMonth()],
+    month: isNaN(d.getTime()) ? "???" : new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", ""),
     full: !isNaN(d.getTime())
       ? d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
       : "",
@@ -47,7 +43,7 @@ export default function FavoritosPage() {
   const { favorites, toggleFavorite, count } = useFavorites();
 
   return (
-    <div className="px-4 max-w-7xl mx-auto pt-28 pb-32">
+    <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <header className="mb-12">
         <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-3">
           Favoritos
@@ -94,11 +90,12 @@ export default function FavoritosPage() {
                   >
                     <div className="aspect-[4/3] relative">
                       {evento.image ? (
-                        <img
+                        <Image
                           src={evento.image}
                           alt={evento.title}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
                         />
                       ) : (
                         <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
@@ -126,7 +123,7 @@ export default function FavoritosPage() {
                           toggleFavorite(evento);
                         }}
                         aria-label="Quitar de favoritos"
-                        className="absolute top-3 right-3 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-white/30 backdrop-blur-xl text-accent hover:scale-110 active:scale-[0.92] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+                        className="absolute top-3 right-3 z-10 flex items-center justify-center w-11 h-11 rounded-full bg-white/30 backdrop-blur-xl text-accent hover:scale-110 active:scale-[0.92] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
                         style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)' }}
                       >
                         <TrashIcon className="w-4 h-4" />

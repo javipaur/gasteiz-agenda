@@ -1,7 +1,4 @@
-const MONTHS = [
-  "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
-  "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
-];
+import Image from "next/image";
 
 type Pelicula = {
   titulo: string;
@@ -22,7 +19,7 @@ function formatDate() {
   const d = new Date();
   return {
     day: d.getDate(),
-    month: MONTHS[d.getMonth()],
+    month: new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", ""),
   };
 }
 
@@ -48,11 +45,12 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
     >
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className="aspect-[4/3] relative">
-          <img
+          <Image
             src={pelicula.imagen}
             alt={pelicula.titulo}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-            loading="lazy"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
@@ -66,23 +64,23 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
             </span>
           </div>
 
-          <div className={`absolute top-3 right-3 ${badgeColor} text-white text-[10px] font-mono uppercase tracking-wider px-2.5 py-1`}
+          <div className={`absolute top-3 right-3 ${badgeColor} text-white text-[11px] font-mono uppercase tracking-wider px-2.5 py-1`}
             style={{ borderRadius: '6px' }}>
             {pelicula.cine}
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h3 className="font-display text-base font-semibold text-white leading-snug mb-1">
+            <h3 className="font-display text-base font-semibold text-white leading-snug mb-1 line-clamp-2">
               {pelicula.titulo}
             </h3>
-            <p className="font-mono text-xs text-white/70">
+            <p className="font-mono text-xs text-white/70 line-clamp-1">
               {pelicula.genero}{pelicula.duracion ? ` · ${pelicula.duracion}` : ""}
             </p>
           </div>
         </div>
 
         <div className="p-4 bg-surface">
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-fg-muted mb-2">
+          <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-fg-muted mb-2">
             Horarios
           </p>
           <div className="flex flex-wrap gap-1.5">

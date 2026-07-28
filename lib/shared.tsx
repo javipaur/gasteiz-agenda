@@ -1,9 +1,18 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { formatDate, sourceLabel } from "@/lib/utils";
 
 export { formatDate, sourceLabel };
+
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 7a3 3 0 100-6 3 3 0 000 6zM5 13a3 3 0 100-6 3 3 0 000 6zM15 19a3 3 0 100-6 3 3 0 000 6zM7.59 11.51l4.83 2.98M12.41 11.51L7.59 8.53" />
+    </svg>
+  );
+}
 
 export type EventCardEvento = {
   id: string;
@@ -82,6 +91,22 @@ export function EventCard({
 
   const aspectClass = size === "large" ? "aspect-[16/10]" : size === "compact" ? "aspect-[3/2]" : "aspect-[4/3]";
 
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const shareData = {
+      title: evento.title,
+      text: `${evento.title}${evento.location ? ` en ${evento.location}` : ""}`,
+      url: evento.link || window.location.href,
+    };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch {}
+    } else {
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareData.text)}&url=${encodeURIComponent(shareData.url)}`;
+      window.open(twitterUrl, "_blank", "noopener,noreferrer,width=600,height=400");
+    }
+  }, [evento]);
+
   return (
     <a
       href={evento.link || "#"}
@@ -92,11 +117,12 @@ export function EventCard({
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className={`${aspectClass} relative`}>
           {evento.image ? (
-            <img
+            <Image
               src={evento.image}
               alt={evento.title}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-              loading="lazy"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
             />
           ) : (
             <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
@@ -119,12 +145,21 @@ export function EventCard({
             </span>
           </div>
 
+          <button
+            onClick={handleShare}
+            aria-label="Compartir evento"
+            className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/50 flex items-center justify-center transition-all duration-300 active:scale-[0.92]"
+            style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)" }}
+          >
+            <ShareIcon className="w-4 h-4" />
+          </button>
+
           <div className="absolute bottom-0 left-0 right-0 p-4">
             {(showCategory || showSource) && (
               <div className="flex items-center gap-1.5 mb-1.5">
                 {showCategory && evento.category && (
                   <span
-                    className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5"
+                    className="font-mono text-[11px] uppercase tracking-wider px-1.5 py-0.5"
                     style={{
                       backgroundColor: `${catColor}CC`,
                       color: "white",
@@ -135,7 +170,7 @@ export function EventCard({
                   </span>
                 )}
                 {showSource && evento.source && (
-                  <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-white/50">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-white/50">
                     {sourceLabel(evento.source)}
                   </span>
                 )}

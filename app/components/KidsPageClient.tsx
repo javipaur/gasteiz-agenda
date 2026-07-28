@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import Image from "next/image";
+import { InViewWrapper } from "@/lib/shared";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
@@ -12,52 +13,9 @@ type Evento = {
   link: string;
 };
 
-const MONTHS = [
-  "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
-  "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
-];
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return {
-    day: isNaN(d.getTime()) ? "??" : d.getDate(),
-    month: isNaN(d.getTime()) ? "???" : MONTHS[d.getMonth()],
-  };
-}
-
-function InViewWrapper({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.05 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px) blur(4px)',
-        transition: `all 0.8s cubic-bezier(0.32, 0.72, 0, 1) ${delay}s`,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
   return (
-    <div className="px-4 max-w-7xl mx-auto pt-28 pb-32">
+    <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <header className="mb-12">
         <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-3">
           Familia
@@ -77,9 +35,11 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {eventos.map((evento, index) => {
-            const { day, month } = formatDate(evento.date);
+            const d = new Date(evento.date);
+            const month = isNaN(d.getTime()) ? "???" : new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", "");
+            const day = isNaN(d.getTime()) ? "??" : d.getDate();
             return (
-              <InViewWrapper key={evento.id} delay={index * 0.05}>
+              <InViewWrapper key={evento.id} delay={Math.min(index * 0.04, 0.4)}>
                 <a
                   href={evento.link || "#"}
                   target="_blank"
@@ -89,11 +49,12 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
                   <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
                     <div className="aspect-[4/3] relative">
                       {evento.image ? (
-                        <img
+                        <Image
                           src={evento.image}
                           alt={evento.title}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
                         />
                       ) : (
                         <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
