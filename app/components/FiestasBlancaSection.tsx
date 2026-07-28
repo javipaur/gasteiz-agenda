@@ -36,27 +36,33 @@ export default function FiestasBlancaSection({
 
   const upcoming = fiestas
     .filter((f) => f.date >= new Date().toISOString().slice(0, 10))
-    .slice(0, 8);
+    .slice(0, 12);
 
   if (upcoming.length === 0) return null;
 
   return (
-    <section className="py-20 md:py-28 px-5 sm:px-6 bg-gradient-to-b from-amber-500/5 via-transparent to-transparent">
+    <section className="py-16 md:py-20 px-5 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="mb-16">
-            <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-4">
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-amber-600 font-medium">
+                Fiestas
+              </span>
+              <span className="h-px flex-1 bg-amber-200 max-w-16" aria-hidden="true" />
+            </div>
+            <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-2">
               La Blanca 2026
             </h2>
-            <p className="text-fg-muted text-base md:text-lg leading-relaxed">
-              Fiestas de la Virgen Blanca · 15 jul – 10 ago
+            <p className="text-fg-muted text-base">
+              15 julio – 10 agosto · Programación completa
             </p>
           </div>
         </InViewWrapper>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-7">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {upcoming.map((f, i) => (
-            <InViewWrapper key={f.id} delay={i * 0.04} blur>
+            <InViewWrapper key={f.id} delay={i * 0.04}>
               <EventCard
                 evento={mapFiestaToCard(f)}
                 categoryColors={BLANCA_COLORS}
@@ -66,21 +72,22 @@ export default function FiestasBlancaSection({
         </div>
 
         <InViewWrapper>
-          <div className="mt-14 text-center">
+          <div className="mt-10">
             <a
               href="/fiestas-blanca"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-full font-body text-sm hover:bg-amber-600 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300 group"
             >
               Ver programa completo
               <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 14 14"
+                className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5"
+                viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M3 11l8-8M5 3h6v6" />
+                <path d="M3 8h10M9 4l4 4-4 4" />
               </svg>
             </a>
           </div>

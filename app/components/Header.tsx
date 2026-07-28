@@ -9,6 +9,7 @@ import { useFavorites } from "@/app/context/FavoritesContext";
 const navItems = [
   { name: "Inicio", href: "/" },
   { name: "La Blanca", href: "/fiestas-blanca", accent: true },
+  { name: "Conciertos", href: "/conciertos" },
   { name: "Cartelera", href: "/movies" },
   { name: "Niños", href: "/kids" },
   { name: "Cultura", href: "/culture" },

@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import FavoriteButton from "./FavoriteButton";
-import {
-  InViewWrapper,
-  EventCard,
-} from "@/lib/shared";
+import { InViewWrapper, EventCard } from "@/lib/shared";
 import { formatSpanishDate, localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
 
@@ -43,9 +39,10 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
       date.setDate(date.getDate() + i);
       const dateStr = localDateStr(date);
       const daysOfWeek = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+      const daysOfShort = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
       groups.push({
         date: dateStr,
-        label: i === 0 ? "HOY" : daysOfWeek[date.getDay()],
+        label: i === 0 ? "Hoy" : daysOfWeek[date.getDay()],
         isToday: i === 0,
         count: 0,
         events: [],
@@ -89,82 +86,79 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   }, [dayEvents, categoryFilter]);
 
   const displayDate = selectedDay !== null ? weekDays[selectedDay] : weekDays[0];
-  const { day, month, year } = formatSpanishDate(displayDate.date);
+  const { month, year } = formatSpanishDate(displayDate.date);
+  const totalThisWeek = weekDays.reduce((s, d) => s + d.count, 0);
 
   return (
-    <section className="px-5 sm:px-6 pt-28 pb-16 md:pt-36 md:pb-24">
+    <section className="px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="flex items-center gap-3 mb-6">
-            <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent font-medium">
+          <div className="flex items-center gap-3 mb-8">
+            <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-fg-subtle">
               Vitoria-Gasteiz
             </span>
-            <span className="h-px flex-1 bg-border max-w-20" aria-hidden="true" />
+            <span className="h-px flex-1 bg-border max-w-12" aria-hidden="true" />
+            <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-fg-subtle">
+              {month} {year}
+            </span>
           </div>
         </InViewWrapper>
 
         <InViewWrapper>
-          <div className="mb-2 flex items-end gap-4 md:gap-6">
-            <span className="font-display text-[3.5rem] sm:text-[5rem] md:text-[9rem] leading-[0.85] font-black text-fg tracking-[-0.04em] select-none">
-              {day}
-            </span>
-            <div className="pb-2 md:pb-4">
-              <span className="font-mono text-sm md:text-base text-fg-muted block">
-                {month} {year}
-              </span>
-            </div>
-          </div>
-
-          <h1 className="font-display text-3xl md:text-5xl font-black text-fg leading-tight mb-3 tracking-[-0.02em]">
-            Gasteiz tiene plan
+          <h1 className="font-display text-[2.5rem] sm:text-[3.25rem] md:text-[4rem] font-black text-fg leading-[1.05] tracking-[-0.03em] mb-4 max-w-2xl">
+            Qué hacer en
+            <br />
+            <span className="text-accent">Vitoria</span>
           </h1>
 
-          <p className="text-base md:text-lg text-fg-muted max-w-lg mb-10 leading-relaxed">
-            Conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.
+          <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-10">
+            {totalThisWeek > 0
+              ? `${totalThisWeek} eventos esta semana. Cultura, deporte, cine y planes para todos.`
+              : "Conciertos, exposiciones, cine, deporte y planes familiares."}
           </p>
         </InViewWrapper>
 
         <InViewWrapper>
           <div
-            className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4"
+            className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1"
             role="tablist"
             aria-label="Selecciona un día"
           >
-            {weekDays.map((dayItem, idx) => (
-              <button
-                key={dayItem.date}
-                onClick={() => toggleDay(idx)}
-                role="tab"
-                aria-selected={selectedDay === idx}
-                aria-controls={`day-panel-${idx}`}
-                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-3 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
-                  selectedDay === idx
-                    ? "bg-accent text-white"
-                    : "bg-surface border border-border text-fg-muted hover:border-border-hover hover:text-fg"
-                }`}
-                style={{
-                  borderRadius: selectedDay === idx ? "16px" : "14px",
-                  boxShadow:
-                    selectedDay === idx
-                      ? "0 4px 12px rgba(201, 74, 61, 0.25)"
-                      : "none",
-                }}
-              >
-                <span className="font-mono text-[11px] uppercase tracking-[0.15em]">
-                  {dayItem.label}
-                </span>
-                <span className="font-display text-2xl font-bold leading-tight">
-                  {new Date(dayItem.date).getDate()}
-                </span>
-                <span
-                  className={`font-mono text-[10px] uppercase tracking-wider ${
-                    selectedDay === idx ? "text-white/70" : "text-fg-subtle"
-                  }`}
+            {weekDays.map((dayItem, idx) => {
+              const isSelected = selectedDay === idx;
+              const dateObj = new Date(dayItem.date);
+              const dayNum = dateObj.getDate();
+              const dayName = dayItem.isToday ? "Hoy" : ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][dateObj.getDay()];
+
+              return (
+                <button
+                  key={dayItem.date}
+                  onClick={() => toggleDay(idx)}
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-controls={`day-panel-${idx}`}
+                  className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer group transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
                 >
-                  {dayItem.count} ev.
-                </span>
-              </button>
-            ))}
+                  <span className={`font-mono text-[10px] uppercase tracking-[0.12em] transition-colors duration-300 ${isSelected ? "text-accent" : "text-fg-subtle group-hover:text-fg-muted"}`}>
+                    {dayName}
+                  </span>
+                  <span
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-lg font-bold transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                      isSelected
+                        ? "bg-accent text-white shadow-lg shadow-accent/20"
+                        : "bg-surface border border-border text-fg group-hover:border-accent/30 group-hover:text-accent"
+                    }`}
+                  >
+                    {dayNum}
+                  </span>
+                  {dayItem.count > 0 && (
+                    <span className={`font-mono text-[9px] tabular-nums ${isSelected ? "text-accent" : "text-fg-subtle"}`}>
+                      {dayItem.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </InViewWrapper>
 
@@ -172,66 +166,64 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
           <div
             id={`day-panel-${selectedDay}`}
             role="tabpanel"
-            className="mt-6 animate-fadeIn"
+            className="mt-8 animate-fadeIn"
           >
-            <div className="double-bezel-outer rounded-[1.25rem] p-1.5">
-              <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] p-5 md:p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="font-display text-lg text-fg">
-                    {weekDays[selectedDay].isToday
-                      ? "Hoy"
-                      : weekDays[selectedDay].label}{" "}
-                    {new Date(weekDays[selectedDay].date).getDate()} &mdash;{" "}
-                    {weekDays[selectedDay].count} evento
-                    {weekDays[selectedDay].count !== 1 ? "s" : ""}
-                  </h3>
-                  <button
-                    onClick={() => setSelectedDay(null)}
-                    className="text-fg-subtle hover:text-fg-muted text-sm font-mono transition-colors duration-300 cursor-pointer"
-                    aria-label="Cerrar panel"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-
-                {availableCategories.length > 1 && (
-                  <div className="flex gap-1.5 mb-4 flex-wrap">
-                    {availableCategories.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setCategoryFilter(cat)}
-                        className={`px-3 py-1 text-xs font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
-                          categoryFilter === cat
-                            ? "bg-accent text-white"
-                            : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
-                        }`}
-                      >
-                        {cat === "all" ? "Todos" : cat}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {filteredEvents.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredEvents.map((evento) => (
-                      <EventCard
-                        key={evento.id}
-                        evento={evento}
-                        showCategory
-                        showSource
-                        categoryColors={CATEGORY_COLORS}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-fg-subtle text-sm text-center py-4">
-                    {categoryFilter !== "all"
-                      ? `No hay eventos de "${categoryFilter}" para este día`
-                      : "No hay eventos para este día"}
-                  </p>
-                )}
+            <div className="rounded-2xl border border-border bg-surface p-5 md:p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-display text-lg text-fg">
+                  {weekDays[selectedDay].isToday
+                    ? "Hoy"
+                    : weekDays[selectedDay].label}{" "}
+                  {new Date(weekDays[selectedDay].date).getDate()} &mdash;{" "}
+                  {weekDays[selectedDay].count} evento
+                  {weekDays[selectedDay].count !== 1 ? "s" : ""}
+                </h3>
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="text-fg-subtle hover:text-fg-muted text-sm font-mono transition-colors duration-300 cursor-pointer"
+                  aria-label="Cerrar panel"
+                >
+                  Cerrar
+                </button>
               </div>
+
+              {availableCategories.length > 1 && (
+                <div className="flex gap-1.5 mb-4 flex-wrap">
+                  {availableCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setCategoryFilter(cat)}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
+                        categoryFilter === cat
+                          ? "bg-accent text-white"
+                          : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
+                      }`}
+                    >
+                      {cat === "all" ? "Todos" : cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {filteredEvents.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredEvents.map((evento) => (
+                    <EventCard
+                      key={evento.id}
+                      evento={evento}
+                      showCategory
+                      showSource
+                      categoryColors={CATEGORY_COLORS}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-fg-subtle text-sm text-center py-4">
+                  {categoryFilter !== "all"
+                    ? `No hay eventos de "${categoryFilter}" para este día`
+                    : "No hay eventos para este día"}
+                </p>
+              )}
             </div>
           </div>
         )}

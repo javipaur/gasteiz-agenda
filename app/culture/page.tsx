@@ -2,7 +2,7 @@ export const revalidate = 300;
 
 import CulturePageClient from "../components/CulturePageClient";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
-import { scrapeJimmyJazz } from "@/lib/sources/conciertos";
+import { scrapeJimmyJazz } from "@/lib/sources/jimmyjazz";
 import { scrapeVamConciertos } from "@/lib/sources/vam";
 import { scrapeFever } from "@/lib/sources/fever";
 import { scrapeRula } from "@/lib/sources/rula";

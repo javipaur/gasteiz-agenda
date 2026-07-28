@@ -1,38 +1,63 @@
-import * as cheerio from "cheerio";
+import { scrapeJimmyJazz as scrapeJimmyJazzRaw } from "./jimmyjazz";
+import { scrapeHelldorado } from "./helldorado";
+import { scrapeMusikaze } from "./musikaze";
 
-export async function scrapeJimmyJazz(): Promise<any[]> {
-  const res = await fetch(
-    "https://sarrerak.jimmyjazzgasteiz.com/web/?menu=36&pagina=&siteID=jimmyjazz",
-    {
-      headers: { "User-Agent": "Mozilla/5.0" },
-      cache: "no-store",
-    }
-  );
+export interface ConciertoEvent {
+  title: string;
+  date: string;
+  image: string;
+  location: string;
+  link: string;
+  description: string;
+  venue: string;
+}
 
-  const buffer = Buffer.from(await res.arrayBuffer());
-  const html = buffer.toString("latin1");
-  const $ = cheerio.load(html);
+export async function scrapeJimmyJazz(): Promise<ConciertoEvent[]> {
+  const events = await scrapeJimmyJazzRaw();
+  return events.map((e) => ({
+    ...e,
+    image: e.image || "",
+    description: "",
+    venue: "Jimmy Jazz Gasteiz",
+  }));
+}
 
-  const events: any[] = [];
+async function scrapeHellDoradoEvents(): Promise<ConciertoEvent[]> {
+  const events = await scrapeHelldorado();
+  return events.map((e) => ({
+    ...e,
+    venue: "HellDorado",
+  }));
+}
 
-  $(".mkp-ticket-item").each((_, el) => {
-    const title = $(el).find(".mkp-ticket-data-title").text().trim();
-    const weekday = $(el).find(".mkp-ticket-date-weekday").text().trim();
-    const day = $(el).find(".mkp-ticket-date-monthday").text().trim();
-    const month = $(el).find(".mkp-ticket-date-month").text().trim();
-    const year = $(el).find(".mkp-ticket-date-year").text().trim();
-    const place = $(el).find(".mkp-ticket-data-place").text().trim();
-    const image = $(el).find(".mkp-ticket-image img").attr("src");
-    const ticketLink = $(el).find("a.btn").attr("href");
+async function scrapeMusikazeEvents(): Promise<ConciertoEvent[]> {
+  const events = await scrapeMusikaze();
+  return events.map((e) => ({
+    ...e,
+    venue: e.location.includes("Jimmy Jazz") ? "Jimmy Jazz Gasteiz" : "Musikaze",
+  }));
+}
 
-    events.push({
-      title,
-      date: `${weekday} ${day} ${month} ${year}`,
-      location: place,
-      image: image ? `https://sarrerak.jimmyjazzgasteiz.com${image}` : undefined,
-      link: ticketLink,
-    });
-  });
+export async function scrapeAllConciertos(): Promise<ConciertoEvent[]> {
+  const [jimmyJazz, helldorado, musikaze] = await Promise.allSettled([
+    scrapeJimmyJazz(),
+    scrapeHellDoradoEvents(),
+    scrapeMusikazeEvents(),
+  ]);
 
-  return events;
+  const all: ConciertoEvent[] = [];
+
+  if (jimmyJazz.status === "fulfilled") all.push(...jimmyJazz.value);
+  if (helldorado.status === "fulfilled") all.push(...helldorado.value);
+  if (musikaze.status === "fulfilled") all.push(...musikaze.value);
+
+  const seen = new Set<string>();
+  return all
+    .filter((e) => {
+      const key = `${e.title}|${e.date}`.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }

@@ -96,6 +96,9 @@ export function sourceLabel(source?: string): string {
     case "vam": return "VAM";
     case "euskadi": return "Euskadi";
     case "vitoria-gasteiz": return "Ayuntamiento";
+    case "jimmy-jazz-gasteiz": return "Jimmy Jazz";
+    case "helldorado": return "HellDorado";
+    case "musikaze": return "Musikaze";
     default: return source || "";
   }
 }
