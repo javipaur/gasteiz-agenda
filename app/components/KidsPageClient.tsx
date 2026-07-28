@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import FavoriteButton from "./FavoriteButton";
 
@@ -49,12 +48,11 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
                   <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
                     <div className="aspect-[4/3] relative">
                       {evento.image ? (
-                        <Image
+                        <img
                           src={evento.image}
                           alt={evento.title}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">

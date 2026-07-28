@@ -18,6 +18,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/axios": "^0.9.36",
     "@types/cheerio": "^0.22.35",
