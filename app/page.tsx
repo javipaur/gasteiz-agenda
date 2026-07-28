@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import HeroSection from "./components/HeroSection";
 import CategoriesGrid from "./components/CategoriesGrid";
 import FiestasBlancaSection from "./components/FiestasBlancaSection";
@@ -9,6 +9,8 @@ import { getProximosEventos } from "@/lib/eventos";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 
 export const revalidate = 300;
+
+const getCachedEventos = cache(getProximosEventos);
 
 function HeroSkeleton() {
   return (
@@ -60,12 +62,12 @@ function FiestasSkeleton() {
 }
 
 async function HeroWithData() {
-  const eventos = await getProximosEventos();
+  const eventos = await getCachedEventos();
   return <HeroSection eventos={eventos} />;
 }
 
 async function EventsWithData() {
-  const eventos = await getProximosEventos();
+  const eventos = await getCachedEventos();
   return <HomeEventsClient eventos={eventos} />;
 }
 

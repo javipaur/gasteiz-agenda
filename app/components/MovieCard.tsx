@@ -31,7 +31,6 @@ function TicketIcon({ className }: { className?: string }) {
 }
 
 export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
-  const { day, month } = formatDate();
   const badgeColor = CINE_COLORS[pelicula.cine] || "bg-fg-muted";
 
   return (
@@ -54,10 +53,10 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
           <div className="absolute top-3 left-3 bg-white/15 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight"
             style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)' }}>
             <span className="block font-mono text-[11px] uppercase text-white/70">
-              {month}
+              HOY
             </span>
             <span className="block font-display text-lg text-white">
-              {day}
+              <TicketIcon className="w-4 h-4 inline" />
             </span>
           </div>
 

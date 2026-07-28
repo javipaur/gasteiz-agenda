@@ -65,10 +65,12 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm">
               {[
                 { label: "Inicio", href: "/" },
+                { label: "Conciertos", href: "/conciertos" },
+                { label: "La Blanca", href: "/fiestas-blanca" },
                 { label: "Cultura", href: "/culture" },
                 { label: "Deporte", href: "/deporte" },
                 { label: "Cartelera", href: "/movies" },
-                { label: "Con niños", href: "/kids" },
+                { label: "Niños", href: "/kids" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
@@ -85,9 +87,11 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2.5 text-sm">
               {[
+                { label: "Conciertos", href: "/conciertos", icon: SparklesIcon },
                 { label: "Cultura", href: "/culture", icon: FilmIcon },
                 { label: "Deporte", href: "/deporte", icon: ActivityIcon },
-                { label: "Kids", href: "/kids", icon: SparklesIcon },
+                { label: "La Blanca", href: "/fiestas-blanca", icon: SparklesIcon },
+                { label: "Niños", href: "/kids", icon: SparklesIcon },
                 { label: "Cine", href: "/movies", icon: FilmIcon },
               ].map((link) => (
                 <li key={link.href}>
