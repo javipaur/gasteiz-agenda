@@ -117,7 +117,13 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
 
         const category = inferCategory(title, "");
 
-        const image = listImages.get(title) || "";
+        const calImg = $article.find(".mec-event-image img").first().attr("src");
+        const calImageUrl = calImg
+          ? calImg.startsWith("http") ? calImg : `https://www.gasteizhoy.com${calImg}`
+          : "";
+        const image = (calImageUrl && !isAdImage(calImageUrl))
+          ? calImageUrl
+          : listImages.get(title) || "";
 
         events.push({
           id: crypto.randomUUID(),

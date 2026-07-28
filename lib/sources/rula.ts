@@ -1,6 +1,5 @@
-import * as cheerio from "cheerio";
-
-const BASE_URL = "https://lagenterula.com";
+const MEC_API = "https://lagenterula.com/wp-json/mec/v1.0/events";
+const MEC_TOKEN = "XiNUzsBFQJPQibGRODQ675Fz2qCpvWDATofFV0hr";
 
 export interface RulaEvent {
   title: string;
@@ -10,6 +9,20 @@ export interface RulaEvent {
   link: string;
   description: string;
   category: string;
+}
+
+interface MecEvent {
+  ID: number;
+  data: {
+    title: string;
+    content: string;
+    featured_image: { large: string; full: string };
+    locations: Record<string, { id: number; name: string; address: string }>;
+    categories: Record<string, { id: number; name: string }>;
+  };
+  date: { start: { date: string } };
+  time: { start_raw: string; end_raw: string };
+  permalink: string;
 }
 
 function inferCategory(title: string, description: string, url: string): string {
@@ -26,48 +39,44 @@ function inferCategory(title: string, description: string, url: string): string 
 }
 
 export async function scrapeRula(): Promise<RulaEvent[]> {
-  const res = await fetch(BASE_URL, {
+  const res = await fetch(`${MEC_API}?limit=500`, {
+    headers: { "mec-token": MEC_TOKEN },
     next: { revalidate: 3600 },
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(20000),
   });
-  const html = await res.text();
-  const $ = cheerio.load(html);
 
-  const events: RulaEvent[] = [];
-  const seenUrls = new Set<string>();
+  if (!res.ok) {
+    console.error(`MEC API returned ${res.status}`);
+    return [];
+  }
 
-  $('script[type="application/ld+json"]').each((_, script) => {
-    try {
-      const data = JSON.parse($(script).text());
-      if (data["@type"] !== "Event") return;
+  const json: any = await res.json();
+  const rawEvents: MecEvent[] = json.events
+    ? (Object.values(json.events).flat() as MecEvent[])
+    : [];
 
-      const url = data.url || "";
-      if (!url || seenUrls.has(url)) return;
-      seenUrls.add(url);
+  const today = new Date().toISOString().slice(0, 10);
 
-      const title = data.name || "";
-      if (!title) return;
+  const events: RulaEvent[] = rawEvents
+    .filter((e) => {
+      const dateStr = e.date?.start?.date || "";
+      return dateStr >= today;
+    })
+    .map((e) => {
+      const title = e.data?.title || "";
+      const date = e.date?.start?.date || "";
+      const image = e.data?.featured_image?.large || "";
+      const locations = e.data?.locations || {};
+      const location = Object.values(locations)[0]?.name || "";
+      const link = e.permalink || "";
+      const description = (e.data?.content || "").replace(/<[^>]+>/g, "").slice(0, 200);
+      const categories = e.data?.categories || {};
+      const categoryName = Object.values(categories)[0]?.name || "";
+      const category = categoryName || inferCategory(title, description, link);
 
-      const date = data.startDate || "";
-      const image = data.image || "";
-      const location = data.location?.name || "";
-      const address = data.location?.address || "";
-      const description = data.description || "";
-      const locationStr = location ? (address ? `${location}, ${address}` : location) : "Vitoria-Gasteiz";
-
-      const category = inferCategory(title, description, url);
-
-      events.push({
-        title,
-        date,
-        image,
-        location: locationStr,
-        link: url,
-        description,
-        category,
-      });
-    } catch {}
-  });
+      return { title, date, image, location, link, description, category };
+    })
+    .filter((e) => e.title);
 
   return events;
 }
