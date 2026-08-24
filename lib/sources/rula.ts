@@ -40,7 +40,7 @@ function inferCategory(title: string, description: string, url: string): string 
 
 export async function scrapeRula(): Promise<RulaEvent[]> {
   const res = await fetch(`${MEC_API}?limit=500`, {
-    headers: { "mec-token": MEC_TOKEN },
+    headers: { "mec-token": MEC_TOKEN, "User-Agent": "Mozilla/5.0" },
     next: { revalidate: 3600 },
     signal: AbortSignal.timeout(20000),
   });
