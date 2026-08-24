@@ -173,32 +173,48 @@ export default async function AgendaMesPage({ params }: PageProps) {
                     </span>
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                    {evs.map((ev) => (
-                      <Link
-                        key={ev.slug}
-                        href={`/evento/${ev.slug}`}
-                        className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent transition-all duration-500 hover:shadow-lg hover:shadow-accent/5"
-                      >
-                        <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
-                          <div className="aspect-[4/3] relative bg-surface flex items-end p-4">
-                            <span className="font-mono text-[11px] uppercase tracking-wider text-fg-subtle">
-                              {ev.time || new Date(ev.date).toLocaleDateString("es-ES")}
-                            </span>
+                    {evs.map((ev) => {
+                      const d = new Date(ev.date);
+                      const validDate = !isNaN(d.getTime());
+                      return (
+                        <Link
+                          key={ev.slug}
+                          href={`/evento/${ev.slug}`}
+                          className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent transition-all duration-500 hover:shadow-lg hover:shadow-accent/5"
+                        >
+                          <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
+                            <div className="aspect-[4/3] relative bg-accent-subtle flex items-center justify-center">
+                              <div className="text-center">
+                                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent mb-1">
+                                  {validDate
+                                    ? new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", "")
+                                    : "···"}
+                                </p>
+                                <p className="font-display text-6xl font-black text-accent/40 leading-none transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105">
+                                  {validDate ? d.getDate() : "?"}
+                                </p>
+                              </div>
+                              {ev.time && (
+                                <span className="absolute bottom-3 right-4 font-mono text-xs text-fg-subtle tabular-nums">
+                                  {ev.time}
+                                </span>
+                              )}
+                            </div>
+                            <div className="p-4">
+                              {ev.category && (
+                                <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-accent mb-1.5">
+                                  {ev.category}
+                                </p>
+                              )}
+                              <h3 className="font-display text-base font-semibold text-fg leading-snug line-clamp-2">
+                                {ev.title}
+                              </h3>
+                              <p className="font-mono text-xs text-fg-subtle mt-2">{ev.location}</p>
+                            </div>
                           </div>
-                          <div className="p-4">
-                            {ev.category && (
-                              <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-accent mb-1.5">
-                                {ev.category}
-                              </p>
-                            )}
-                            <h3 className="font-display text-base font-semibold text-fg leading-snug line-clamp-2">
-                              {ev.title}
-                            </h3>
-                            <p className="font-mono text-xs text-fg-subtle mt-2">{ev.location}</p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </section>
               );

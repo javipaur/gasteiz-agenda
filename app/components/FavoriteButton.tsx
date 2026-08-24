@@ -1,6 +1,7 @@
 "use client";
 
 import { useFavorites, type FavoriteEvent } from "@/app/context/FavoritesContext";
+import { useToast } from "@/app/context/ToastContext";
 
 interface Props {
   event: FavoriteEvent;
@@ -21,6 +22,7 @@ function HeartIcon({ filled, className }: { filled: boolean; className?: string 
 
 export default function FavoriteButton({ event, className = "", size = "md" }: Props) {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const toast = useToast();
   const fav = isFavorite(event.id);
   const box = size === "sm" ? "w-9 h-9" : "w-11 h-11";
   const icon = size === "sm" ? "w-4 h-4" : "w-[18px] h-[18px]";
@@ -32,6 +34,13 @@ export default function FavoriteButton({ event, className = "", size = "md" }: P
         e.stopPropagation();
         if (typeof navigator.vibrate === "function") navigator.vibrate(10);
         toggleFavorite(event);
+        if (toast) {
+          if (fav) {
+            toast.showToast("Eliminado de favoritos");
+          } else {
+            toast.showToast("Añadido a favoritos", { href: "/favoritos", label: "Ver" });
+          }
+        }
       }}
       aria-label={fav ? "Quitar de favoritos" : "Añadir a favoritos"}
       className={`z-10 flex items-center justify-center ${box} rounded-full backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-110 active:scale-[0.92] ${fav ? "bg-white/30 text-accent" : "bg-black/30 text-white/80 hover:text-white hover:bg-black/50"} ${className}`}

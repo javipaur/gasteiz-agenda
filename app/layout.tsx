@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Work_Sans, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
+import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import BottomNav from "./components/BottomNav";
@@ -109,6 +110,11 @@ export default function RootLayout({
     >
       <head>
         <meta name="color-scheme" content="light dark" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var K="gasteiz-theme";try{var t=localStorage.getItem(K);var m=window.matchMedia("(prefers-color-scheme: dark)");function apply(){try{var v=localStorage.getItem(K);if(v==="dark"||v==="light"){document.documentElement.dataset.theme=v;return}document.documentElement.dataset.theme=m.matches?"dark":"light"}catch(e){}}apply();m.addEventListener("change",apply)}catch(e){}})();`,
+          }}
+        />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -118,6 +124,7 @@ export default function RootLayout({
         <ServiceWorkerRegistration />
         <Analytics />
         <FavoritesProvider>
+          <ToastProvider>
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
@@ -134,6 +141,7 @@ export default function RootLayout({
             style={{ height: "calc(64px + env(safe-area-inset-bottom, 0px))" }}
           />
           <ScrollToTop />
+          </ToastProvider>
         </FavoritesProvider>
       </body>
     </html>

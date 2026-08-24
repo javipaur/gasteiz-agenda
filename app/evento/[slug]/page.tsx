@@ -13,6 +13,8 @@ import {
 import { sourceLabel } from "@/lib/utils";
 import { EventCard } from "@/lib/shared";
 import AddToCalendar from "@/app/components/AddToCalendar";
+import FavoriteButton from "@/app/components/FavoriteButton";
+import ShareButton from "@/app/components/ShareButton";
 
 export const revalidate = 300;
 
@@ -154,14 +156,31 @@ export default async function EventoDetallePage({ params }: PageProps) {
           </div>
 
           <div className="mb-8">
-            <AddToCalendar
-              title={evento.title}
-              date={evento.date}
-              dateEnd={evento.dateEnd}
-              time={evento.time}
-              location={lugar}
-              slug={evento.slug}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <AddToCalendar
+                title={evento.title}
+                date={evento.date}
+                dateEnd={evento.dateEnd}
+                time={evento.time}
+                location={lugar}
+                slug={evento.slug}
+              />
+              <FavoriteButton
+                event={{
+                  id: evento.id,
+                  title: evento.title,
+                  date: evento.date,
+                  image: evento.image,
+                  location: evento.location,
+                  link: evento.link,
+                }}
+              />
+              <ShareButton
+                title={evento.title}
+                slug={evento.slug}
+                location={evento.location}
+              />
+            </div>
           </div>
 
           {parrafos.length > 0 && (

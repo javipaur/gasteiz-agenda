@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ThemeToggle from "./ThemeToggle";
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
@@ -91,10 +92,13 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-xs text-white/40">
-            <p>
-              &copy; {now.getFullYear()} Gasteiz Click · Hecho en Vitoria-Gasteiz
-            </p>
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-white/40">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
+              <p>
+                &copy; {now.getFullYear()} Gasteiz Click · Hecho en Vitoria-Gasteiz
+              </p>
+              <ThemeToggle />
+            </div>
             <div className="flex items-center gap-5">
               <Link href="/privacidad" className="hover:text-white/70 transition-colors duration-300">
                 Privacidad

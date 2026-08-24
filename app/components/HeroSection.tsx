@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { formatSpanishDate, localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
@@ -66,6 +66,23 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
     setSelectedDay((prev) => (prev === idx ? null : idx));
     setCategoryFilter("all");
   }, []);
+
+  const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const onDayTabsKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      const dir = e.key === "ArrowRight" ? 1 : -1;
+      setSelectedDay((prev) => {
+        const next = prev === null ? (dir > 0 ? 0 : 6) : (prev + dir + 7) % 7;
+        requestAnimationFrame(() => dayRefs.current[next]?.focus());
+        return next;
+      });
+      setCategoryFilter("all");
+    },
+    []
+  );
 
   const dayEvents = useMemo(() => {
     const raw = selectedDay !== null ? weekDays[selectedDay]?.events || [] : [];
@@ -141,6 +158,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
             className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1"
             role="tablist"
             aria-label="Selecciona un día"
+            onKeyDown={onDayTabsKeyDown}
           >
             {weekDays.map((dayItem, idx) => {
               const isSelected = selectedDay === idx;
@@ -151,6 +169,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
               return (
                 <button
                   key={dayItem.date}
+                  ref={(el) => { dayRefs.current[idx] = el; }}
                   onClick={() => toggleDay(idx)}
                   role="tab"
                   aria-selected={isSelected}

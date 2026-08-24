@@ -99,32 +99,45 @@ export default function Newsletter() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full md:w-auto relative z-10">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Tu email"
-                required
-                className="flex-1 sm:w-56 px-4 py-2.5 rounded-lg bg-white/15 border border-white/25 text-white placeholder:text-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/50 transition-all duration-300 font-body text-sm"
-              />
-              <button
-                type="submit"
-                disabled={status === "loading"}
-                className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-accent rounded-lg font-body text-sm font-semibold hover:bg-white/90 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 cursor-pointer shrink-0"
-              >
-                <span>{status === "loading" ? "Enviando…" : "Suscribir"}</span>
-                <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </button>
-            </div>
-            {message && (
-              <p className={`flex items-center gap-1.5 text-xs font-mono ${status === "success" ? "text-white" : "text-amber-100"}`}>
-                {status === "success" && <CheckIcon className="w-3 h-3 shrink-0" />}
-                {message}
-              </p>
+          <div className="w-full md:w-auto relative z-10">
+            {status === "success" ? (
+              <div className="flex items-center gap-4 rounded-2xl bg-white/10 border border-white/20 px-5 py-4">
+                <span className="shrink-0 w-10 h-10 rounded-full bg-white text-accent flex items-center justify-center">
+                  <CheckIcon className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-white font-medium text-sm">Suscripción registrada</p>
+                  <p className="text-white/75 text-sm">{message}</p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Tu email"
+                    required
+                    className="flex-1 sm:w-56 px-4 py-2.5 rounded-lg bg-white/15 border border-white/25 text-white placeholder:text-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/50 transition-all duration-300 font-body text-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={status === "loading"}
+                    className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-accent rounded-lg font-body text-sm font-semibold hover:bg-white/90 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 cursor-pointer shrink-0"
+                  >
+                    <span>{status === "loading" ? "Enviando…" : "Suscribir"}</span>
+                    <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+                {message && (
+                  <p className="flex items-center gap-1.5 text-xs font-mono text-amber-100">
+                    {message}
+                  </p>
+                )}
+              </form>
             )}
-          </form>
+          </div>
         </div>
       </div>
     </section>

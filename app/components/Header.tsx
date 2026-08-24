@@ -116,6 +116,55 @@ export default function Header() {
     return () => { document.body.style.overflow = ""; };
   }, [isMenuOpen]);
 
+  const menuOverlayRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const overlay = menuOverlayRef.current;
+    const opener = menuButtonRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    const focusables = overlay
+      ? Array.from(
+          overlay.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'
+          )
+        )
+      : [];
+
+    if (focusables.length > 0) {
+      requestAnimationFrame(() => focusables[0].focus());
+    }
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsMenuOpen(false);
+        return;
+      }
+      if (e.key !== "Tab" || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (previouslyFocused && previouslyFocused.isConnected) {
+        previouslyFocused.focus();
+      } else {
+        opener?.focus();
+      }
+    };
+  }, [isMenuOpen]);
+
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -226,6 +275,7 @@ export default function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive ? "page" : undefined}
                     className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                       isActive
                         ? item.accent
@@ -388,6 +438,7 @@ export default function Header() {
               )}
 
               <button
+                ref={menuButtonRef}
                 className="md:hidden relative w-11 h-11 flex items-center justify-center rounded-full bg-bg-muted border border-border text-fg-muted hover:text-fg transition-all duration-300"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
@@ -412,6 +463,7 @@ export default function Header() {
       </header>
 
       <div
+        ref={menuOverlayRef}
         className={`fixed inset-0 z-[var(--z-modal-backdrop)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           isMenuOpen
             ? "opacity-100 pointer-events-auto"
@@ -454,6 +506,7 @@ export default function Header() {
                   <Link
                     href={item.href}
                     onClick={() => setIsMenuOpen(false)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`block w-full text-center py-3.5 text-xl font-display rounded-xl transition-all duration-300 ${
                       isActive
                         ? item.accent
