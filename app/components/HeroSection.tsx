@@ -106,6 +106,14 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   const { month, year } = formatSpanishDate(displayDate.date);
   const totalThisWeek = weekDays.reduce((s, d) => s + d.count, 0);
 
+  const weekendIdx = weekDays.findIndex((d, i) => {
+    const wd = new Date(d.date).getDay();
+    return i > 0 ? wd === 5 || wd === 6 : wd === 6 || wd === 0;
+  });
+  const hasWeekend = weekendIdx > 0;
+  const todaySelected = selectedDay === 0;
+  const weekendSelected = selectedDay === weekendIdx;
+
   return (
     <section className="relative px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
       <div className="hero-wash" aria-hidden="true" />
@@ -154,6 +162,25 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
         </InViewWrapper>
 
         <InViewWrapper eager>
+          <div className="flex items-center gap-2 mb-4">
+            {!todaySelected && (
+              <button
+                onClick={() => { setSelectedDay(0); setCategoryFilter("all"); }}
+                className="px-3.5 py-1.5 rounded-full border border-border bg-surface font-mono text-[11px] uppercase tracking-[0.12em] text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 cursor-pointer active:scale-[0.97]"
+              >
+                Hoy
+              </button>
+            )}
+            {hasWeekend && !weekendSelected && (
+              <button
+                onClick={() => { setSelectedDay(weekendIdx); setCategoryFilter("all"); }}
+                className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-surface font-mono text-[11px] uppercase tracking-[0.12em] text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 cursor-pointer active:scale-[0.97]"
+              >
+                Este finde
+                <span aria-hidden="true" className="text-[10px] transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+              </button>
+            )}
+          </div>
           <div
             className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1"
             role="tablist"
@@ -201,9 +228,10 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
 
         {selectedDay !== null && weekDays[selectedDay] && (
           <div
+            key={selectedDay}
             id={`day-panel-${selectedDay}`}
             role="tabpanel"
-            className="mt-8"
+            className="mt-8 panel-in"
           >
             <div className="rounded-2xl border border-border bg-surface p-5 md:p-6">
               <div className="flex items-center justify-between mb-5">

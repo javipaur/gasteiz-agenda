@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "
 import { Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
+import { isBlancaSeason } from "@/lib/blanca";
 
 type SearchHit = {
   slug: string;
@@ -25,6 +26,12 @@ const navItems = [
   { name: "Cultura", href: "/culture" },
   { name: "Deporte", href: "/deporte" },
 ];
+
+function getVisibleNavItems() {
+  return isBlancaSeason()
+    ? navItems
+    : navItems.filter((item) => !item.accent);
+}
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
@@ -92,6 +99,7 @@ export default function Header() {
     () => false
   );
   const { count } = useFavorites();
+  const visibleNavItems = getVisibleNavItems();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
 
@@ -269,7 +277,7 @@ export default function Header() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-0.5 mx-2" aria-label="Navegación principal">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
@@ -320,11 +328,19 @@ export default function Header() {
                         setResults([]);
                       }
                     }}
-                    className="w-full pl-9 pr-3 py-1.5 text-sm bg-bg-muted border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent transition-all duration-300"
+                    className="w-full pl-9 pr-12 py-1.5 text-sm bg-bg-muted border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent transition-all duration-300"
                     style={{ borderRadius: '999px' }}
                     aria-label="Buscar eventos"
                   />
                   <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" />
+                  <kbd
+                    aria-hidden="true"
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-border bg-surface font-mono text-[10px] text-fg-subtle pointer-events-none transition-opacity duration-300 ${
+                      searchQuery ? "opacity-0" : "opacity-100"
+                    }`}
+                  >
+                    ⌘K
+                  </kbd>
                 </div>
                 {searchOpen && (
                   <div className="absolute left-auto right-0 top-full mt-2 w-[calc(100%+4rem)] max-w-sm rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn">
@@ -492,7 +508,7 @@ export default function Header() {
           </form>
 
           <ul className="flex flex-col items-stretch gap-1.5 w-full max-w-sm">
-            {navItems.map((item, i) => {
+            {visibleNavItems.map((item, i) => {
               const isActive = pathname === item.href;
               return (
                 <li
@@ -525,7 +541,7 @@ export default function Header() {
             <li
               className="mt-3"
               style={{
-                transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${navItems.length * 0.07}s`,
+                transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${visibleNavItems.length * 0.07}s`,
                 opacity: isMenuOpen ? 1 : 0,
                 transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
               }}
@@ -547,7 +563,7 @@ export default function Header() {
             {!isStandalone && (
               <li
                 style={{
-                  transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(navItems.length + 1) * 0.07}s`,
+                  transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(visibleNavItems.length + 1) * 0.07}s`,
                   opacity: isMenuOpen ? 1 : 0,
                   transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
                 }}

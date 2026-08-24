@@ -120,7 +120,7 @@ export function EventCard({
   return (
     <Link
       href={detailHref}
-      className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5 active:scale-[0.98] active:bg-accent-subtle/40"
+      className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] active:bg-accent-subtle/40"
     >
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className={`${aspectClass} relative`}>

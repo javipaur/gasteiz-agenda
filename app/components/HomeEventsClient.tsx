@@ -69,12 +69,14 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
           <div className="mt-10">
             <Link
               href="/culture"
-              className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300 group"
+              className="group inline-flex items-center gap-3 rounded-full border border-border bg-surface pl-6 pr-2 py-2 text-sm font-medium text-fg hover:border-accent/40 hover:text-accent transition-all duration-300 active:scale-[0.98]"
             >
               Ver todos los eventos
-              <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 8h10M9 4l4 4-4 4" />
-              </svg>
+              <span className="grid size-8 place-items-center rounded-full bg-accent/10 text-accent transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1">
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </span>
             </Link>
           </div>
         </InViewWrapper>

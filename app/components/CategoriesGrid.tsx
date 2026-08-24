@@ -53,7 +53,7 @@ export default async function CategoriesGrid() {
             className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:border-border-hover hover:shadow-sm transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
           >
             <span className={`w-2 h-2 rounded-full ${cat.color} shrink-0`} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h3 className="font-display text-sm font-semibold text-fg group-hover:text-accent transition-colors duration-300 truncate">
                 {cat.label}
               </h3>
@@ -68,6 +68,12 @@ export default async function CategoriesGrid() {
                 )}
               </p>
             </div>
+            <span
+              aria-hidden="true"
+              className="shrink-0 text-accent opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            >
+              →
+            </span>
           </Link>
         ))}
       </div>

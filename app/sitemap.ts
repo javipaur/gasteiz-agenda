@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAgendaEventos } from "@/lib/agenda";
+import { isBlancaSeason } from "@/lib/blanca";
 
 const BASE_URL = "https://gasteizclick.javierpalacio.es";
 
@@ -24,11 +25,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.9,
     },
-    {
-      url: `${BASE_URL}/fiestas-blanca`,
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
+    ...(isBlancaSeason()
+      ? [
+          {
+            url: `${BASE_URL}/fiestas-blanca`,
+            changeFrequency: "daily" as const,
+            priority: 0.9,
+          },
+        ]
+      : []),
     {
       url: `${BASE_URL}/deporte`,
       changeFrequency: "daily",

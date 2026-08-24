@@ -7,6 +7,7 @@ import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos } from "@/lib/eventos";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
+import { isBlancaSeason } from "@/lib/blanca";
 import { eventSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
@@ -90,6 +91,7 @@ async function EventsWithData() {
 }
 
 async function FiestasWithData() {
+  if (!isBlancaSeason()) return null;
   const fiestas = await scrapeFiestasBlanca();
   return <FiestasBlancaSection fiestas={fiestas} />;
 }

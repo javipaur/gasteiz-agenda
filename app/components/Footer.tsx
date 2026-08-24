@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
+import { isBlancaSeason } from "@/lib/blanca";
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
@@ -18,19 +19,18 @@ function DownloadIcon({ className }: { className?: string }) {
   );
 }
 
-const exploreLinks = [
-  { label: "Inicio", href: "/" },
-  { label: "Conciertos", href: "/conciertos" },
-  { label: "La Blanca", href: "/fiestas-blanca" },
-  { label: "Cultura", href: "/culture" },
-  { label: "Deporte", href: "/deporte" },
-  { label: "Cartelera", href: "/movies" },
-  { label: "Niños", href: "/kids" },
-];
-
 export default function Footer() {
   const now = new Date();
   const agendaUrl = `/agenda/${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const exploreLinks = [
+    { label: "Inicio", href: "/" },
+    { label: "Conciertos", href: "/conciertos" },
+    ...(isBlancaSeason() ? [{ label: "La Blanca", href: "/fiestas-blanca" }] : []),
+    { label: "Cultura", href: "/culture" },
+    { label: "Deporte", href: "/deporte" },
+    { label: "Cartelera", href: "/movies" },
+    { label: "Niños", href: "/kids" },
+  ];
 
   return (
     <footer className="mt-20">
