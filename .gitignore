@@ -42,3 +42,6 @@ next-env.d.ts
 
 # datos locales (push db)
 .data/
+
+# perfiles de chrome/lighthouse creados por error en WSL
+C:*
