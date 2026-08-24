@@ -10,6 +10,14 @@ function ArrowIcon({ className }: { className?: string }) {
   );
 }
 
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 8.5l3.5 3.5L13 5" />
+    </svg>
+  );
+}
+
 export default function Newsletter() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -59,44 +67,60 @@ export default function Newsletter() {
     <section className="px-5 sm:px-6 py-16 md:py-20 max-w-7xl mx-auto">
       <div
         ref={ref}
-        className="rounded-2xl border border-border bg-surface p-8 md:p-10"
+        className="relative overflow-hidden rounded-[1.5rem] bg-accent p-8 md:p-12"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(16px)',
           transition: 'all 0.6s cubic-bezier(0.32, 0.72, 0, 1)',
         }}
       >
-        <div className="flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
-          <div>
-            <h2 className="font-display text-xl md:text-2xl text-fg mb-1 tracking-[-0.02em]">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(640px 320px at 12% -20%, rgba(255,255,255,0.14), transparent 60%)" }}
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none select-none absolute -right-6 -top-10 font-display italic text-[11rem] leading-none text-white/10 rotate-12"
+        >
+          &amp;
+        </span>
+
+        <div className="relative flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
+          <div className="max-w-md">
+            <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-white/70 mb-3">
+              Newsletter semanal
+            </p>
+            <h2 className="font-display text-2xl md:text-3xl text-white font-bold tracking-[-0.02em] mb-2">
               No te pierdas nada
             </h2>
-            <p className="text-fg-muted text-sm">
-              Un email a la semana con los mejores planes de Vitoria
+            <p className="text-white/80 text-sm md:text-base leading-relaxed">
+              Un email a la semana con los mejores planes de Vitoria-Gasteiz.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full md:w-auto">
-            <div className="flex gap-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full md:w-auto relative z-10">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Tu email"
                 required
-                className="flex-1 md:w-52 px-4 py-2.5 rounded-lg bg-bg-muted border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all duration-300 font-body text-sm"
+                className="flex-1 sm:w-56 px-4 py-2.5 rounded-lg bg-white/15 border border-white/25 text-white placeholder:text-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/50 transition-all duration-300 font-body text-sm"
               />
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="group inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg font-body text-sm font-medium hover:bg-accent-hover transition-all duration-300 active:scale-[0.98] disabled:opacity-50 cursor-pointer shrink-0"
+                className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-accent rounded-lg font-body text-sm font-semibold hover:bg-white/90 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 cursor-pointer shrink-0"
               >
-                <span>{status === "loading" ? "..." : "Suscribir"}</span>
+                <span>{status === "loading" ? "Enviando…" : "Suscribir"}</span>
                 <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </button>
             </div>
             {message && (
-              <p className={`text-xs font-mono ${status === "success" ? "text-green" : "text-accent"}`}>
+              <p className={`flex items-center gap-1.5 text-xs font-mono ${status === "success" ? "text-white" : "text-amber-100"}`}>
+                {status === "success" && <CheckIcon className="w-3 h-3 shrink-0" />}
                 {message}
               </p>
             )}

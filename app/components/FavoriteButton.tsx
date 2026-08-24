@@ -5,6 +5,7 @@ import { useFavorites, type FavoriteEvent } from "@/app/context/FavoritesContext
 interface Props {
   event: FavoriteEvent;
   className?: string;
+  size?: "sm" | "md";
 }
 
 function HeartIcon({ filled, className }: { filled: boolean; className?: string }) {
@@ -18,22 +19,25 @@ function HeartIcon({ filled, className }: { filled: boolean; className?: string 
   );
 }
 
-export default function FavoriteButton({ event, className = "" }: Props) {
+export default function FavoriteButton({ event, className = "", size = "md" }: Props) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const fav = isFavorite(event.id);
+  const box = size === "sm" ? "w-9 h-9" : "w-11 h-11";
+  const icon = size === "sm" ? "w-4 h-4" : "w-[18px] h-[18px]";
 
   return (
     <button
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (typeof navigator.vibrate === "function") navigator.vibrate(10);
         toggleFavorite(event);
       }}
       aria-label={fav ? "Quitar de favoritos" : "Añadir a favoritos"}
-      className={`z-10 flex items-center justify-center w-11 h-11 rounded-full backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-110 active:scale-[0.92] ${fav ? "bg-white/30 text-accent" : "bg-black/30 text-white/80 hover:text-white hover:bg-black/50"} ${className}`}
-      style={{ boxShadow: fav ? '0 0 12px rgba(201, 74, 61, 0.3)' : 'inset 0 1px 0 rgba(255,255,255,0.15)' }}
+      className={`z-10 flex items-center justify-center ${box} rounded-full backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-110 active:scale-[0.92] ${fav ? "bg-white/30 text-accent" : "bg-black/30 text-white/80 hover:text-white hover:bg-black/50"} ${className}`}
+      style={{ boxShadow: fav ? '0 0 12px rgba(201, 74, 61, 0.35)' : 'inset 0 1px 0 rgba(255,255,255,0.15)' }}
     >
-      <HeartIcon filled={fav} className="w-[18px] h-[18px]" />
+      <HeartIcon filled={fav} className={icon} />
     </button>
   );
 }

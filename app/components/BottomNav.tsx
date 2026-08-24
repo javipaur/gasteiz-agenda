@@ -33,7 +33,7 @@ export default function BottomNav() {
               key={href}
               href={href}
               aria-current={isActive(href, exact) ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1 min-h-[56px] transition-colors duration-200 ${
+              className={`flex flex-col items-center justify-center gap-1 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
                 isActive(href, exact)
                   ? "text-accent"
                   : "text-fg-muted active:text-fg"
@@ -53,7 +53,7 @@ export default function BottomNav() {
           <Link
             href="/movies"
             aria-current={pathname.startsWith("/movies") ? "page" : undefined}
-            className={`flex flex-col items-center justify-center gap-1 min-h-[56px] transition-colors duration-200 ${
+            className={`flex flex-col items-center justify-center gap-1 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
               isActive("/movies", false)
                 ? "text-accent"
                 : "text-fg-muted active:text-fg"
@@ -72,7 +72,7 @@ export default function BottomNav() {
           <Link
             href="/favoritos"
             aria-current={pathname.startsWith("/favoritos") ? "page" : undefined}
-            className={`relative flex flex-col items-center justify-center gap-1 min-h-[56px] transition-colors duration-200 ${
+            className={`relative flex flex-col items-center justify-center gap-1 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
               isActive("/favoritos", false)
                 ? "text-accent"
                 : "text-fg-muted active:text-fg"

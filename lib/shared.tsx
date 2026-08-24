@@ -4,7 +4,8 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { eventSlug } from "@/lib/slug";
-import { formatDate, sourceLabel } from "@/lib/utils";
+import { formatDate, sourceLabel, dayBadgeLabel, shortTime } from "@/lib/utils";
+import FavoriteButton from "@/app/components/FavoriteButton";
 
 export { formatDate, sourceLabel };
 
@@ -93,6 +94,8 @@ export function EventCard({
   priority?: boolean;
 }) {
   const { day, month } = formatDate(evento.date);
+  const relDay = dayBadgeLabel(evento.date);
+  const time = shortTime(evento.time);
   const catColor = categoryColors?.[evento.category || "Otros"] || "#9C9996";
   const detailHref = `/evento/${eventSlug(evento)}`;
 
@@ -141,25 +144,28 @@ export function EventCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
           <div
-            className="absolute top-3 left-3 bg-white/15 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight"
+            className={`absolute top-3 left-3 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight ${relDay ? "bg-accent" : "bg-white/15"}`}
             style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)" }}
           >
-            <span className="block font-mono text-[11px] uppercase text-white/70">
-              {month}
+            <span className={`block font-mono text-[11px] uppercase tracking-wide ${relDay ? "text-white/90" : "text-white/70"}`}>
+              {relDay || month}
             </span>
             <span className="block font-display text-lg text-white">
               {day}
             </span>
           </div>
 
-          <button
-            onClick={handleShare}
-            aria-label="Compartir evento"
-            className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/50 flex items-center justify-center transition-all duration-300 active:scale-[0.92]"
-            style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)" }}
-          >
-            <ShareIcon className="w-4 h-4" />
-          </button>
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+            <FavoriteButton event={evento} size="sm" />
+            <button
+              onClick={handleShare}
+              aria-label="Compartir evento"
+              className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/50 flex items-center justify-center transition-all duration-300 active:scale-[0.92]"
+              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)" }}
+            >
+              <ShareIcon className="w-4 h-4" />
+            </button>
+          </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-4">
             {(showCategory || showSource) && (
@@ -189,7 +195,15 @@ export function EventCard({
             {evento.location && (
               <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                {time && <span className="text-white">{time}</span>}
+                {time && evento.location && <span aria-hidden="true">·</span>}
                 {evento.location}
+              </p>
+            )}
+            {!evento.location && time && (
+              <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                {time}
               </p>
             )}
           </div>

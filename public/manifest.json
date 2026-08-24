@@ -31,5 +31,25 @@
     }
   ],
   "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Conciertos",
+      "short_name": "Conciertos",
+      "url": "/conciertos",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cartelera de cine",
+      "short_name": "Cartelera",
+      "url": "/movies",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mis favoritos",
+      "short_name": "Favoritos",
+      "url": "/favoritos",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "prefer_related_applications": false
 }

@@ -1,33 +1,41 @@
 import Link from "next/link";
+import { getProximosEventos } from "@/lib/eventos";
+import { normalizeCategory } from "@/lib/categories";
 
-const categories = [
-  {
-    label: "Conciertos",
-    href: "/conciertos",
-    desc: "Música en vivo",
-    color: "bg-teal",
-  },
-  {
-    label: "Cultura",
-    href: "/culture",
-    desc: "Teatro, exposiciones",
-    color: "bg-accent",
-  },
-  {
-    label: "Deporte",
-    href: "/deporte",
-    desc: "Running, trail, eventos",
-    color: "bg-green",
-  },
-  {
-    label: "Cartelera",
-    href: "/movies",
-    desc: "Cine en Vitoria",
-    color: "bg-blue",
-  },
-];
+const CULTURA_SET = new Set(["Teatro", "Exposiciones", "Danza", "Conferencias", "Talleres", "Visitas"]);
+const DEPORTE_SET = new Set(["Deporte", "Senderismo"]);
 
-export default function CategoriesGrid() {
+async function getCategoryCounts(): Promise<{ conciertos: number; cultura: number; deporte: number }> {
+  try {
+    const eventos = await getProximosEventos();
+    const limit = new Date();
+    limit.setDate(limit.getDate() + 7);
+    const counts = { conciertos: 0, cultura: 0, deporte: 0 };
+
+    for (const ev of eventos) {
+      const d = new Date(ev.date);
+      if (isNaN(d.getTime()) || d > limit) continue;
+      const cat = normalizeCategory(ev.category);
+      if (cat === "Música") counts.conciertos++;
+      else if (CULTURA_SET.has(cat)) counts.cultura++;
+      else if (DEPORTE_SET.has(cat)) counts.deporte++;
+    }
+    return counts;
+  } catch {
+    return { conciertos: 0, cultura: 0, deporte: 0 };
+  }
+}
+
+export default async function CategoriesGrid() {
+  const counts = await getCategoryCounts();
+
+  const categories = [
+    { label: "Conciertos", href: "/conciertos", desc: "Música en vivo", color: "bg-teal", count: counts.conciertos },
+    { label: "Cultura", href: "/culture", desc: "Teatro, exposiciones", color: "bg-accent", count: counts.cultura },
+    { label: "Deporte", href: "/deporte", desc: "Running, trail, eventos", color: "bg-green", count: counts.deporte },
+    { label: "Cartelera", href: "/movies", desc: "Cine en Vitoria", color: "bg-blue", count: 0 },
+  ];
+
   return (
     <section className="px-5 sm:px-6 py-12 md:py-16 max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
@@ -49,7 +57,16 @@ export default function CategoriesGrid() {
               <h3 className="font-display text-sm font-semibold text-fg group-hover:text-accent transition-colors duration-300 truncate">
                 {cat.label}
               </h3>
-              <p className="text-xs text-fg-muted mt-0.5 truncate">{cat.desc}</p>
+              <p className="text-xs text-fg-muted mt-0.5 truncate">
+                {cat.count > 0 ? (
+                  <>
+                    <span className="text-fg font-medium tabular-nums">{cat.count}</span>
+                    {cat.count === 1 ? " esta semana" : " esta semana"}
+                  </>
+                ) : (
+                  cat.desc
+                )}
+              </p>
             </div>
           </Link>
         ))}

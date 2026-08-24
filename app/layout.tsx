@@ -14,6 +14,7 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
 });
 
 const workSans = Work_Sans({
@@ -85,7 +86,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#C94A3D",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#C94A3D" },
+    { media: "(prefers-color-scheme: dark)", color: "#141110" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -104,6 +108,7 @@ export default function RootLayout({
       className={`${fraunces.variable} ${workSans.variable} ${jetbrainsMono.variable}`}
     >
       <head>
+        <meta name="color-scheme" content="light dark" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="mobile-web-app-capable" content="yes" />

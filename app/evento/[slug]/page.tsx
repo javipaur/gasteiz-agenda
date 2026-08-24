@@ -12,6 +12,7 @@ import {
 } from "@/lib/seo";
 import { sourceLabel } from "@/lib/utils";
 import { EventCard } from "@/lib/shared";
+import AddToCalendar from "@/app/components/AddToCalendar";
 
 export const revalidate = 300;
 
@@ -150,6 +151,17 @@ export default async function EventoDetallePage({ params }: PageProps) {
               <PinIcon />
               <span>{lugar}</span>
             </p>
+          </div>
+
+          <div className="mb-8">
+            <AddToCalendar
+              title={evento.title}
+              date={evento.date}
+              dateEnd={evento.dateEnd}
+              time={evento.time}
+              location={lugar}
+              slug={evento.slug}
+            />
           </div>
 
           {parrafos.length > 0 && (

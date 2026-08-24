@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const API_KEY = process.env.API_KEY;
 
 const PUBLIC_API_ROUTES = [
+  "/api/search",
   "/api/newsletter/subscribe",
   "/api/newsletter/confirm",
   "/api/newsletter/unsubscribe",

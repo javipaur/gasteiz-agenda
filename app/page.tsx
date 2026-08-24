@@ -109,7 +109,20 @@ export default async function HomeEventsPage() {
         <FiestasWithData />
       </Suspense>
 
-      <CategoriesGrid />
+      <Suspense
+        fallback={
+          <section className="px-5 sm:px-6 py-12 md:py-16 max-w-7xl mx-auto">
+            <div className="h-7 w-64 bg-surface rounded-lg animate-pulse mb-6" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-[68px] bg-surface rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </section>
+        }
+      >
+        <CategoriesGrid />
+      </Suspense>
 
       <Suspense fallback={<EventsSkeleton />}>
         <EventsWithData />

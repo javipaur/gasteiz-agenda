@@ -1,0 +1,13 @@
+import { chromium } from "@playwright/test";
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 540, height: 960 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await page.goto("http://localhost:3177/", { waitUntil: "networkidle", timeout: 60000 });
+await page.evaluate(() => window.scrollTo(0, 400));
+await page.waitForTimeout(1500);
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.waitForTimeout(800);
+await page.screenshot({ path: "public/screenshots/home-narrow.png" });
+await page.goto("http://localhost:3177/conciertos", { waitUntil: "networkidle", timeout: 60000 });
+await page.waitForTimeout(2000);
+await page.screenshot({ path: "public/screenshots/conciertos-narrow.png" });
+await browser.close();

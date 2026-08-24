@@ -1,10 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import { Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
+import { formatDate } from "@/lib/utils";
+
+type SearchHit = {
+  slug: string;
+  title: string;
+  date: string;
+  image?: string;
+  location?: string;
+};
 
 const navItems = [
   { name: "Inicio", href: "/" },
@@ -61,6 +71,8 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState<SearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -111,6 +123,43 @@ export default function Header() {
   }, [searchOpen]);
 
   useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!searchOpen || q.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+        const data = await res.json();
+        setResults(Array.isArray(data.results) ? data.results : []);
+      } catch {
+        /* aborted or network error */
+      } finally {
+        if (!ctrl.signal.aborted) setSearching(false);
+      }
+    }, 180);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [searchQuery, searchOpen]);
+
+  useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (searchFormRef.current && !searchFormRef.current.contains(e.target as Node)) {
         setSearchOpen(false);
@@ -129,8 +178,16 @@ export default function Header() {
     router.push(`/culture?q=${encodeURIComponent(q)}`);
     setSearchQuery("");
     setSearchOpen(false);
+    setResults([]);
     setIsMenuOpen(false);
   }, [searchQuery, router]);
+
+  const goToHit = useCallback((slug: string) => {
+    router.push(`/evento/${slug}`);
+    setSearchQuery("");
+    setSearchOpen(false);
+    setResults([]);
+  }, [router]);
 
   const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return;
@@ -207,12 +264,73 @@ export default function Header() {
                     placeholder="Buscar eventos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setSearchOpen(false);
+                        setResults([]);
+                      }
+                    }}
                     className="w-full pl-9 pr-3 py-1.5 text-sm bg-bg-muted border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent transition-all duration-300"
                     style={{ borderRadius: '999px' }}
                     aria-label="Buscar eventos"
                   />
                   <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" />
                 </div>
+                {searchOpen && (
+                  <div className="absolute left-auto right-0 top-full mt-2 w-[calc(100%+4rem)] max-w-sm rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn">
+                    {searching && results.length === 0 ? (
+                      <p className="px-4 py-3.5 font-mono text-xs text-fg-subtle">
+                        Buscando…
+                      </p>
+                    ) : results.length > 0 ? (
+                      <>
+                        <ul>
+                          {results.map((hit) => {
+                            const { day, month } = formatDate(hit.date);
+                            return (
+                              <li key={hit.slug}>
+                                <button
+                                  type="button"
+                                  onClick={() => goToHit(hit.slug)}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted transition-colors duration-200 cursor-pointer"
+                                >
+                                  <span className="relative w-9 h-9 rounded-lg overflow-hidden bg-bg-muted shrink-0 flex items-center justify-center">
+                                    {hit.image ? (
+                                      <Image src={hit.image} alt="" fill sizes="36px" className="object-cover" />
+                                    ) : (
+                                      <span className="font-display text-sm text-fg-subtle">{hit.title.charAt(0)}</span>
+                                    )}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-sm font-medium text-fg truncate">{hit.title}</span>
+                                    <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-fg-subtle truncate">
+                                      {day} {month}{hit.location ? ` · ${hit.location}` : ""}
+                                    </span>
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        <Link
+                          href={`/culture?q=${encodeURIComponent(searchQuery.trim())}`}
+                          onClick={() => {
+                            setSearchOpen(false);
+                            setResults([]);
+                            setSearchQuery("");
+                          }}
+                          className="block border-t border-border px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-accent hover:bg-bg-muted transition-colors duration-200"
+                        >
+                          Ver todos los resultados
+                        </Link>
+                      </>
+                    ) : searchQuery.trim().length >= 2 ? (
+                      <p className="px-4 py-3.5 font-mono text-xs text-fg-subtle">
+                        Sin resultados para “{searchQuery.trim()}”
+                      </p>
+                    ) : null}
+                  </div>
+                )}
                 <button
                   type={searchOpen ? "submit" : "button"}
                   onClick={(e) => {

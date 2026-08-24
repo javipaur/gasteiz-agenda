@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { formatSpanishDate, localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
+import EmptyState from "./EmptyState";
 
 type Evento = {
   id: string;
@@ -39,7 +40,6 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
       date.setDate(date.getDate() + i);
       const dateStr = localDateStr(date);
       const daysOfWeek = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
-      const daysOfShort = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
       groups.push({
         date: dateStr,
         label: i === 0 ? "Hoy" : daysOfWeek[date.getDay()],
@@ -90,7 +90,8 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   const totalThisWeek = weekDays.reduce((s, d) => s + d.count, 0);
 
   return (
-    <section className="px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
+    <section className="relative px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
+      <div className="hero-wash" aria-hidden="true" />
       <div className="max-w-7xl mx-auto">
         <InViewWrapper eager>
           <div className="flex items-center gap-3 mb-8">
@@ -105,10 +106,27 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
         </InViewWrapper>
 
         <InViewWrapper eager>
-          <h1 className="font-display text-[2.5rem] sm:text-[3.25rem] md:text-[4rem] font-black text-fg leading-[1.05] tracking-[-0.03em] mb-4 max-w-2xl">
+          <h1 className="font-display text-[clamp(2.75rem,8vw,4.75rem)] font-black text-fg leading-[1.02] tracking-[-0.03em] mb-5 max-w-3xl">
             Qué hacer en
             <br />
-            <span className="text-accent">Vitoria</span>
+            <span className="relative inline-block text-accent [font-variation-settings:'SOFT'_40,'WONK'_1]">
+              Vitoria
+              <svg
+                aria-hidden="true"
+                className="absolute left-0 -bottom-[0.08em] w-full h-[0.16em]"
+                viewBox="0 0 200 20"
+                preserveAspectRatio="none"
+                fill="none"
+              >
+                <path
+                  d="M4 13 C 40 5, 78 17, 112 11 S 178 6, 196 12"
+                  stroke="currentColor"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  className="squiggle-path"
+                />
+              </svg>
+            </span>
           </h1>
 
           <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-10">
@@ -219,11 +237,32 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-fg-subtle text-sm text-center py-4">
-                  {categoryFilter !== "all"
-                    ? `No hay eventos de "${categoryFilter}" para este día`
-                    : "No hay eventos para este día"}
-                </p>
+                <div className="py-2">
+                  {categoryFilter !== "all" ? (
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <p className="text-fg-muted text-sm">
+                        No hay eventos de <span className="text-fg font-medium">{categoryFilter}</span> para este día.
+                      </p>
+                      <button
+                        onClick={() => setCategoryFilter("all")}
+                        className="text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300 cursor-pointer"
+                      >
+                        Ver todas las categorías
+                      </button>
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={
+                        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="10" cy="10" r="7.5" />
+                          <path d="M10 6v4l2.5 1.5" />
+                        </svg>
+                      }
+                      title="Día sin planes publicados"
+                      hint="Perfecto para pasear por el Casco Viejo o mirar lo que llega el resto de la semana."
+                    />
+                  )}
+                </div>
               )}
             </div>
           </div>

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { CATEGORY_COLORS } from "@/lib/categories";
+import EmptyState from "./EmptyState";
 
 type Evento = {
   id: string;
@@ -48,14 +50,24 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
             ))}
           </div>
         ) : (
-          <p className="text-center text-fg-muted py-12 font-mono text-sm">
-            No hay eventos disponibles
-          </p>
+          <InViewWrapper>
+            <EmptyState
+              icon={
+                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="2.5" y="4" width="15" height="13" rx="2" />
+                  <path d="M2.5 8h15M6.5 2.5V5M13.5 2.5V5" />
+                </svg>
+              }
+              title="La agenda está en blanco"
+              hint="No hay eventos publicados para los próximos días. Suele llenarse a principio de semana."
+              action={{ href: "/culture", label: "Explorar la agenda cultural" }}
+            />
+          </InViewWrapper>
         )}
 
         <InViewWrapper>
           <div className="mt-10">
-            <a
+            <Link
               href="/culture"
               className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300 group"
             >
@@ -63,7 +75,7 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
               <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 8h10M9 4l4 4-4 4" />
               </svg>
-            </a>
+            </Link>
           </div>
         </InViewWrapper>
       </div>

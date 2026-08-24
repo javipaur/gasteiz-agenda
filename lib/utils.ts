@@ -102,3 +102,25 @@ export function sourceLabel(source?: string): string {
     default: return source || "";
   }
 }
+
+export function dayBadgeLabel(dateStr: string): string | null {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const target = localDateStr(d);
+  if (target === localDateStr(today)) return "HOY";
+  if (target === localDateStr(tomorrow)) return "MAÑ";
+  return null;
+}
+
+export function shortTime(time?: string): string | null {
+  if (!time) return null;
+  const t = time.trim();
+  const m = t.match(/^(\d{1,2})[:.h](\d{2})/i);
+  if (m) return `${m[1]}:${m[2]}`;
+  if (/^\d{1,2}$/.test(t)) return `${t}:00`;
+  return null;
+}

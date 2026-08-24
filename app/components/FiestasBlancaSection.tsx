@@ -40,6 +40,13 @@ export default function FiestasBlancaSection({
 
   if (upcoming.length === 0) return null;
 
+  const dates = fiestas.map((f) => f.date).filter(Boolean).sort();
+  const fmt = (s: string) =>
+    new Date(`${s}T00:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+  const range =
+    dates.length > 1 ? `${fmt(dates[0])} – ${fmt(dates[dates.length - 1])}` : "";
+  const year = dates.length ? new Date(`${dates[0]}T00:00:00`).getFullYear() : new Date().getFullYear();
+
   return (
     <section className="py-16 md:py-20 px-5 sm:px-6">
       <div className="max-w-7xl mx-auto">
@@ -52,10 +59,10 @@ export default function FiestasBlancaSection({
               <span className="h-px flex-1 bg-amber-200 max-w-16" aria-hidden="true" />
             </div>
             <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-2">
-              La Blanca 2026
+              La Blanca {year}
             </h2>
             <p className="text-fg-muted text-base">
-              15 julio – 10 agosto · Programación completa
+              {range && `${range} · `}Programación completa
             </p>
           </div>
         </InViewWrapper>
