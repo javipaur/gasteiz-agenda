@@ -7,10 +7,28 @@ import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos } from "@/lib/eventos";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
+import { eventSlug } from "@/lib/slug";
+import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 export const revalidate = 300;
 
 const getCachedEventos = cache(getProximosEventos);
+
+async function AgendaJsonLd() {
+  const eventos = await getCachedEventos();
+  return (
+    <JsonLd
+      data={itemListJsonLd(
+        eventos
+          .filter((e) => e.link)
+          .slice(0, 30)
+          .map((e) => ({ ...e, slug: eventSlug(e) })),
+        "Próximos eventos en Vitoria-Gasteiz",
+        "/"
+      )}
+    />
+  );
+}
 
 function HeroSkeleton() {
   return (
@@ -79,6 +97,10 @@ async function FiestasWithData() {
 export default async function HomeEventsPage() {
   return (
     <>
+      <Suspense fallback={null}>
+        <AgendaJsonLd />
+      </Suspense>
+
       <Suspense fallback={<HeroSkeleton />}>
         <HeroWithData />
       </Suspense>

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
-    "newsletter:send": "npx tsx scripts/send-newsletter.ts"
+    "newsletter:send": "npx tsx scripts/send-newsletter.ts",
+    "push": "node scripts/send-push.mjs"
   },
   "dependencies": {
     "axios": "^1.14.0",
@@ -15,18 +16,21 @@
     "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/axios": "^0.9.36",
     "@types/cheerio": "^0.22.35",
-    "@types/node": "^20",
+    "@types/node": "^24.13.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -3,6 +3,8 @@ export const revalidate = 300;
 import KidsPageClient from "../components/KidsPageClient";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
 import { getCachedOrFetch } from "@/lib/cache";
+import { eventSlug } from "@/lib/slug";
+import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 type Evento = {
   id: string;
@@ -35,10 +37,26 @@ async function getEventos(): Promise<Evento[]> {
 
 export const metadata = {
   title: "Planes con Niños en Vitoria-Gasteiz",
-  description: "Actividades y planes familiares en Vitoria-Gasteiz"
+  description:
+    "Actividades, talleres y planes familiares con niños en Vitoria-Gasteiz.",
+  alternates: { canonical: "/kids" },
 };
 
 export default async function KidsPage() {
   const eventos = await getEventos();
-  return <KidsPageClient eventos={eventos} />;
+  return (
+    <>
+      <JsonLd
+        data={itemListJsonLd(
+          eventos
+            .filter((e) => e.link && e.link !== "#")
+            .map((e) => ({ ...e, slug: eventSlug(e), location: e.location || "Vitoria-Gasteiz" }))
+            .slice(0, 50),
+          "Planes con niños en Vitoria-Gasteiz",
+          "/kids"
+        )}
+      />
+      <KidsPageClient eventos={eventos} />
+    </>
+  );
 }

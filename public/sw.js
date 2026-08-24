@@ -1,11 +1,12 @@
-const CACHE_NAME = "gasteiz-click-v1";
-const STATIC_CACHE = "gasteiz-static-v1";
-const DYNAMIC_CACHE = "gasteiz-dynamic-v1";
+const CACHE_NAME = "gasteiz-click-v2";
+const STATIC_CACHE = "gasteiz-static-v2";
+const DYNAMIC_CACHE = "gasteiz-dynamic-v2";
 
 const STATIC_ASSETS = [
   "/",
-  "/icon-192.svg",
-  "/icon-512.svg",
+  "/offline",
+  "/icon-192.png",
+  "/icon-512.png",
   "/manifest.json",
 ];
 
@@ -78,8 +79,8 @@ self.addEventListener("fetch", (event) => {
       .catch(() => {
         return caches.match(request).then((cached) => {
           if (cached) return cached;
-          if (request.headers.get("accept")?.includes("text/html")) {
-            return caches.match("/");
+          if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
+            return caches.match("/offline");
           }
           return new Response("Offline", { status: 503 });
         });
@@ -102,8 +103,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: data.body || "Nuevo evento en Vitoria-Gasteiz",
-    icon: "/icon-192.svg",
-    badge: "/icon-192.svg",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     vibrate: [100, 50, 100],
     data: { url: data.url || "/" },
     actions: [

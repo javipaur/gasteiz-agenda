@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
+import { eventSlug } from "@/lib/slug";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
@@ -141,20 +144,19 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
 
   return (
     <InViewWrapper delay={Math.min(index * 0.04, 0.4)}>
-      <a
-        href={evento.link || "#"}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href={`/evento/${eventSlug(evento)}`}
         className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
       >
         <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
           <div className="aspect-[4/3] relative">
             {evento.image ? (
-              <img
+              <Image
                 src={evento.image}
                 alt={evento.title}
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-                loading="lazy"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
             ) : (
@@ -211,7 +213,7 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
             </div>
           </div>
         </div>
-      </a>
+      </Link>
     </InViewWrapper>
   );
 }

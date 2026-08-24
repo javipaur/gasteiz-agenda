@@ -1,6 +1,7 @@
 "use client";
 
 import { useFavorites } from "@/app/context/FavoritesContext";
+import PushNotifications from "@/app/components/PushNotifications";
 import Link from "next/link";
 
 function formatDate(dateStr: string) {
@@ -146,6 +147,7 @@ export default function FavoritosPage() {
           })}
         </div>
       )}
+      <PushNotifications />
     </div>
   );
 }

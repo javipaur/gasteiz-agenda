@@ -45,6 +45,9 @@ function PlayStoreIcon({ className }: { className?: string }) {
 }
 
 export default function Footer() {
+  const now = new Date();
+  const agendaUrl = `/agenda/${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   return (
     <footer className="mt-20">
       <div className="bg-fg text-white/80">
@@ -88,11 +91,13 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm">
               {[
                 { label: "Conciertos", href: "/conciertos", icon: SparklesIcon },
-                { label: "Cultura", href: "/culture", icon: FilmIcon },
+                { label: "Teatro", href: "/culture/teatro", icon: FilmIcon },
+                { label: "Exposiciones", href: "/culture/exposiciones", icon: FilmIcon },
                 { label: "Deporte", href: "/deporte", icon: ActivityIcon },
                 { label: "La Blanca", href: "/fiestas-blanca", icon: SparklesIcon },
                 { label: "Niños", href: "/kids", icon: SparklesIcon },
                 { label: "Cine", href: "/movies", icon: FilmIcon },
+                { label: "Agenda mensual", href: agendaUrl, icon: ActivityIcon },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300 flex items-center gap-2">

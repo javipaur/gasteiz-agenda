@@ -6,6 +6,7 @@ const PUBLIC_API_ROUTES = [
   "/api/newsletter/subscribe",
   "/api/newsletter/confirm",
   "/api/newsletter/unsubscribe",
+  "/api/push/subscribe",
 ];
 
 const RATE_LIMIT_WINDOW = 60_000;

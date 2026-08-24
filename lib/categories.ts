@@ -45,6 +45,23 @@ export function normalizeCategory(cat?: string): string {
   return CATEGORY_ALIASES[key] || cat;
 }
 
+export const CULTURA_CATEGORIAS = [
+  { slug: "teatro", label: "Teatro" },
+  { slug: "conciertos", label: "Conciertos" },
+  { slug: "exposiciones", label: "Exposiciones" },
+  { slug: "agenda", label: "Agenda cultural" },
+] as const;
+
+export type CulturaCategoriaSlug = (typeof CULTURA_CATEGORIAS)[number]["slug"];
+
+export function mapToCultureCategory(category: string): string {
+  const cat = category.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (cat === "teatro") return "teatro";
+  if (["musica", "conciertos", "concierto"].includes(cat)) return "conciertos";
+  if (["exposiciones", "exposicion"].includes(cat)) return "exposiciones";
+  return "agenda";
+}
+
 export const CATEGORY_COLORS: Record<string, string> = {
   Música: "#C94A3D",
   Teatro: "#A67C52",

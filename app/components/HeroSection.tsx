@@ -92,7 +92,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   return (
     <section className="px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
       <div className="max-w-7xl mx-auto">
-        <InViewWrapper>
+        <InViewWrapper eager>
           <div className="flex items-center gap-3 mb-8">
             <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-fg-subtle">
               Vitoria-Gasteiz
@@ -104,7 +104,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
           </div>
         </InViewWrapper>
 
-        <InViewWrapper>
+        <InViewWrapper eager>
           <h1 className="font-display text-[2.5rem] sm:text-[3.25rem] md:text-[4rem] font-black text-fg leading-[1.05] tracking-[-0.03em] mb-4 max-w-2xl">
             Qué hacer en
             <br />
@@ -118,7 +118,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
           </p>
         </InViewWrapper>
 
-        <InViewWrapper>
+        <InViewWrapper eager>
           <div
             className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1"
             role="tablist"
@@ -166,7 +166,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
           <div
             id={`day-panel-${selectedDay}`}
             role="tabpanel"
-            className="mt-8 animate-fadeIn"
+            className="mt-8"
           >
             <div className="rounded-2xl border border-border bg-surface p-5 md:p-6">
               <div className="flex items-center justify-between mb-5">
@@ -207,13 +207,14 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
 
               {filteredEvents.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredEvents.map((evento) => (
+                  {filteredEvents.map((evento, i) => (
                     <EventCard
                       key={evento.id}
                       evento={evento}
                       showCategory
                       showSource
                       categoryColors={CATEGORY_COLORS}
+                      priority={i < 3}
                     />
                   ))}
                 </div>

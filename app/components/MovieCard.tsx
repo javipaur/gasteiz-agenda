@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Pelicula = {
   titulo: string;
   duracion: string;
@@ -42,11 +44,12 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
     >
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className="aspect-[4/3] relative">
-          <img
+          <Image
             src={pelicula.imagen}
             alt={pelicula.titulo}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 

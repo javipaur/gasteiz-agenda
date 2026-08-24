@@ -3,6 +3,8 @@ export const revalidate = 300;
 import ConciertosPageClient from "../components/ConciertosPageClient";
 import { scrapeAllConciertos } from "@/lib/sources/conciertos";
 import { getCachedOrFetch } from "@/lib/cache";
+import { eventSlug } from "@/lib/slug";
+import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 type Evento = {
   id: string;
@@ -37,10 +39,26 @@ async function getEventos(): Promise<Evento[]> {
 
 export const metadata = {
   title: "Conciertos en Vitoria-Gasteiz — Gasteiz Click",
-  description: "Conciertos y música en vivo en Vitoria-Gasteiz: Jimmy Jazz, HellDorado, Musikaze y más.",
+  description:
+    "Conciertos y música en vivo en Vitoria-Gasteiz: Jimmy Jazz, HellDorado, Musikaze y más.",
+  alternates: { canonical: "/conciertos" },
 };
 
 export default async function ConciertosPage() {
   const eventos = await getEventos();
-  return <ConciertosPageClient eventos={eventos} />;
+  return (
+    <>
+      <JsonLd
+        data={itemListJsonLd(
+          eventos
+            .filter((e) => e.link)
+            .map((e) => ({ ...e, slug: eventSlug(e), description: undefined }))
+            .slice(0, 50),
+          "Conciertos en Vitoria-Gasteiz",
+          "/conciertos"
+        )}
+      />
+      <ConciertosPageClient eventos={eventos} />
+    </>
+  );
 }

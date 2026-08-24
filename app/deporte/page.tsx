@@ -1,10 +1,13 @@
 export const revalidate = 300;
 
+import type { Metadata } from "next";
 import SportPageClient from "../components/SportPageClient";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
 import { scrapeBuscametasCalendario, scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
 import { scrapeSenderismo } from "@/lib/sources/senderismo";
 import { getCachedOrFetch } from "@/lib/cache";
+import { eventSlug } from "@/lib/slug";
+import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 export type Evento = {
   id: string;
@@ -74,12 +77,45 @@ async function getEventos(): Promise<Evento[]> {
   return getCachedOrFetch("deporte-eventos", 5 * 60 * 1000, fetchDeportes);
 }
 
-export const metadata = {
-  title: "Agenda Deportiva en Vitoria-Gasteiz",
-  description: "Carreras, senderismo y eventos deportivos en Vitoria-Gasteiz."
+type PageProps = {
+  searchParams: Promise<{ q?: string }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps): Promise<Metadata> {
+  const { q } = await searchParams;
+
+  if (q) {
+    return {
+      title: `Búsqueda: ${q}`,
+      robots: { index: false, follow: true },
+    };
+  }
+
+  return {
+    title: "Agenda Deportiva en Vitoria-Gasteiz",
+    description:
+      "Carreras, senderismo y eventos deportivos en Vitoria-Gasteiz.",
+    alternates: { canonical: "/deporte" },
+  };
+}
 
 export default async function DeportePage() {
   const eventos = await getEventos();
-  return <SportPageClient eventos={eventos} />;
+  return (
+    <>
+      <JsonLd
+        data={itemListJsonLd(
+          eventos
+            .filter((e) => e.link && e.link !== "#")
+            .map((e) => ({ ...e, slug: eventSlug(e) }))
+            .slice(0, 50),
+          "Agenda deportiva de Vitoria-Gasteiz",
+          "/deporte"
+        )}
+      />
+      <SportPageClient eventos={eventos} />
+    </>
+  );
 }

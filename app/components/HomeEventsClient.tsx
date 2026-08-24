@@ -42,6 +42,7 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
                 <EventCard
                   evento={evento}
                   categoryColors={CATEGORY_COLORS}
+                  priority={i < 4}
                 />
               </InViewWrapper>
             ))}

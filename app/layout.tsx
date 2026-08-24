@@ -5,6 +5,8 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import Analytics from "./components/Analytics";
+import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -40,21 +42,20 @@ export const metadata: Metadata = {
     title: "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
     description:
       "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
-    images: [
-      {
-        url: "/icon-512.svg",
-        width: 512,
-        height: 512,
-        alt: "Gasteiz Click",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
     description:
       "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
-    images: ["/icon-512.svg"],
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+  },
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -67,12 +68,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
-      { url: "/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon-512.svg", type: "image/svg+xml" },
     ],
-    apple: [
-      { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
-    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     other: [
       {
         rel: "mask-icon",
@@ -106,9 +106,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <JsonLd data={graphJsonLd(webSiteJsonLd(), organizationJsonLd())} />
       </head>
       <body className="bg-bg text-fg antialiased">
         <ServiceWorkerRegistration />
+        <Analytics />
         <FavoritesProvider>
           <a
             href="#main-content"

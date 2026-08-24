@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { eventSlug } from "@/lib/slug";
 import { formatDate, sourceLabel } from "@/lib/utils";
 
 export { formatDate, sourceLabel };
@@ -30,14 +33,16 @@ export function InViewWrapper({
   className,
   delay = 0,
   blur = false,
+  eager = false,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
   blur?: boolean;
+  eager?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(eager);
 
   useEffect(() => {
     const el = ref.current;
@@ -76,17 +81,20 @@ export function EventCard({
   evento,
   showCategory = false,
   showSource = false,
-  categoryColors = {},
+  categoryColors,
   size = "normal",
+  priority = false,
 }: {
   evento: EventCardEvento;
   showCategory?: boolean;
   showSource?: boolean;
   categoryColors?: Record<string, string>;
   size?: "normal" | "large" | "compact";
+  priority?: boolean;
 }) {
   const { day, month } = formatDate(evento.date);
-  const catColor = categoryColors[evento.category || "Otros"] || "#9C9996";
+  const catColor = categoryColors?.[evento.category || "Otros"] || "#9C9996";
+  const detailHref = `/evento/${eventSlug(evento)}`;
 
   const aspectClass = size === "large" ? "aspect-[16/10]" : size === "compact" ? "aspect-[3/2]" : "aspect-[4/3]";
 
@@ -96,7 +104,7 @@ export function EventCard({
     const shareData = {
       title: evento.title,
       text: `${evento.title}${evento.location ? ` en ${evento.location}` : ""}`,
-      url: evento.link || window.location.href,
+      url: `${window.location.origin}/evento/${eventSlug(evento)}`,
     };
     if (navigator.share) {
       try { await navigator.share(shareData); } catch {}
@@ -107,20 +115,20 @@ export function EventCard({
   }, [evento]);
 
   return (
-    <a
-      href={evento.link || "#"}
-      target={evento.link ? "_blank" : undefined}
-      rel={evento.link ? "noopener noreferrer" : undefined}
+    <Link
+      href={detailHref}
       className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5"
     >
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className={`${aspectClass} relative`}>
           {evento.image ? (
-            <img
+            <Image
               src={evento.image}
               alt={evento.title}
+              fill
+              priority={priority}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-              loading="lazy"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           ) : (
@@ -187,6 +195,6 @@ export function EventCard({
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
