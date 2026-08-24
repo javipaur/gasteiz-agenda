@@ -3,6 +3,7 @@ import { Fraunces, Work_Sans, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import Analytics from "./components/Analytics";
@@ -121,6 +122,12 @@ export default function RootLayout({
           <Header />
           <main id="main-content" className="min-h-[100dvh]">{children}</main>
           <Footer />
+          <BottomNav />
+          <div
+            aria-hidden="true"
+            className="md:hidden"
+            style={{ height: "calc(64px + env(safe-area-inset-bottom, 0px))" }}
+          />
           <ScrollToTop />
         </FavoritesProvider>
       </body>

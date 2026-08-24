@@ -37,6 +37,11 @@
 }
 
 @layer base {
+  html {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     background: var(--color-bg);
     color: var(--color-fg);

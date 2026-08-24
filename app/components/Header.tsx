@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import { Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 
@@ -50,6 +50,11 @@ function PlayStoreIcon({ className }: { className?: string }) {
   );
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -57,7 +62,23 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const isStandalone = useSyncExternalStore(
+    useCallback((onChange: () => void) => {
+      const mq = window.matchMedia("(display-mode: standalone)");
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    }, []),
+    useCallback(
+      () =>
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as Navigator & { standalone?: boolean })
+          .standalone === true,
+      []
+    ),
+    () => false
+  );
   const { count } = useFavorites();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
@@ -72,15 +93,11 @@ export default function Header() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
@@ -126,13 +143,13 @@ export default function Header() {
     <>
       <header
         className={`fixed left-0 right-0 z-[var(--z-nav)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-          scrolled ? "mt-0" : "mt-0 md:mt-4"
+          scrolled || isStandalone ? "mt-0" : "mt-0 md:mt-4"
         }`}
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className={`
           mx-auto transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
-          ${scrolled
+          ${scrolled || isStandalone
             ? "max-w-full rounded-none bg-bg/90 backdrop-blur-xl border-b border-border"
             : "max-w-[calc(100%-2rem)] lg:max-w-5xl rounded-full bg-bg/90 backdrop-blur-xl border border-border shadow-sm"
           }
@@ -240,15 +257,17 @@ export default function Header() {
                 </button>
               )}
 
-              <a
-                href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:flex p-2.5 min-w-[44px] min-h-[44px] text-fg-muted hover:text-fg transition-colors rounded-full hover:bg-bg-muted"
-                aria-label="App Android"
-              >
-                <PlayStoreIcon className="w-4 h-4" />
-              </a>
+              {!isStandalone && (
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden md:flex p-2.5 min-w-[44px] min-h-[44px] text-fg-muted hover:text-fg transition-colors rounded-full hover:bg-bg-muted"
+                  aria-label="App Android"
+                >
+                  <PlayStoreIcon className="w-4 h-4" />
+                </a>
+              )}
 
               <button
                 className="md:hidden relative w-11 h-11 flex items-center justify-center rounded-full bg-bg-muted border border-border text-fg-muted hover:text-fg transition-all duration-300"
@@ -354,24 +373,26 @@ export default function Header() {
                 )}
               </Link>
             </li>
-            <li
-              style={{
-                transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(navItems.length + 1) * 0.07}s`,
-                opacity: isMenuOpen ? 1 : 0,
-                transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
-              }}
-            >
-              <a
-                href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center gap-3 w-full text-center py-3 text-sm text-white/40 hover:text-white/60 rounded-xl transition-all duration-300"
+            {!isStandalone && (
+              <li
+                style={{
+                  transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(navItems.length + 1) * 0.07}s`,
+                  opacity: isMenuOpen ? 1 : 0,
+                  transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
+                }}
               >
-                <PlayStoreIcon className="w-4 h-4" />
-                App Android
-              </a>
-            </li>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-center gap-3 w-full text-center py-3 text-sm text-white/40 hover:text-white/60 rounded-xl transition-all duration-300"
+                >
+                  <PlayStoreIcon className="w-4 h-4" />
+                  App Android
+                </a>
+              </li>
+            )}
           </ul>
         </nav>
       </div>
