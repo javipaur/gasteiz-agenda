@@ -45,3 +45,6 @@ next-env.d.ts
 
 # perfiles de chrome/lighthouse creados por error en WSL
 C:*
+
+# accesos locales a skills (los reales viven en .agents/skills/)
+.claude/skills/
