@@ -286,12 +286,8 @@ export default function Header() {
                     aria-current={isActive ? "page" : undefined}
                     className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                       isActive
-                        ? item.accent
-                          ? "bg-amber-500/15 text-amber-600 font-medium"
-                          : "bg-accent-soft text-accent font-medium"
-                        : item.accent
-                          ? "text-amber-600 hover:bg-amber-500/10 font-medium"
-                          : "text-fg-muted hover:text-fg hover:bg-bg-muted"
+                        ? "bg-accent-soft text-accent font-medium"
+                        : "text-fg-muted hover:text-fg hover:bg-bg-muted"
                     }`}
                   >
                     {item.name}
@@ -525,12 +521,8 @@ export default function Header() {
                     aria-current={isActive ? "page" : undefined}
                     className={`block w-full text-center py-3.5 text-xl font-display rounded-xl transition-all duration-300 ${
                       isActive
-                        ? item.accent
-                          ? "text-amber-400 bg-white/10 font-bold"
-                          : "text-accent bg-white/10 font-bold"
-                        : item.accent
-                          ? "text-amber-400/80 hover:text-amber-300 hover:bg-white/5 font-medium"
-                          : "text-white/70 hover:text-white hover:bg-white/5"
+                        ? "text-accent bg-white/10 font-bold"
+                        : "text-white/70 hover:text-white hover:bg-white/5"
                     }`}
                   >
                     {item.name}

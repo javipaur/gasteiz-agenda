@@ -1,6 +1,5 @@
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
-import { isBlancaSeason } from "@/lib/blanca";
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
@@ -25,7 +24,7 @@ export default function Footer() {
   const exploreLinks = [
     { label: "Inicio", href: "/" },
     { label: "Conciertos", href: "/conciertos" },
-    ...(isBlancaSeason() ? [{ label: "La Blanca", href: "/fiestas-blanca" }] : []),
+    { label: "La Blanca", href: "/fiestas-blanca" },
     { label: "Cultura", href: "/culture" },
     { label: "Deporte", href: "/deporte" },
     { label: "Cartelera", href: "/movies" },
@@ -100,6 +99,9 @@ export default function Footer() {
               <ThemeToggle />
             </div>
             <div className="flex items-center gap-5">
+              <Link href="/sobre" className="hover:text-white/70 transition-colors duration-300">
+                Sobre
+              </Link>
               <Link href="/privacidad" className="hover:text-white/70 transition-colors duration-300">
                 Privacidad
               </Link>

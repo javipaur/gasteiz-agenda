@@ -1,4 +1,5 @@
 import { Suspense, cache } from "react";
+import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
 import CategoriesGrid from "./components/CategoriesGrid";
 import FiestasBlancaSection from "./components/FiestasBlancaSection";
@@ -12,6 +13,10 @@ import { eventSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const getCachedEventos = cache(getProximosEventos);
 

@@ -53,10 +53,10 @@ export default function FiestasBlancaSection({
         <InViewWrapper>
           <div className="mb-10">
             <div className="flex items-center gap-3 mb-4">
-              <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-amber-600 font-medium">
+              <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent font-medium">
                 Fiestas
               </span>
-              <span className="h-px flex-1 bg-amber-200 max-w-16" aria-hidden="true" />
+              <span className="h-px flex-1 bg-accent/20 max-w-16" aria-hidden="true" />
             </div>
             <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-2">
               La Blanca {year}

@@ -28,7 +28,7 @@ export async function generateMetadata({
 
   const label = CULTURA_CATEGORIAS.find((c) => c.slug === categoria)!.label;
   return {
-    title: `${label} en Vitoria-Gasteiz — Agenda Cultural`,
+    title: `${label} en Vitoria-Gasteiz · Agenda Cultural`,
     description: `${label} en Vitoria-Gasteiz: fechas, lugares y entradas. Agenda actualizada a diario con todos los eventos de ${label.toLowerCase()} en la ciudad.`,
     alternates: { canonical: `/culture/${categoria}` },
   };

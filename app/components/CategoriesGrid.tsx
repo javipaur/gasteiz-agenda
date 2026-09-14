@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Music, Landmark, Trophy, Clapperboard } from "lucide-react";
 import { getProximosEventos } from "@/lib/eventos";
 import { normalizeCategory } from "@/lib/categories";
 
@@ -30,10 +31,10 @@ export default async function CategoriesGrid() {
   const counts = await getCategoryCounts();
 
   const categories = [
-    { label: "Conciertos", href: "/conciertos", desc: "Música en vivo", color: "bg-teal", count: counts.conciertos },
-    { label: "Cultura", href: "/culture", desc: "Teatro, exposiciones", color: "bg-accent", count: counts.cultura },
-    { label: "Deporte", href: "/deporte", desc: "Running, trail, eventos", color: "bg-green", count: counts.deporte },
-    { label: "Cartelera", href: "/movies", desc: "Cine en Vitoria", color: "bg-blue", count: 0 },
+    { label: "Conciertos", href: "/conciertos", desc: "Música en vivo", tint: "bg-teal/10 border-teal/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--teal-wash), transparent 60%)", icon: Music, count: counts.conciertos },
+    { label: "Cultura", href: "/culture", desc: "Teatro, exposiciones", tint: "bg-accent/10 border-accent/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--accent-wash), transparent 60%)", icon: Landmark, count: counts.cultura },
+    { label: "Deporte", href: "/deporte", desc: "Running, trail, eventos", tint: "bg-green/10 border-green/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(43,107,74,0.08), transparent 60%)", icon: Trophy, count: counts.deporte },
+    { label: "Cartelera", href: "/movies", desc: "Cine en Vitoria", tint: "bg-blue/10 border-blue/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(74,124,156,0.08), transparent 60%)", icon: Clapperboard, count: 0 },
   ];
 
   return (
@@ -46,34 +47,39 @@ export default async function CategoriesGrid() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {categories.map((cat) => (
+        {categories.map(({ label, href, desc, tint, wash, icon: Icon, count }) => (
           <Link
-            key={cat.href}
-            href={cat.href}
-            className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:border-border-hover hover:shadow-sm transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            key={href}
+            href={href}
+            className={`group relative overflow-hidden rounded-2xl border ${tint} p-5 min-h-[124px] flex flex-col justify-between transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-md hover:shadow-accent/5 active:scale-[0.98]`}
           >
-            <span className={`w-2 h-2 rounded-full ${cat.color} shrink-0`} />
-            <div className="min-w-0 flex-1">
-              <h3 className="font-display text-sm font-semibold text-fg group-hover:text-accent transition-colors duration-300 truncate">
-                {cat.label}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: wash }} />
+            <div className="relative flex items-start justify-between gap-2">
+              <span className={`grid size-10 place-items-center rounded-xl ${tint.split(" ")[0]} text-fg`}>
+                <Icon size={18} strokeWidth={1.75} />
+              </span>
+              <span
+                aria-hidden="true"
+                className="shrink-0 text-fg-subtle transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:text-accent group-hover:translate-x-0.5"
+              >
+                →
+              </span>
+            </div>
+            <div className="relative">
+              <h3 className="font-display text-lg font-bold text-fg leading-tight tracking-[-0.01em] group-hover:text-accent transition-colors duration-300">
+                {label}
               </h3>
-              <p className="text-xs text-fg-muted mt-0.5 truncate">
-                {cat.count > 0 ? (
+              <p className="text-xs text-fg-muted mt-0.5 tabular-nums">
+                {count > 0 ? (
                   <>
-                    <span className="text-fg font-medium tabular-nums">{cat.count}</span>
-                    {cat.count === 1 ? " esta semana" : " esta semana"}
+                    <span className="font-semibold text-fg">{count}</span>
+                    {count === 1 ? " esta semana" : " esta semana"}
                   </>
                 ) : (
-                  cat.desc
+                  desc
                 )}
               </p>
             </div>
-            <span
-              aria-hidden="true"
-              className="shrink-0 text-accent opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
-            >
-              →
-            </span>
           </Link>
         ))}
       </div>

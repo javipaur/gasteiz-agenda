@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { formatSpanishDate, localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
+import { eventSlug } from "@/lib/slug";
 import EmptyState from "./EmptyState";
 
 type Evento = {
@@ -106,6 +109,11 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   const { month, year } = formatSpanishDate(displayDate.date);
   const totalThisWeek = weekDays.reduce((s, d) => s + d.count, 0);
 
+  const featured = useMemo(
+    () => dayEvents.find((e) => e.image && e.image.length > 0) || null,
+    [dayEvents]
+  );
+
   const weekendIdx = weekDays.findIndex((d, i) => {
     const wd = new Date(d.date).getDay();
     return i > 0 ? wd === 5 || wd === 6 : wd === 6 || wd === 0;
@@ -115,7 +123,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   const weekendSelected = selectedDay === weekendIdx;
 
   return (
-    <section className="relative px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
+    <section className="relative px-5 sm:px-6 pt-28 pb-12 md:pt-28 md:pb-16">
       <div className="hero-wash" aria-hidden="true" />
       <div className="max-w-7xl mx-auto">
         <InViewWrapper eager>
@@ -134,8 +142,8 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
           <h1 className="font-display text-[clamp(2.75rem,8vw,4.75rem)] font-black text-fg leading-[1.02] tracking-[-0.03em] mb-5 max-w-3xl">
             Qué hacer en
             <br />
-            <span className="relative inline-block text-accent [font-variation-settings:'SOFT'_40,'WONK'_1]">
-              Vitoria
+            <span className="relative inline-block text-accent">
+              Vitoria-Gasteiz
               <svg
                 aria-hidden="true"
                 className="absolute left-0 -bottom-[0.08em] w-full h-[0.16em]"
@@ -239,7 +247,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                   {weekDays[selectedDay].isToday
                     ? "Hoy"
                     : weekDays[selectedDay].label}{" "}
-                  {new Date(weekDays[selectedDay].date).getDate()} &mdash;{" "}
+                  {new Date(weekDays[selectedDay].date).getDate()} ·{" "}
                   {weekDays[selectedDay].count} evento
                   {weekDays[selectedDay].count !== 1 ? "s" : ""}
                 </h3>
@@ -268,6 +276,35 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                     </button>
                   ))}
                 </div>
+              )}
+
+              {featured && (
+                <Link
+                  href={`/evento/${eventSlug(featured)}`}
+                  className="group relative hidden md:flex overflow-hidden rounded-2xl border border-border bg-bg-muted mb-5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-accent/40 cursor-pointer active:scale-[0.99]"
+                >
+                  <div className="relative w-[46%] shrink-0 overflow-hidden bg-accent-subtle">
+                    <Image
+                      src={featured.image!}
+                      alt={featured.title}
+                      fill
+                      sizes="(max-width: 1280px) 40vw, 480px"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-2 p-6">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+                      {weekDays[selectedDay]?.isToday ? "Destacado hoy" : "Destacado"}
+                    </p>
+                    <h4 className="font-display text-xl md:text-2xl text-fg font-bold leading-snug tracking-[-0.02em] line-clamp-2">
+                      {featured.title}
+                    </h4>
+                    <p className="font-mono text-xs text-fg-muted uppercase tracking-[0.1em]">
+                      {featured.location || "Vitoria-Gasteiz"}
+                    </p>
+                  </div>
+                </Link>
               )}
 
               {filteredEvents.length > 0 ? (

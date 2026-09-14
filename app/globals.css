@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #FDFCF9;
-  --bg-muted: #F4F2EE;
+  --bg: #FAFAF9;
+  --bg-muted: #F2F2F0;
   --bg-elevated: #FFFFFF;
-  --fg: #1A1816;
-  --fg-muted: #6B6865;
-  --fg-subtle: #9C9996;
-  --border: #E6E3DF;
-  --border-hover: #CCC9C4;
+  --fg: #211E1C;
+  --fg-muted: #5F5B57;
+  --fg-subtle: #6E6A66;
+  --border: #E4E2DF;
+  --border-hover: #C9C6C2;
   --accent: #C94A3D;
   --accent-hover: #B03A2E;
-  --accent-subtle: #F5E6E4;
+  --accent-subtle: #F6E6E4;
   --accent-soft: rgba(201, 74, 61, 0.08);
   --surface: #FFFFFF;
-  --surface-hover: #F8F7F4;
+  --surface-hover: #F6F5F3;
   --green: #2B6B4A;
   --blue: #4A7C9C;
   --teal: #4A9C8C;
   --bezel-highlight: rgba(255, 255, 255, 0.6);
-  --bezel-shadow: rgba(26, 24, 22, 0.04);
+  --bezel-shadow: rgba(33, 30, 28, 0.05);
   --accent-wash: rgba(201, 74, 61, 0.07);
   --teal-wash: rgba(74, 156, 140, 0.05);
 }
@@ -29,8 +29,8 @@
   --bg-muted: #1A1715;
   --bg-elevated: #201D1A;
   --fg: #EDE8E1;
-  --fg-muted: #A29C93;
-  --fg-subtle: #736D64;
+  --fg-muted: #A6A098;
+  --fg-subtle: #8F8980;
   --border: #2E2A25;
   --border-hover: #464039;
   --accent: #E06150;
@@ -54,8 +54,8 @@
     --bg-muted: #1A1715;
     --bg-elevated: #201D1A;
     --fg: #EDE8E1;
-    --fg-muted: #A29C93;
-    --fg-subtle: #736D64;
+    --fg-muted: #A6A098;
+    --fg-subtle: #8F8980;
     --border: #2E2A25;
     --border-hover: #464039;
     --accent: #E06150;
@@ -93,7 +93,7 @@
   --color-blue: var(--blue);
   --color-teal: var(--teal);
 
-  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-display: var(--font-onest), system-ui, sans-serif;
   --font-body: var(--font-work-sans), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 

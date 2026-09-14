@@ -7,7 +7,7 @@ export const size = {
 
 export const contentType = "image/png";
 
-export const alt = "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz";
+export const alt = "Gasteiz Click · Agenda cultural de Vitoria-Gasteiz";
 
 export default function Image() {
   return new ImageResponse(
@@ -31,7 +31,7 @@ export default function Image() {
               width: 72,
               height: 72,
               borderRadius: 18,
-              backgroundColor: "#FFD166",
+              backgroundColor: "#FFF8F4",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

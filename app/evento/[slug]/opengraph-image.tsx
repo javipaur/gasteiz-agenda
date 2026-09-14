@@ -9,7 +9,7 @@ export const size = {
 
 export const contentType = "image/png";
 
-export const alt = "Evento en Vitoria-Gasteiz — Gasteiz Click";
+export const alt = "Evento en Vitoria-Gasteiz · Gasteiz Click";
 
 export default async function Image({
   params,
@@ -59,7 +59,7 @@ export default async function Image({
               width: 56,
               height: 56,
               borderRadius: 14,
-              backgroundColor: "#FFD166",
+              backgroundColor: "#FFF8F4",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -71,7 +71,7 @@ export default async function Image({
             G
           </div>
           <div style={{ display: "flex", fontSize: 28, fontWeight: 600, opacity: 0.9 }}>
-            Gasteiz Click — Agenda de Vitoria-Gasteiz
+            Gasteiz Click · Agenda de Vitoria-Gasteiz
           </div>
         </div>
 

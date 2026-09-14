@@ -51,7 +51,7 @@ export async function generateMetadata({
 
   const label = mesLabel(parsed.year, parsed.month);
   return {
-    title: `Eventos en Vitoria-Gasteiz — ${label}`,
+    title: `Eventos en Vitoria-Gasteiz · ${label}`,
     description: `Toda la agenda de Vitoria-Gasteiz en ${label}: conciertos, teatro, exposiciones, deporte, cine y planes familiares. Fechas, lugares y entradas.`,
     alternates: { canonical: `/agenda/${mes}` },
   };
@@ -93,7 +93,7 @@ export default async function AgendaMesPage({ params }: PageProps) {
       <JsonLd
         data={itemListJsonLd(
           eventos.slice(0, 50),
-          `Eventos en Vitoria-Gasteiz — ${mesLabel(year, month)}`,
+          `Eventos en Vitoria-Gasteiz · ${mesLabel(year, month)}`,
           `/agenda/${mes}`
         )}
       />

@@ -34,14 +34,14 @@ export async function generateMetadata({
   const lugar = evento.location === "Vitoria-Gasteiz"
     ? "Vitoria-Gasteiz"
     : `${evento.location}, Vitoria-Gasteiz`;
-  const description = `${evento.title} — ${fecha} en ${lugar}.${
+  const description = `${evento.title} · ${fecha} en ${lugar}.${
     evento.description ? ` ${evento.description}` : ""
   }`
     .slice(0, 158)
     .trim();
 
   return {
-    title: `${evento.title} — ${fecha.split(" · ")[0]}`,
+    title: `${evento.title} · ${fecha.split(" · ")[0]}`,
     description,
     alternates: {
       canonical: `/evento/${evento.slug}`,

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Work_Sans, JetBrains_Mono } from "next/font/google";
+import { Onest, Work_Sans, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
@@ -11,11 +11,10 @@ import Analytics from "./components/Analytics";
 import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const onest = Onest({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-onest",
   display: "swap",
-  axes: ["SOFT", "WONK", "opsz"],
 });
 
 const workSans = Work_Sans({
@@ -32,33 +31,34 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
+    default: "Gasteiz Click · Agenda cultural de Vitoria-Gasteiz",
     template: "%s | Gasteiz Click",
   },
   description:
     "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
   metadataBase: new URL("https://gasteizclick.javierpalacio.es"),
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
+  },
   openGraph: {
     type: "website",
     locale: "es_ES",
     siteName: "Gasteiz Click",
-    title: "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
+    title: "Gasteiz Click · Agenda cultural de Vitoria-Gasteiz",
     description:
       "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gasteiz Click — Agenda cultural de Vitoria-Gasteiz",
+    title: "Gasteiz Click · Agenda cultural de Vitoria-Gasteiz",
     description:
       "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
+    images: ["/opengraph-image"],
   },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
-  },
-  alternates: {
-    types: {
-      "application/rss+xml": "/feed.xml",
-    },
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -106,7 +106,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${fraunces.variable} ${workSans.variable} ${jetbrainsMono.variable}`}
+      className={`${onest.variable} ${workSans.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <meta name="color-scheme" content="light dark" />

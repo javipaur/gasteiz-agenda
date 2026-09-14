@@ -22,12 +22,6 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-fg-subtle">
-                Agenda
-              </span>
-              <span className="h-px flex-1 bg-border max-w-12" aria-hidden="true" />
-            </div>
             <h2 className="font-display text-2xl md:text-3xl text-fg font-bold tracking-[-0.02em] leading-tight mb-2">
               Próximos eventos
             </h2>
@@ -40,11 +34,16 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
         {eventos.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {eventos.slice(0, 12).map((evento, i) => (
-              <InViewWrapper key={evento.id} delay={i * 0.04}>
+              <InViewWrapper
+                key={evento.id}
+                delay={i * 0.04}
+                className={i === 0 && eventos.length >= 4 ? "sm:col-span-2 xl:col-span-2" : undefined}
+              >
                 <EventCard
                   evento={evento}
                   categoryColors={CATEGORY_COLORS}
                   priority={i < 4}
+                  size={i === 0 && eventos.length >= 4 ? "large" : "normal"}
                 />
               </InViewWrapper>
             ))}

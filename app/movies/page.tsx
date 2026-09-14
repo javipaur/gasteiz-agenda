@@ -35,9 +35,10 @@ async function getPeliculas(): Promise<Pelicula[]> {
 }
 
 export const metadata = {
-  title: "Cartelera de Cine — Vitoria-Gasteiz",
+  title: "Cartelera de Cine · Vitoria-Gasteiz",
   description:
     "Películas en Cines Florida y Yelmo Cines Boulevard de Vitoria-Gasteiz. Horarios y compra de entradas.",
+  alternates: { canonical: "/movies" },
 };
 
 export default async function MoviesPage() {

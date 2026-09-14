@@ -165,5 +165,5 @@ export async function sendConfirmationEmail(to: string, token: string) {
   </table>
 </body>
 </html>`;
-  return sendEmail(to, "Confirma tu suscripción — Agenda Gasteiz", html);
+  return sendEmail(to, "Confirma tu suscripción · Agenda Gasteiz", html);
 }

@@ -79,21 +79,12 @@ export default function Newsletter() {
           className="pointer-events-none absolute inset-0"
           style={{ background: "radial-gradient(640px 320px at 12% -20%, rgba(255,255,255,0.14), transparent 60%)" }}
         />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none select-none absolute -right-6 -top-10 font-display italic text-[11rem] leading-none text-white/10 rotate-12"
-        >
-          &amp;
-        </span>
 
         <div className="relative flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
           <div className="max-w-md">
-            <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-white/70 mb-3">
-              Newsletter semanal
-            </p>
-            <h2 className="font-display text-2xl md:text-3xl text-white font-bold tracking-[-0.02em] mb-2">
+            <h3 className="font-display text-2xl md:text-3xl text-white font-bold tracking-[-0.02em] mb-2">
               No te pierdas nada
-            </h2>
+            </h3>
             <p className="text-white/80 text-sm md:text-base leading-relaxed">
               Un email a la semana con los mejores planes de Vitoria-Gasteiz.
             </p>
@@ -131,7 +122,7 @@ export default function Newsletter() {
                   </button>
                 </div>
                 {message && (
-                  <p className="flex items-center gap-1.5 text-xs font-mono text-amber-100">
+                  <p className="flex items-center gap-1.5 text-xs font-mono text-white/90">
                     {message}
                   </p>
                 )}

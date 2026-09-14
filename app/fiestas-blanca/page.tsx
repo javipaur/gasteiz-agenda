@@ -21,7 +21,6 @@ export async function generateMetadata() {
     description:
       "Las Fiestas de la Virgen Blanca se celebran del 4 al 9 de agosto en Vitoria-Gasteiz. Consulta aquí el programa cuando llegue la próxima edición.",
     alternates: { canonical: "/fiestas-blanca" },
-    robots: { index: false, follow: true },
   };
 }
 
@@ -70,6 +69,38 @@ export default async function FiestasBlancaPage() {
               name: "Vitoria-Gasteiz",
               address: { "@type": "PostalAddress", addressLocality: "Vitoria-Gasteiz", addressCountry: "ES" },
             },
+          }}
+        />
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "¿Cuándo son las Fiestas de la Virgen Blanca de Vitoria-Gasteiz?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Las Fiestas de la Virgen Blanca se celebran del 4 al 9 de agosto de cada año en Vitoria-Gasteiz, en honor a la patrona de la ciudad.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "¿Qué actos destacan en La Blanca de Vitoria-Gasteiz?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "El chupinazo, las verbenas, los conciertos, los fuegos artificiales de La Armentia, el Día del Blusa y el Día de la Neskak marcan el programa de las fiestas.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "¿Cuándo se publica el programa de la próxima edición de La Blanca?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "El programa oficial suele publicarse unos días antes del inicio de las fiestas. En Gasteiz Click lo recopilamos y lo actualizamos a diario en esta página.",
+                },
+              },
+            ],
           }}
         />
         <BlancaOffSeason year={year} />

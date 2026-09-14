@@ -22,7 +22,7 @@ export async function GET() {
       const url = `${SITE_URL}/evento/${ev.slug}`;
       const desc =
         ev.description?.slice(0, 250) ||
-        `${ev.title} — ${eventDisplayDate(ev)} en ${ev.location}, Vitoria-Gasteiz.`;
+        `${ev.title} · ${eventDisplayDate(ev)} en ${ev.location}, Vitoria-Gasteiz.`;
       const enclosure = ev.image
         ? `\n    <enclosure url="${escapeXml(ev.image)}" type="image/jpeg" length="0"/>`
         : "";
@@ -40,7 +40,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-  <title>${escapeXml(SITE_NAME)} — Agenda de Vitoria-Gasteiz</title>
+  <title>${escapeXml(SITE_NAME)} · Agenda de Vitoria-Gasteiz</title>
   <link>${SITE_URL}</link>
   <description>Conciertos, teatro, exposiciones, cine, deporte y planes en Vitoria-Gasteiz</description>
   <language>es-ES</language>
