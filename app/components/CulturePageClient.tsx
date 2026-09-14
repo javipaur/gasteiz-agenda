@@ -82,30 +82,12 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <InViewWrapper>
         <header className="mb-12">
-          <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-3">
-            Cultura
-          </p>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Agenda Cultural
           </h1>
           <p className="text-fg-muted max-w-2xl">
             Teatro, conciertos, exposiciones y eventos en Vitoria-Gasteiz
           </p>
-          <div className="flex gap-2 mt-5 flex-wrap">
-            {[
-              { slug: "teatro", label: "Teatro" },
-              { slug: "conciertos", label: "Conciertos" },
-              { slug: "exposiciones", label: "Exposiciones" },
-            ].map((c) => (
-              <Link
-                key={c.slug}
-                href={`/culture/${c.slug}`}
-                className="px-3.5 py-1.5 text-xs font-medium rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300"
-              >
-                {c.label} en Vitoria-Gasteiz
-              </Link>
-            ))}
-          </div>
         </header>
       </InViewWrapper>
 
@@ -172,9 +154,14 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
               >
                 <Link
                   href={`/evento/${eventSlug(evento)}`}
-                  className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
+                  className="group double-bezel-outer rounded-2xl p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
+                  style={{
+                    animation: `fadeIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) ${
+                      Math.min(index * 0.04, 0.4)
+                    }s both`,
+                  }}
                 >
-                  <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
+                  <div className="double-bezel rounded-xl overflow-hidden">
                     <div className="aspect-[4/3] relative">
                       {imageUrl ? (
                         <Image
