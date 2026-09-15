@@ -1,16 +1,22 @@
 import { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
+import MoodFilter from "./components/MoodFilter";
+import TopEventsSection from "./components/TopEventsSection";
+import CategoryCarousel from "./components/CategoryCarousel";
 import CategoriesGrid from "./components/CategoriesGrid";
+import SocialProof from "./components/SocialProof";
 import FiestasBlancaSection from "./components/FiestasBlancaSection";
 import HomeEventsClient from "./components/HomeEventsClient";
 import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
-import { getProximosEventos } from "@/lib/eventos";
+import { getProximosEventos, type Evento } from "@/lib/eventos";
+import { getPopularEvents } from "@/lib/popularity";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
 import { eventSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
+import { CATEGORY_COLORS } from "@/lib/categories";
 
 export const revalidate = 300;
 
@@ -19,6 +25,10 @@ export const metadata: Metadata = {
 };
 
 const getCachedEventos = cache(getProximosEventos);
+
+const CONCIERTOS_CATS = new Set(["Conciertos", "Música"]);
+const CULTURA_CATS = new Set(["Teatro", "Exposiciones", "Cultura", "Visitas", "Danza", "Conferencias", "Talleres"]);
+const INFANTIL_CATS = new Set(["Infantil", "Kids"]);
 
 async function AgendaJsonLd() {
   const eventos = await getCachedEventos();
@@ -53,14 +63,14 @@ function HeroSkeleton() {
   );
 }
 
-function EventsSkeleton() {
+function CarouselSkeleton() {
   return (
-    <div className="px-5 sm:px-6 py-12 md:py-16">
+    <div className="px-5 sm:px-6 py-10 md:py-14">
       <div className="max-w-7xl mx-auto">
-        <div className="h-6 w-56 bg-surface rounded-lg animate-pulse mb-8" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="aspect-[4/3] bg-surface rounded-2xl animate-pulse" />
+        <div className="h-6 w-56 bg-surface rounded-lg animate-pulse mb-6" />
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="w-64 shrink-0 aspect-[3/2] bg-surface rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -90,9 +100,62 @@ async function HeroWithData() {
   return <HeroSection eventos={eventos} />;
 }
 
-async function EventsWithData() {
+async function MoodWithData() {
   const eventos = await getCachedEventos();
-  return <HomeEventsClient eventos={eventos} />;
+  return <MoodFilter eventos={eventos} />;
+}
+
+async function TopWithData() {
+  const eventos = await getCachedEventos();
+  const top = getPopularEvents(eventos, 10);
+  return (
+    <TopEventsSection
+      events={top.map((e, i) => ({ ...e, ranking: i + 1 }))}
+    />
+  );
+}
+
+function filterByCats(eventos: Evento[], cats: Set<string>) {
+  return eventos.filter((e) => cats.has(e.category || ""));
+}
+
+async function ConciertosCarousel() {
+  const eventos = await getCachedEventos();
+  return (
+    <CategoryCarousel
+      title="Conciertos"
+      subtitle="Música en vivo en Vitoria-Gasteiz"
+      href="/conciertos"
+      events={filterByCats(eventos, CONCIERTOS_CATS).slice(0, 10)}
+      categoryColors={CATEGORY_COLORS}
+    />
+  );
+}
+
+async function CulturaCarousel() {
+  const eventos = await getCachedEventos();
+  return (
+    <CategoryCarousel
+      title="Cultura"
+      subtitle="Teatro, exposiciones y visitas"
+      href="/culture"
+      events={filterByCats(eventos, CULTURA_CATS).slice(0, 10)}
+      categoryColors={CATEGORY_COLORS}
+    />
+  );
+}
+
+async function InfantilCarousel() {
+  const eventos = await getCachedEventos();
+  return (
+    <CategoryCarousel
+      title="Planes familiares"
+      subtitle="Con niños y para todos"
+      href="/kids"
+      events={filterByCats(eventos, INFANTIL_CATS).slice(0, 10)}
+      categoryColors={CATEGORY_COLORS}
+    />
+  );
 }
 
 async function FiestasWithData() {
@@ -112,8 +175,30 @@ export default async function HomeEventsPage() {
         <HeroWithData />
       </Suspense>
 
-      <Suspense fallback={<FiestasSkeleton />}>
-        <FiestasWithData />
+      <Suspense
+        fallback={
+          <section className="px-5 sm:px-6 py-8 md:py-10 max-w-7xl mx-auto">
+            <div className="h-6 w-40 bg-surface rounded-lg animate-pulse" />
+          </section>
+        }
+      >
+        <MoodWithData />
+      </Suspense>
+
+      <Suspense fallback={<CarouselSkeleton />}>
+        <TopWithData />
+      </Suspense>
+
+      <Suspense fallback={<CarouselSkeleton />}>
+        <ConciertosCarousel />
+      </Suspense>
+
+      <Suspense fallback={<CarouselSkeleton />}>
+        <CulturaCarousel />
+      </Suspense>
+
+      <Suspense fallback={<CarouselSkeleton />}>
+        <InfantilCarousel />
       </Suspense>
 
       <Suspense
@@ -131,6 +216,14 @@ export default async function HomeEventsPage() {
         <CategoriesGrid />
       </Suspense>
 
+      <Suspense fallback={null}>
+        <SocialProofWithData />
+      </Suspense>
+
+      <Suspense fallback={<FiestasSkeleton />}>
+        <FiestasWithData />
+      </Suspense>
+
       <Suspense fallback={<EventsSkeleton />}>
         <EventsWithData />
       </Suspense>
@@ -139,4 +232,29 @@ export default async function HomeEventsPage() {
       <Newsletter />
     </>
   );
+}
+
+function EventsSkeleton() {
+  return (
+    <div className="px-5 sm:px-6 py-12 md:py-16">
+      <div className="max-w-7xl mx-auto">
+        <div className="h-6 w-56 bg-surface rounded-lg animate-pulse mb-8" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="aspect-[4/3] bg-surface rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function EventsWithData() {
+  const eventos = await getCachedEventos();
+  return <HomeEventsClient eventos={eventos} />;
+}
+
+async function SocialProofWithData() {
+  const eventos = await getCachedEventos();
+  return <SocialProof eventCount={eventos.length} />;
 }

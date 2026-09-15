@@ -53,6 +53,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
   const q = searchParams.get("q") || "";
   const [filter, setFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [sort, setSort] = useState<"popularidad" | "fecha">("popularidad");
 
   const filtered = useMemo(() => {
     let byCategory = filter === "all"
@@ -72,6 +73,36 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
     }
     return byCategory;
   }, [eventos, filter, sourceFilter, q]);
+
+  const visible = useMemo(() => {
+    const list = [...filtered];
+    if (sort === "popularidad") {
+      const today = Date.now();
+      const score = (e: Evento) => {
+        const days = Math.max(0, Math.round((new Date(e.date).getTime() - today) / 86400000));
+        let s = 60 - days;
+        if (e.image) s += 8;
+        if (e.source === "fever") s += 8;
+        else if (e.source === "jimmyjazz" || e.source === "vam") s += 6;
+        else s += 3;
+        if (e.category === "exposiciones") s += 3;
+        return s;
+      };
+      list.sort(
+        (a, b) =>
+          score(b) - score(a) ||
+          +new Date(a.date) - +new Date(b.date) ||
+          a.title.localeCompare(b.title)
+      );
+    } else {
+      list.sort(
+        (a, b) =>
+          +new Date(a.date) - +new Date(b.date) ||
+          a.title.localeCompare(b.title)
+      );
+    }
+    return list;
+  }, [filtered, sort]);
 
   const handleCategoryChange = (key: string) => {
     setFilter(key);
@@ -127,6 +158,33 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
         )}
       </InViewWrapper>
 
+      <InViewWrapper delay={0.15}>
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <p className="font-mono text-sm text-fg-subtle">
+            {filtered.length} {filtered.length === 1 ? "plan" : "planes"}
+          </p>
+          <div className="flex items-center gap-1 bg-bg-muted rounded-full p-1" role="group" aria-label="Ordenar">
+            {[
+              { key: "popularidad" as const, label: "Populares" },
+              { key: "fecha" as const, label: "Próximos" },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSort(opt.key)}
+                aria-pressed={sort === opt.key}
+                className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
+                  sort === opt.key
+                    ? "bg-accent text-white shadow-sm"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </InViewWrapper>
+
       {filtered.length === 0 ? (
         <div className="text-center py-20">
           <p className="font-mono text-sm text-fg-muted mb-2">
@@ -142,7 +200,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((evento, index) => {
+          {visible.map((evento, index) => {
             const imageUrl =
               evento.image && evento.image.startsWith("http")
                 ? evento.image

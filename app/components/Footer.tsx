@@ -21,6 +21,7 @@ function DownloadIcon({ className }: { className?: string }) {
 export default function Footer() {
   const now = new Date();
   const agendaUrl = `/agenda/${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   const exploreLinks = [
     { label: "Inicio", href: "/" },
     { label: "Conciertos", href: "/conciertos" },
@@ -31,10 +32,27 @@ export default function Footer() {
     { label: "Niños", href: "/kids" },
   ];
 
+  const categoryLinks = [
+    { label: "Teatro", href: "/culture/teatro" },
+    { label: "Conciertos", href: "/culture/conciertos" },
+    { label: "Exposiciones", href: "/culture/exposiciones" },
+    { label: "Agenda cultural", href: "/culture/agenda" },
+    { label: "Cines", href: "/movies" },
+    { label: "Carreras", href: "/deporte" },
+  ];
+
+  const aboutLinks = [
+    { label: "Sobre Gasteiz Click", href: "/sobre" },
+    { label: "Privacidad", href: "/privacidad" },
+    { label: "API pública", href: "/docs" },
+    { label: "Feed RSS", href: "/feed.xml" },
+    { label: "Contacto", href: "mailto:hola@javierpalacio.es" },
+  ];
+
   return (
     <footer className="mt-20">
       <div className="bg-[#1A1816] text-white">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-20 grid md:grid-cols-[1.4fr_1fr] gap-12 md:gap-10">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-20 grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 md:gap-10">
           <div>
             <h2 className="font-display text-2xl font-bold text-white mb-3 tracking-[-0.02em]">
               Gasteiz Click
@@ -43,7 +61,7 @@ export default function Footer() {
               La agenda cultural de Vitoria-Gasteiz: conciertos, teatro, cine,
               deporte y planes familiares, actualizados a diario.
             </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 max-w-md">
+            <div className="flex flex-col gap-2.5 max-w-md">
               <a
                 href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
                 target="_blank"
@@ -69,11 +87,11 @@ export default function Footer() {
             </div>
           </div>
 
-          <nav aria-label="Enlaces del sitio">
+          <nav aria-label="Explorar">
             <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
               Explorar
             </h3>
-            <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
+            <ul className="flex flex-col gap-2.5 text-sm">
               {exploreLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
@@ -81,11 +99,54 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
-              <li className="col-span-2">
+              <li>
                 <Link href={agendaUrl} className="text-white/60 hover:text-white transition-colors duration-300">
                   Agenda mensual
                 </Link>
               </li>
+              <li>
+                <Link href="/favoritos" className="text-white/60 hover:text-white transition-colors duration-300">
+                  Mis favoritos
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          <nav aria-label="Por categoría">
+            <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
+              Por categoría
+            </h3>
+            <ul className="flex flex-col gap-2.5 text-sm">
+              {categoryLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <nav aria-label="Sobre">
+            <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
+              Sobre
+            </h3>
+            <ul className="flex flex-col gap-2.5 text-sm">
+              {aboutLinks.map((link) =>
+                link.href.startsWith("mailto:") ? (
+                  <li key={link.href}>
+                    <a href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                      {link.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                      {link.label}
+                    </Link>
+                  </li>
+                )
+              )}
             </ul>
           </nav>
         </div>

@@ -8,6 +8,7 @@ import { formatSpanishDate, localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
 import { eventSlug } from "@/lib/slug";
 import EmptyState from "./EmptyState";
+import HeroSearch from "./HeroSearch";
 
 type Evento = {
   id: string;
@@ -162,11 +163,15 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
             </span>
           </h1>
 
-          <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-10">
+          <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-6">
             {totalThisWeek > 0
               ? `${totalThisWeek} eventos esta semana. Cultura, deporte, cine y planes para todos.`
               : "Conciertos, exposiciones, cine, deporte y planes familiares."}
           </p>
+
+          <div className="mb-10">
+            <HeroSearch />
+          </div>
         </InViewWrapper>
 
         <InViewWrapper eager>

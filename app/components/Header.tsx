@@ -102,6 +102,8 @@ export default function Header() {
   const visibleNavItems = getVisibleNavItems();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
+  const categoriesRef = useRef<HTMLDivElement>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -228,6 +230,25 @@ export default function Header() {
     }
   }, [searchOpen]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (categoriesRef.current && !categoriesRef.current.contains(e.target as Node)) {
+        setCategoriesOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setCategoriesOpen(false);
+    }
+    if (categoriesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", onKey);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", onKey);
+      };
+    }
+  }, [categoriesOpen]);
+
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const q = searchQuery.trim();
@@ -277,6 +298,94 @@ export default function Header() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-0.5 mx-2" aria-label="Navegación principal">
+              <div ref={categoriesRef} className="relative">
+                <button
+                  onClick={() => setCategoriesOpen((v) => !v)}
+                  aria-expanded={categoriesOpen}
+                  aria-haspopup="true"
+                  className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer inline-flex items-center gap-1.5 ${
+                    categoriesOpen
+                      ? "bg-accent-soft text-accent font-medium"
+                      : "text-fg-muted hover:text-fg hover:bg-bg-muted"
+                  }`}
+                >
+                  Categorías
+                  <svg
+                    className={`w-3 h-3 transition-transform duration-300 ${categoriesOpen ? "rotate-180" : ""}`}
+                    viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 6l4 4 4-4" />
+                  </svg>
+                </button>
+
+                {categoriesOpen && (
+                  <div
+                    className="absolute left-0 top-full mt-2 w-[420px] rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn"
+                    role="menu"
+                  >
+                    <div className="grid grid-cols-2 gap-y-1 p-2">
+                      <div>
+                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
+                          Música
+                        </p>
+                        {[
+                          { label: "Conciertos", href: "/conciertos" },
+                          { label: "Jimmy Jazz", href: "/conciertos" },
+                          { label: "VAM Cultura", href: "/conciertos" },
+                        ].map((l) => (
+                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
+                            {l.label}
+                          </Link>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
+                          Cultura
+                        </p>
+                        {[
+                          { label: "Teatro", href: "/culture/teatro" },
+                          { label: "Exposiciones", href: "/culture/exposiciones" },
+                          { label: "Agenda cultural", href: "/culture/agenda" },
+                        ].map((l) => (
+                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
+                            {l.label}
+                          </Link>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
+                          Ocio
+                        </p>
+                        {[
+                          { label: "Cartelera", href: "/movies" },
+                          { label: "Planes familiares", href: "/kids" },
+                          { label: "Fiestas La Blanca", href: "/fiestas-blanca" },
+                        ].map((l) => (
+                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
+                            {l.label}
+                          </Link>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
+                          Activo
+                        </p>
+                        {[
+                          { label: "Deporte", href: "/deporte" },
+                          { label: "Senderismo", href: "/deporte" },
+                          { label: "Carreras", href: "/deporte" },
+                        ].map((l) => (
+                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
+                            {l.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {visibleNavItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (

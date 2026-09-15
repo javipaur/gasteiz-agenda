@@ -27,6 +27,8 @@ export type EventCardEvento = {
   category?: string;
   source?: string;
   time?: string;
+  price?: string;
+  rating?: number;
 };
 
 export function InViewWrapper({
@@ -192,20 +194,38 @@ export function EventCard({
             <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
               {evento.title}
             </h3>
-            {evento.location && (
-              <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
-                {time && <span className="text-white">{time}</span>}
-                {time && evento.location && <span aria-hidden="true">·</span>}
-                {evento.location}
-              </p>
-            )}
-            {!evento.location && time && (
-              <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
-                {time}
-              </p>
-            )}
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                {evento.location && (
+                  <p className="font-mono text-xs text-white/70 flex items-center gap-1.5 truncate">
+                    {evento.rating && evento.rating > 0 && (
+                      <>
+                        <span className="flex items-center gap-0.5 text-amber-300" aria-label={`Valoración ${evento.rating} sobre 5`}>
+                          <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z" /></svg>
+                          {evento.rating.toFixed(1).replace(".", ",")}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                      </>
+                    )}
+                    <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                    {time && <span className="text-white shrink-0">{time}</span>}
+                    {time && evento.location && <span aria-hidden="true">·</span>}
+                    <span className="truncate">{evento.location}</span>
+                  </p>
+                )}
+                {!evento.location && time && (
+                  <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                    {time}
+                  </p>
+                )}
+              </div>
+              {evento.price && (
+                <span className="shrink-0 font-mono text-[11px] text-white bg-white/15 backdrop-blur-md rounded-md px-1.5 py-0.5 border border-white/20 whitespace-nowrap">
+                  {evento.price}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -64,6 +64,22 @@ function CalendarIcon() {
   );
 }
 
+function StarIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z" />
+    </svg>
+  );
+}
+
+function ExternalIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M3 11l8-8M5 3h6v6" />
+    </svg>
+  );
+}
+
 function PinIcon() {
   return (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -89,6 +105,13 @@ export default async function EventoDetallePage({ params }: PageProps) {
     .split(/\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
+  const ratingStr = typeof evento.rating === "number"
+    ? evento.rating.toFixed(1).replace(".", ",")
+    : null;
+  const endDate = evento.dateEnd ? new Date(evento.dateEnd) : null;
+  const fechaFin = endDate && !isNaN(endDate.getTime())
+    ? endDate.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <>
@@ -101,7 +124,7 @@ export default async function EventoDetallePage({ params }: PageProps) {
         ])}
       />
 
-      <article className="px-5 sm:px-6 pt-28 pb-24 md:pt-32">
+      <article className="px-5 sm:px-6 pt-28 pb-44 md:pt-32 md:pb-24">
         <div className="max-w-3xl mx-auto">
           <nav aria-label="Migas de pan" className="mb-6 flex items-center gap-2 text-xs font-mono uppercase tracking-[0.15em] text-fg-subtle">
             <Link href="/" className="hover:text-accent transition-colors">
@@ -144,11 +167,33 @@ export default async function EventoDetallePage({ params }: PageProps) {
             {evento.title}
           </h1>
 
+          {(ratingStr || evento.price) && (
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              {evento.price && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft px-3.5 py-1.5 font-display text-sm font-bold text-accent">
+                  {evento.price}
+                </span>
+              )}
+              {ratingStr && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-1.5 font-mono text-sm text-fg">
+                  <StarIcon />
+                  {ratingStr}
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2.5 mb-8 text-sm text-fg-muted">
             <p className="flex items-center gap-2.5">
               <CalendarIcon />
               <time dateTime={new Date(evento.date).toISOString()}>{fecha}</time>
             </p>
+            {fechaFin && (
+              <p className="flex items-center gap-2.5">
+                <CalendarIcon />
+                <span>Hasta el {fechaFin}</span>
+              </p>
+            )}
             <p className="flex items-center gap-2.5">
               <PinIcon />
               <span>{lugar}</span>
@@ -192,22 +237,30 @@ export default async function EventoDetallePage({ params }: PageProps) {
           )}
 
           {evento.link && (
-            <div className="flex flex-wrap items-center gap-4 mb-10">
-              <a
-                href={evento.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300"
-              >
-                Más información y entradas
-                <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M3 11l8-8M5 3h6v6" />
-                </svg>
-              </a>
+            <div className="rounded-2xl border border-border bg-surface p-5 md:p-6 mb-10">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle mb-1">
+                    Información y entradas
+                  </p>
+                  <p className="font-display text-xl font-bold text-fg">
+                    {evento.price || "Acceso al evento"}
+                  </p>
+                </div>
+                <a
+                  href={evento.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300 active:scale-[0.98]"
+                >
+                  Más información y entradas
+                  <ExternalIcon />
+                </a>
+              </div>
               {evento.source && (
-                <span className="font-mono text-xs text-fg-subtle uppercase tracking-[0.15em]">
+                <p className="mt-4 pt-4 border-t border-border font-mono text-xs text-fg-subtle uppercase tracking-[0.15em]">
                   Fuente: {sourceLabel(evento.source)}
-                </span>
+                </p>
               )}
             </div>
           )}
@@ -236,6 +289,26 @@ export default async function EventoDetallePage({ params }: PageProps) {
         </Link>
         <p className="sr-only">{SITE_NAME}</p>
       </footer>
+
+      {evento.link && (
+        <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom,0px)+0.75rem)] z-[var(--z-toast)] px-4 md:hidden">
+          <div className="mx-auto max-w-md rounded-2xl border border-border/60 bg-fg text-bg shadow-2xl shadow-black/30 p-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-60">Entradas</p>
+              <p className="font-display text-base font-bold truncate">{evento.price || "Ver evento"}</p>
+            </div>
+            <a
+              href={evento.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full text-sm font-semibold active:scale-[0.97] transition-transform duration-200"
+            >
+              Más información
+              <ExternalIcon />
+            </a>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -20,6 +20,9 @@ export type Evento = {
   source?: string;
   time?: string;
   description?: string;
+  price?: string;
+  rating?: number;
+  popularity?: number;
 };
 
 function normalizeEvento(e: any): Evento {
@@ -34,6 +37,9 @@ function normalizeEvento(e: any): Evento {
     source: e.source || "desconocido",
     time: e.time || "",
     description: e.description || "",
+    price: typeof e.price === "string" ? e.price : undefined,
+    rating: typeof e.rating === "number" ? e.rating : undefined,
+    popularity: typeof e.popularity === "number" ? e.popularity : undefined,
   };
 }
 

@@ -11,6 +11,8 @@ export interface FeverEvent {
   link: string;
   description: string;
   category: string;
+  price?: string;
+  rating?: number;
 }
 
 function timeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -100,6 +102,22 @@ async function fetchDetailPage(url: string): Promise<FeverEvent | null> {
     const description = eventData.description || "";
     const category = inferCategory(title, description);
 
+    const offers = Array.isArray(eventData.offers)
+      ? eventData.offers[0]
+      : eventData.offers;
+    let price: string | undefined;
+    let rating: number | undefined;
+
+    if (offers?.price) {
+      const parsed = Number(offers.price);
+      if (!isNaN(parsed)) price = `Desde ${Math.round(parsed)} €`;
+    }
+
+    if (eventData.aggregateRating?.ratingValue) {
+      const parsed = Number(eventData.aggregateRating.ratingValue);
+      if (!isNaN(parsed) && parsed > 0) rating = Math.round(parsed * 10) / 10;
+    }
+
     return {
       id: `fever-${planId}`,
       title: title.trim(),
@@ -109,6 +127,8 @@ async function fetchDetailPage(url: string): Promise<FeverEvent | null> {
       link: url,
       description: description.slice(0, 500),
       category,
+      price,
+      rating,
     };
   } catch {
     return null;

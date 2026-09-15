@@ -25,6 +25,8 @@ export type AgendaEvento = {
   category?: string;
   source?: string;
   cancelled?: boolean;
+  price?: string;
+  rating?: number;
 };
 
 type RawEvento = {
@@ -39,6 +41,8 @@ type RawEvento = {
   description?: string;
   category?: string;
   cancelled?: boolean;
+  price?: string;
+  rating?: number;
 };
 
 function normalizeRaw(raw: RawEvento, source: string, fallbackCategory?: string): AgendaEvento | null {
@@ -64,6 +68,8 @@ function normalizeRaw(raw: RawEvento, source: string, fallbackCategory?: string)
     category: raw.category || fallbackCategory,
     source,
     cancelled: raw.cancelled || undefined,
+    price: typeof raw.price === "string" ? raw.price : undefined,
+    rating: typeof raw.rating === "number" ? raw.rating : undefined,
   };
 }
 
