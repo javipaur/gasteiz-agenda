@@ -189,18 +189,6 @@ export default async function HomeEventsPage() {
         <TopWithData />
       </Suspense>
 
-      <Suspense fallback={<CarouselSkeleton />}>
-        <ConciertosCarousel />
-      </Suspense>
-
-      <Suspense fallback={<CarouselSkeleton />}>
-        <CulturaCarousel />
-      </Suspense>
-
-      <Suspense fallback={<CarouselSkeleton />}>
-        <InfantilCarousel />
-      </Suspense>
-
       <Suspense
         fallback={
           <section className="px-5 sm:px-6 py-12 md:py-16 max-w-7xl mx-auto">
@@ -216,8 +204,20 @@ export default async function HomeEventsPage() {
         <CategoriesGrid />
       </Suspense>
 
+      <Suspense fallback={<CarouselSkeleton />}>
+        <ConciertosCarousel />
+      </Suspense>
+
       <Suspense fallback={null}>
         <SocialProofWithData />
+      </Suspense>
+
+      <Suspense fallback={<CarouselSkeleton />}>
+        <CulturaCarousel />
+      </Suspense>
+
+      <Suspense fallback={<CarouselSkeleton />}>
+        <InfantilCarousel />
       </Suspense>
 
       <Suspense fallback={<FiestasSkeleton />}>

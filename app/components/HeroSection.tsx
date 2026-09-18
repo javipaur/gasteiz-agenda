@@ -129,8 +129,12 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
       <div className="max-w-7xl mx-auto">
         <InViewWrapper eager>
           <div className="flex items-center gap-3 mb-8">
-            <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-fg-subtle">
-              Vitoria-Gasteiz
+            <span className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] uppercase text-fg-subtle">
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-green opacity-60 animate-ping" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-green" />
+              </span>
+              {totalThisWeek > 0 ? `${totalThisWeek} planes esta semana` : "Vitoria-Gasteiz"}
             </span>
             <span className="h-px flex-1 bg-border max-w-12" aria-hidden="true" />
             <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-fg-subtle">
