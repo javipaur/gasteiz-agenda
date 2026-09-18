@@ -2,9 +2,34 @@ import Link from "next/link";
 import { Music, Landmark, Trophy, Clapperboard } from "lucide-react";
 import { getProximosEventos } from "@/lib/eventos";
 import { normalizeCategory } from "@/lib/categories";
+import { getCachedOrFetch } from "@/lib/cache";
+import { scrapeFlorida } from "@/lib/sources/cines";
+import { scrapeBoulevard } from "@/app/services/boulevard";
 
 const CULTURA_SET = new Set(["Teatro", "Exposiciones", "Danza", "Conferencias", "Talleres", "Visitas"]);
 const DEPORTE_SET = new Set(["Deporte", "Senderismo"]);
+
+async function getCarteleraCount(): Promise<number> {
+  try {
+    const peliculas = await getCachedOrFetch(
+      "api-cines",
+      5 * 60 * 1000,
+      async () => {
+        const [florida, boulevard] = await Promise.allSettled([
+          scrapeFlorida(),
+          scrapeBoulevard(),
+        ]);
+        return [
+          ...(florida.status === "fulfilled" ? florida.value : []),
+          ...(boulevard.status === "fulfilled" ? boulevard.value : []),
+        ];
+      }
+    );
+    return peliculas.length;
+  } catch {
+    return 0;
+  }
+}
 
 async function getCategoryCounts(): Promise<{ conciertos: number; cultura: number; deporte: number }> {
   try {
