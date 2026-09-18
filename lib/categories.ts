@@ -15,6 +15,8 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "infantil": "Infantil",
   "niños": "Infantil",
   "niños/as": "Infantil",
+  "ninos": "Infantil",
+  "ninos/as": "Infantil",
   "familia": "Infantil",
   "deporte": "Deporte",
   "danza": "Danza",

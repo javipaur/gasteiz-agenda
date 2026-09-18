@@ -7,10 +7,19 @@
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "newsletter:send": "npx tsx scripts/send-newsletter.ts",
     "push": "node scripts/send-push.mjs"
   },
   "dependencies": {
+    "@axiomhq/js": "^1.8.0",
+    "@axiomhq/logging": "^0.4.1",
+    "@axiomhq/nextjs": "^0.4.1",
+    "@axiomhq/react": "^0.4.1",
     "axios": "^1.14.0",
     "cheerio": "^1.2.0",
     "lucide-react": "^1.7.0",
@@ -24,17 +33,18 @@
     "@tailwindcss/postcss": "^4",
     "@types/axios": "^0.9.36",
     "@types/cheerio": "^0.22.35",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "jest": "^30.5.1",
     "sharp": "^0.35.3",
     "tailwindcss": "^4",
+    "ts-jest": "^29.4.12",
     "typescript": "^5"
   },
-  "optionalDependencies": {
-    "lightningcss-win32-x64-msvc": "^1.33.0"
-  }
+  "optionalDependencies": {}
 }

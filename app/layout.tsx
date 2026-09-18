@@ -8,6 +8,7 @@ import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import Analytics from "./components/Analytics";
+import CookieConsent from "./components/CookieConsent";
 import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_ES",
+    url: "/",
     siteName: "Gasteiz Click",
     title: "Gasteiz Click · Agenda cultural de Vitoria-Gasteiz",
     description:
@@ -141,6 +143,7 @@ export default function RootLayout({
             style={{ height: "calc(64px + env(safe-area-inset-bottom, 0px))" }}
           />
           <ScrollToTop />
+          <CookieConsent />
           </ToastProvider>
         </FavoritesProvider>
       </body>

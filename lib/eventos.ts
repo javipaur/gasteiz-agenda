@@ -5,6 +5,7 @@ import { scrapeVamEvents } from "./sources/vam";
 import { scrapeMunicipalCalendar } from "./sources/municipal";
 import { scrapeEuskadi } from "./sources/euskadi";
 import { getCachedOrFetch } from "./cache";
+import { logger } from "./axiom/server";
 
 const CACHE_TTL = 5 * 60 * 1000;
 const memCache = new Map<string, { data: any[]; timestamp: number }>();
@@ -52,6 +53,26 @@ async function fetchAllSources(): Promise<any[]> {
     scrapeMunicipalCalendar(),
     scrapeEuskadi(),
   ]);
+
+  const sources = [
+    ["fever", fever],
+    ["rula", rula],
+    ["gasteizhoy", gasteizhoy],
+    ["vam", vam],
+    ["vitoria-gasteiz", municipal],
+    ["euskadi", euskadi],
+  ];
+
+  for (const [name, result] of sources as Array<[string, PromiseSettledResult<unknown>]>) {
+    if (result.status === "rejected") {
+      logger.warn("scraping_failed", {
+        source: name,
+        error:
+          result.reason instanceof Error ? result.reason.message : String(result.reason),
+        stack: result.reason instanceof Error ? result.reason.stack : undefined,
+      });
+    }
+  }
 
   const allEvents: any[] = [];
 

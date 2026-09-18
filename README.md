@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gasteiz Click
 
-## Getting Started
+Agenda cultural de Vitoria-Gasteiz. API REST + web frontend (Next.js 16).
 
-First, run the development server:
+## Desarrollo local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Despliegue (Dokploy)
 
-To learn more about Next.js, take a look at the following resources:
+El proyecto se despliega automáticamente vía Dokploy al hacer push a `main`. La config de Dokploy usa `nixpacks.toml` (Node.js 22).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Variables de entorno requeridas
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Configurar en Dokploy o en `.env.local`:
 
-## Deploy on Vercel
+| Variable | Descripción |
+|---|---|
+| `API_KEY` | Clave para autenticar endpoints `/api/*` |
+| `AXIOM_TOKEN` | Token de ingestión de Axiom (opcional) |
+| `AXIOM_DATASET` | Dataset de Axiom |
+| `VAPID_PUBLIC_KEY` | Clave pública VAPID para push notifications |
+| `VAPID_PRIVATE_KEY` | Clave privada VAPID |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Misma clave pública VAPID (client-side) |
+| `ENABLE_PUSH_SCHEDULER` | `1` para habilitar el scheduler de push |
+| `PUSH_DIGEST_HOUR` | Hora del digest diario (formato 24h) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estructura
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  api/          ← endpoints REST
+  components/   ← componentes React
+  services/     ← scrapers externos (boulevard)
+lib/
+  sources/      ← scrapers de fuentes de datos
+  cache.ts      ← caché en disco (tmp)
+  eventos.ts    ← normalización y deduplicación
+```
+
+## Testing
+
+```bash
+npm test              # Jest unit tests
+npm run test:e2e      # Playwright E2E
+```

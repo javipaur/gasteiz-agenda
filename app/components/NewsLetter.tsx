@@ -20,10 +20,16 @@ function CheckIcon({ className }: { className?: string }) {
 
 export default function Newsletter() {
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const startedAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    startedAtRef.current = Date.now();
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -45,7 +51,11 @@ export default function Newsletter() {
       const res = await fetch("/api/newsletter/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          website,
+          startedAt: startedAtRef.current,
+        }),
       });
       const data = await res.json();
 
@@ -110,7 +120,19 @@ export default function Newsletter() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Tu email"
                     required
+                    autoComplete="email"
                     className="flex-1 sm:w-56 px-4 py-2.5 rounded-lg bg-white/15 border border-white/25 text-white placeholder:text-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/50 transition-all duration-300 font-body text-sm"
+                  />
+                  <input
+                    type="text"
+                    name="website"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="absolute -left-[9999px] h-0 w-0 opacity-0 pointer-events-none"
+                    style={{ position: "absolute", left: "-9999px" }}
                   />
                   <button
                     type="submit"

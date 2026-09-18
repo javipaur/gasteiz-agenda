@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Privacidad",
   description:
     "Cómo tratamos los datos en Gasteiz Click: newsletter, favoritos, notificaciones push y analítica.",
+  alternates: { canonical: "/privacidad" },
 };
 
 export default function PrivacidadPage() {

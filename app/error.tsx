@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLogger } from "@/lib/axiom/client";
 
 export default function GlobalError({
   error,
@@ -9,9 +10,18 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const log = useLogger();
+
   useEffect(() => {
-    console.error("App error:", error);
-  }, [error]);
+    log.error("App error", {
+      source: "app/error.tsx",
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      digest: error.digest,
+      url: window.location.href,
+    });
+  }, [error, log]);
 
   return (
     <div className="px-5 sm:px-6 flex flex-col items-center justify-center min-h-[80dvh] text-center">

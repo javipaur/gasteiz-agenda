@@ -7,9 +7,14 @@ export const revalidate = 3600;
 export async function GET() {
   try {
     const peliculas = await scrapeFlorida();
-    return NextResponse.json(peliculas);
+    return NextResponse.json({
+      url: "https://www.reservaentradas.com/cine/alava/florida",
+      scrapedAt: new Date().toISOString(),
+      total: peliculas.length,
+      peliculas,
+    });
   } catch (error) {
     console.error("Error al obtener datos de Cine Florida:", error);
-    return NextResponse.json([]);
+    return NextResponse.json({ peliculas: [] }, { status: 200 });
   }
 }

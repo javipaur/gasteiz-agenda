@@ -44,6 +44,7 @@ export default function Footer() {
   const aboutLinks = [
     { label: "Sobre Gasteiz Click", href: "/sobre" },
     { label: "Privacidad", href: "/privacidad" },
+    { label: "Aviso legal", href: "/aviso-legal" },
     { label: "API pública", href: "/docs" },
     { label: "Feed RSS", href: "/feed.xml" },
     { label: "Contacto", href: "mailto:hola@javierpalacio.es" },
@@ -165,6 +166,9 @@ export default function Footer() {
               </Link>
               <Link href="/privacidad" className="hover:text-white/70 transition-colors duration-300">
                 Privacidad
+              </Link>
+              <Link href="/aviso-legal" className="hover:text-white/70 transition-colors duration-300">
+                Aviso legal
               </Link>
               <a href="/feed.xml" className="hover:text-white/70 transition-colors duration-300">
                 RSS

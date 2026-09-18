@@ -213,6 +213,126 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
+  /api/actividades/arkabia:
+    get:
+      tags: [events]
+      summary: Eventos de Arkabia (Centro Cultural Montehermoso)
+      operationId: getArkabia
+      responses:
+        "200":
+          description: Agenda de eventos de Arkabia
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: arkabia
+                  category:
+                    type: string
+                    example: arkabia
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArkabiaEvento"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/tours:
+    get:
+      tags: [events]
+      summary: Visitas guiadas, rutas y tours en Vitoria-Gasteiz
+      operationId: getTours
+      responses:
+        "200":
+          description: Lista de tours y visitas guiadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: agregado
+                  category:
+                    type: string
+                    example: tours
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventoAgenda"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/tardeo:
+    get:
+      tags: [events]
+      summary: Planes de tarde (16:00 - 22:00) en Vitoria-Gasteiz
+      operationId: getTardeo
+      responses:
+        "200":
+          description: Eventos de tarde
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: agregado
+                  category:
+                    type: string
+                    example: tardeo
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventoAgenda"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/kiosko:
+    get:
+      tags: [events]
+      summary: Agenda del kiosko cultural (Kiosko Kultura / lagenterula)
+      operationId: getKiosko
+      responses:
+        "200":
+          description: Eventos culturales de La Genterula
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: lagenterula
+                  category:
+                    type: string
+                    example: kiosko
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventoAgenda"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /api/actividades/navidad:
     get:
       tags: [events]
@@ -493,6 +613,41 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/cines:
+    get:
+      tags: [cinema]
+      summary: Cartelera combinada (Cine Florida + Yelmo Cines Boulevard)
+      operationId: getCines
+      responses:
+        "200":
+          description: Películas de ambos cines, cada una etiquetada con su cine
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  scrapedAt:
+                    type: string
+                    format: date-time
+                  total:
+                    type: integer
+                  peliculas:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Pelicula"
+                        - type: object
+                          properties:
+                            cine:
+                              type: string
+                              enum: [Florida, Boulevard]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /api/cines/boulevard:
     get:
       tags: [cinema]
@@ -531,11 +686,23 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PeliculaFlorida"
+                type: object
+                properties:
+                  url:
+                    type: string
+                  scrapedAt:
+                    type: string
+                    format: date-time
+                  total:
+                    type: integer
+                  peliculas:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Pelicula"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
   /api/farmacias:
     get:
@@ -832,15 +999,65 @@ components:
             type: string
           description: Lista de horarios (ej: ["16:30", "19:00", "21:30"])
 
-    PeliculaFlorida:
+    ArkabiaEvento:
       type: object
-      description: Película de Cine Florida
+      description: Evento de Arkabia
       properties:
         title:
           type: string
-        horarios:
+        subtitle:
           type: string
-          description: Horarios como texto
+        image:
+          type: string
+        link:
+          type: string
+        fecha:
+          type: string
+          description: Rango de fechas mostrado (ej: "04/06 - 13/10/2026")
+        precio:
+          type: string
+          description: Precio o "GRATIS"
+        categoria:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+          format: date
+          description: Fecha de inicio en ISO 8601
+
+    EventoAgenda:
+      type: object
+      description: Evento normalizado procedente de la agenda agregada
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+        dateEnd:
+          type: string
+        time:
+          type: string
+        image:
+          type: string
+        location:
+          type: string
+        link:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        source:
+          type: string
+        price:
+          type: string
+        rating:
+          type: number
 
     Farmacia:
       type: object

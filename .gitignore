@@ -33,15 +33,17 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
 # datos locales (push db)
 .data/
+
+# logs y artefactos de test
+dev-server.log
+test-results/
+playwright-report/
 
 # perfiles de chrome/lighthouse creados por error en WSL
 C:*

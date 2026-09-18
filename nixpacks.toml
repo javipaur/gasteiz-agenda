@@ -3,3 +3,5 @@ nixPkgs = ["nodejs_22"]
 
 [variables]
 NODE_OPTIONS = "--experimental-sqlite"
+AXIOM_TOKEN = "@axiom_token"
+AXIOM_DATASET = "gasteiz-agenda"
