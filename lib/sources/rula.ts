@@ -1,4 +1,4 @@
-const MEC_API = "https://lagenterula.com/wp-json/mec/v1.0/events";
+const MEC_API = "https://www.lagenterula.com/wp-json/mec/v1.0/events";
 const MEC_TOKEN = "XiNUzsBFQJPQibGRODQ675Fz2qCpvWDATofFV0hr";
 
 export interface RulaEvent {
@@ -42,7 +42,7 @@ export async function scrapeRula(): Promise<RulaEvent[]> {
   const res = await fetch(`${MEC_API}?limit=500`, {
     headers: { "mec-token": MEC_TOKEN, "User-Agent": "Mozilla/5.0" },
     next: { revalidate: 3600 },
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) {
