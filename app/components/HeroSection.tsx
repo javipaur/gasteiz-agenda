@@ -134,7 +134,17 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-green opacity-60 animate-ping" />
                 <span className="relative inline-flex size-1.5 rounded-full bg-green" />
               </span>
-              {totalThisWeek > 0 ? `${totalThisWeek} planes esta semana` : "Vitoria-Gasteiz"}
+              {totalThisWeek > 0 ? (
+                <>
+                  {totalThisWeek} planes esta semana
+                  <span className="text-fg-subtle" aria-hidden="true">
+                    {" "}·{" "}
+                  </span>
+                  <span lang="eu">aste honetan {totalThisWeek} plan</span>
+                </>
+              ) : (
+                "Vitoria-Gasteiz"
+              )}
             </span>
             <span className="h-px flex-1 bg-border max-w-12" aria-hidden="true" />
             <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-fg-subtle">
