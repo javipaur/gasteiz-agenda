@@ -283,12 +283,18 @@ export default function Header() {
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
         <div className={`
-          mx-auto transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
+          relative mx-auto transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${scrolled || isStandalone
             ? "max-w-full rounded-none bg-bg/90 backdrop-blur-xl border-b border-border"
             : "max-w-[calc(100%-2rem)] lg:max-w-5xl rounded-full bg-bg/90 backdrop-blur-xl border border-border shadow-sm"
           }
         `}>
+          {scrolled && !isStandalone && (
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent"
+            />
+          )}
           <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-2">
             <Link
               href="/"

@@ -86,7 +86,7 @@ export default function MoodFilter({ eventos }: { eventos: Evento[] }) {
                 aria-pressed={active === mood.id}
                 className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
                   active === mood.id
-                    ? "bg-accent text-white shadow-lg shadow-accent/15"
+                    ? "bg-accent text-white shadow-lg shadow-accent/20 ring-1 ring-white/20 ring-inset scale-[1.02]"
                     : "bg-surface border border-border text-fg-muted hover:text-fg hover:border-accent/30"
                 }`}
               >

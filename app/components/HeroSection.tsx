@@ -222,7 +222,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                   <span
                     className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-lg font-bold transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                       isSelected
-                        ? "bg-accent text-white shadow-lg shadow-accent/20"
+                        ? "bg-accent text-white shadow-lg shadow-accent/25 ring-1 ring-white/20 ring-inset"
                         : "bg-surface border border-border text-fg group-hover:border-accent/30 group-hover:text-accent"
                     }`}
                   >
@@ -286,7 +286,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
               {featured && (
                 <Link
                   href={`/evento/${eventSlug(featured)}`}
-                  className="group relative hidden md:flex overflow-hidden rounded-2xl border border-border bg-bg-muted mb-5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-accent/40 cursor-pointer active:scale-[0.99]"
+                  className="group relative hidden md:flex overflow-hidden rounded-2xl border border-border bg-bg-muted mb-5 card-hover hover:border-accent/40 cursor-pointer active:scale-[0.99]"
                 >
                   <div className="relative w-[46%] shrink-0 overflow-hidden bg-accent-subtle">
                     <Image
