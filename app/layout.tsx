@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Onest, Work_Sans, JetBrains_Mono } from "next/font/google";
+import { Montserrat, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
@@ -12,15 +12,9 @@ import CookieConsent from "./components/CookieConsent";
 import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 import "./globals.css";
 
-const onest = Onest({
+const montserrat = Montserrat({
   subsets: ["latin"],
-  variable: "--font-onest",
-  display: "swap",
-});
-
-const workSans = Work_Sans({
-  subsets: ["latin"],
-  variable: "--font-work-sans",
+  variable: "--font-montserrat",
   display: "swap",
 });
 
@@ -108,7 +102,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${onest.variable} ${workSans.variable} ${jetbrainsMono.variable}`}
+      className={`${montserrat.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <meta name="color-scheme" content="light dark" />
