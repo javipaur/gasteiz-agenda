@@ -45,6 +45,10 @@ dev-server.log
 test-results/
 playwright-report/
 
+# artefactos de playwright-mcp y temporales
+.playwright-mcp/
+.tmp/
+
 # perfiles de chrome/lighthouse creados por error en WSL
 C:*
 
