@@ -109,9 +109,9 @@ export default function HeroSearch() {
           setQuery("");
           setResults([]);
         }}
-        className="relative max-w-lg"
+        className="relative w-full"
       >
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" />
+        <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" />
         <input
           ref={inputRef}
           type="search"
@@ -120,9 +120,9 @@ export default function HeroSearch() {
           onFocus={() => query.trim().length >= 2 && setOpen(true)}
           placeholder="¿Qué te gustaría hacer? Busca un plan…"
           aria-label="Buscar eventos"
-          className="w-full pl-11 pr-14 py-3 rounded-full bg-surface border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all duration-300 font-body text-sm shadow-sm shadow-accent/5"
+          className="w-full pl-13 pr-16 py-4 rounded-full bg-bg-elevated border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/15 transition-all duration-300 font-body text-base"
         />
-        <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 font-mono text-[10px] text-fg-subtle border border-border rounded-md px-1.5 py-0.5 bg-bg-muted">
+        <kbd className="absolute right-5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 font-mono text-[10px] text-fg-subtle border border-border rounded-md px-1.5 py-0.5 bg-bg-muted">
           ⌘K
         </kbd>
 

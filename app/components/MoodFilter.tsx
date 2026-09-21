@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import type { Evento } from "@/lib/eventos";
+import type { PeliculaConCine } from "@/lib/cines";
+import MovieCard from "./MovieCard";
 
 type Mood = {
   id: string;
@@ -38,8 +40,20 @@ const MOODS: Mood[] = [
   { id: "cine", label: "Cine", categories: new Set(["Cine"]) },
 ];
 
-export default function MoodFilter({ eventos }: { eventos: Evento[] }) {
+export default function MoodFilter({
+  eventos,
+  peliculas = [],
+}: {
+  eventos: Evento[];
+  peliculas?: PeliculaConCine[];
+}) {
   const [active, setActive] = useState<string>("todo");
+  const [cineFilter, setCineFilter] = useState<"all" | "Florida" | "Boulevard">("all");
+
+  const handleSetActive = (id: string) => {
+    setActive(id);
+    setCineFilter("all");
+  };
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { todo: eventos.length };
@@ -54,8 +68,9 @@ export default function MoodFilter({ eventos }: { eventos: Evento[] }) {
         if (mood.categories.has(cat)) map[mood.id] = (map[mood.id] || 0) + 1;
       }
     }
+    if (peliculas.length > 0) map.cine = peliculas.length;
     return map;
-  }, [eventos]);
+  }, [eventos, peliculas]);
 
   const filtered = useMemo(() => {
     const mood = MOODS.find((m) => m.id === active);
@@ -65,16 +80,24 @@ export default function MoodFilter({ eventos }: { eventos: Evento[] }) {
       .slice(0, 8);
   }, [eventos, active]);
 
+  const filteredPeliculas = useMemo(() => {
+    if (cineFilter === "all") return peliculas;
+    return peliculas.filter((p) => p.cine === cineFilter);
+  }, [peliculas, cineFilter]);
+
   const activeMood = MOODS.find((m) => m.id === active);
 
   return (
     <section className="px-5 sm:px-6 py-8 md:py-10">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <InViewWrapper>
           <div className="flex items-center gap-3 mb-4">
             <h2 className="font-display text-lg md:text-xl text-fg font-bold tracking-[-0.02em]">
               ¿Qué te apetece?
             </h2>
+            <span className="inline-flex items-center rounded-full bg-fg text-bg px-2 py-0.5 text-[10px] font-bold tracking-[0.08em] uppercase">
+              IA
+            </span>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
           </div>
 
@@ -82,7 +105,7 @@ export default function MoodFilter({ eventos }: { eventos: Evento[] }) {
             {MOODS.map((mood) => (
               <button
                 key={mood.id}
-                onClick={() => setActive(mood.id)}
+                onClick={() => handleSetActive(mood.id)}
                 aria-pressed={active === mood.id}
                 className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
                   active === mood.id
@@ -107,7 +130,53 @@ export default function MoodFilter({ eventos }: { eventos: Evento[] }) {
 
         {activeMood && activeMood.id !== "todo" && (
           <div key={active} className="mt-6 panel-in">
-            {filtered.length > 0 ? (
+            {active === "cine" ? (
+              <div>
+                <div className="flex gap-2 mb-5 flex-wrap">
+                  {(["all", "Florida", "Boulevard"] as const).map((cine) => (
+                    <button
+                      key={cine}
+                      onClick={() => setCineFilter(cine)}
+                      className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
+                        cineFilter === cine
+                          ? "bg-accent text-white"
+                          : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
+                      }`}
+                    >
+                      {cine === "all" ? "Todas" : cine}
+                    </button>
+                  ))}
+                </div>
+
+                {filteredPeliculas.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredPeliculas.map((pelicula) => (
+                      <MovieCard key={`${pelicula.cine}-${pelicula.titulo}`} pelicula={pelicula} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-center py-8">
+                    <p className="text-fg-muted text-sm">
+                      {cineFilter === "all"
+                        ? "No hay películas disponibles ahora mismo."
+                        : `No hay películas en ${cineFilter} ahora mismo.`}
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  <a
+                    href="/movies"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300 group"
+                  >
+                    Ver la cartelera completa
+                    <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-0.5">
+                      →
+                    </span>
+                  </a>
+                </div>
+              </div>
+            ) : filtered.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {filtered.map((evento, i) => (
                   <EventCard

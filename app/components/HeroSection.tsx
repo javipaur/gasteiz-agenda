@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
-import { formatSpanishDate, localDateStr } from "@/lib/utils";
+import { localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
 import { eventSlug } from "@/lib/slug";
 import EmptyState from "./EmptyState";
@@ -106,8 +106,6 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
     return dayEvents.filter((e) => e.category === categoryFilter);
   }, [dayEvents, categoryFilter]);
 
-  const displayDate = selectedDay !== null ? weekDays[selectedDay] : weekDays[0];
-  const { month, year } = formatSpanishDate(displayDate.date);
   const totalThisWeek = weekDays.reduce((s, d) => s + d.count, 0);
 
   const featured = useMemo(
@@ -126,58 +124,29 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   return (
     <section className="relative px-5 sm:px-6 pt-28 pb-12 md:pt-28 md:pb-16">
       <div className="hero-wash" aria-hidden="true" />
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <InViewWrapper eager>
-          <div className="flex items-center gap-3 mb-8">
-            <span className="inline-flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] uppercase text-fg-subtle">
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-green opacity-60 animate-ping" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-green" />
-              </span>
-              {totalThisWeek > 0 ? (
-                <>
-                  {totalThisWeek} planes esta semana
-                  <span className="text-fg-subtle" aria-hidden="true">
-                    {" "}·{" "}
-                  </span>
-                  <span lang="eu">aste honetan {totalThisWeek} plan</span>
-                </>
-              ) : (
-                "Vitoria-Gasteiz"
-              )}
+          <p className="inline-flex items-center gap-2.5 mb-6 font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle">
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-green opacity-60 animate-ping" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-green" />
             </span>
-            <span className="h-px flex-1 bg-border max-w-12" aria-hidden="true" />
-            <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-fg-subtle">
-              {month} {year}
-            </span>
-          </div>
+            {totalThisWeek > 0 ? (
+              `${totalThisWeek} planes esta semana en Vitoria-Gasteiz`
+            ) : (
+              "Vitoria-Gasteiz"
+            )}
+          </p>
         </InViewWrapper>
 
         <InViewWrapper eager>
-          <h1 className="font-display text-[clamp(2.75rem,8vw,4.75rem)] font-black text-fg leading-[1.02] tracking-[-0.03em] mb-5 max-w-3xl">
+          <h1 className="font-display text-[clamp(2.5rem,6.5vw,4.25rem)] font-bold text-fg leading-[1.05] tracking-[-0.03em] mb-4 max-w-3xl">
             Qué hacer en
             <br />
-            <span className="relative inline-block text-accent">
-              Vitoria-Gasteiz
-              <svg
-                aria-hidden="true"
-                className="absolute left-0 -bottom-[0.08em] w-full h-[0.16em]"
-                viewBox="0 0 200 20"
-                preserveAspectRatio="none"
-                fill="none"
-              >
-                <path
-                  d="M4 13 C 40 5, 78 17, 112 11 S 178 6, 196 12"
-                  stroke="currentColor"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  className="squiggle-path"
-                />
-              </svg>
-            </span>
+            <span className="text-accent">Vitoria-Gasteiz</span>
           </h1>
 
-          <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-6">
+          <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-8">
             {totalThisWeek > 0
               ? `${totalThisWeek} eventos esta semana. Cultura, deporte, cine y planes para todos.`
               : "Conciertos, exposiciones, cine, deporte y planes familiares."}
@@ -193,7 +162,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
             {!todaySelected && (
               <button
                 onClick={() => { setSelectedDay(0); setCategoryFilter("all"); }}
-                className="px-3.5 py-1.5 rounded-full border border-border bg-surface font-mono text-[11px] uppercase tracking-[0.12em] text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 cursor-pointer active:scale-[0.97]"
+                className="h-9 px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
               >
                 Hoy
               </button>
@@ -201,10 +170,10 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
             {hasWeekend && !weekendSelected && (
               <button
                 onClick={() => { setSelectedDay(weekendIdx); setCategoryFilter("all"); }}
-                className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-surface font-mono text-[11px] uppercase tracking-[0.12em] text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 cursor-pointer active:scale-[0.97]"
+                className="group inline-flex items-center gap-2 h-9 px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
               >
                 Este finde
-                <span aria-hidden="true" className="text-[10px] transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+                <span aria-hidden="true" className="text-xs transition-transform duration-300 group-hover:translate-x-0.5">→</span>
               </button>
             )}
           </div>
@@ -228,24 +197,21 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                   role="tab"
                   aria-selected={isSelected}
                   aria-controls={`day-panel-${idx}`}
-                  className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer group transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+                  className={`flex-shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-full cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97] ${
+                    isSelected
+                      ? "bg-fg text-bg"
+                      : "bg-bg-muted border border-border text-fg-muted hover:text-fg hover:border-border-hover"
+                  }`}
                 >
-                  <span className={`font-mono text-[10px] uppercase tracking-[0.12em] transition-colors duration-300 ${isSelected ? "text-accent" : "text-fg-subtle group-hover:text-fg-muted"}`}>
-                    {dayName}
-                  </span>
-                  <span
-                    className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-lg font-bold transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      isSelected
-                        ? "bg-accent text-white shadow-lg shadow-accent/25 ring-1 ring-white/20 ring-inset"
-                        : "bg-surface border border-border text-fg group-hover:border-accent/30 group-hover:text-accent"
-                    }`}
-                  >
+                  <span className="text-sm font-semibold">{dayName}</span>
+                  <span className={`text-sm font-semibold tabular-nums ${isSelected ? "text-bg/70" : "text-fg-subtle"}`}>
                     {dayNum}
                   </span>
-                  {dayItem.count > 0 && (
-                    <span className={`font-mono text-[9px] tabular-nums ${isSelected ? "text-accent" : "text-fg-subtle"}`}>
-                      {dayItem.count}
-                    </span>
+                  {dayItem.isToday && (
+                    <span
+                      className={`size-1.5 rounded-full ${isSelected ? "bg-green" : "bg-teal"}`}
+                      aria-hidden="true"
+                    />
                   )}
                 </button>
               );
@@ -300,28 +266,28 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
               {featured && (
                 <Link
                   href={`/evento/${eventSlug(featured)}`}
-                  className="group relative hidden md:flex overflow-hidden rounded-2xl border border-border bg-bg-muted mb-5 card-hover hover:border-accent/40 cursor-pointer active:scale-[0.99]"
+                  className="group relative block overflow-hidden rounded-2xl bg-bg-muted mb-5 cursor-pointer active:scale-[0.99]"
                 >
-                  <div className="relative w-[46%] shrink-0 overflow-hidden bg-accent-subtle">
+                  <div className="relative aspect-[16/7] md:aspect-[2.4/1]">
                     <Image
                       src={featured.image!}
                       alt={featured.title}
                       fill
-                      sizes="(max-width: 1280px) 40vw, 480px"
+                      sizes="(max-width: 1024px) 90vw, 960px"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-2 p-6">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" aria-hidden="true" />
+                    <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 text-fg backdrop-blur-xl px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em]">
                       {weekDays[selectedDay]?.isToday ? "Destacado hoy" : "Destacado"}
-                    </p>
-                    <h4 className="font-display text-xl md:text-2xl text-fg font-bold leading-snug tracking-[-0.02em] line-clamp-2">
-                      {featured.title}
-                    </h4>
-                    <p className="font-mono text-xs text-fg-muted uppercase tracking-[0.1em]">
-                      {featured.location || "Vitoria-Gasteiz"}
-                    </p>
+                    </span>
+                    <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/70 mb-1">
+                        {featured.location || "Vitoria-Gasteiz"}
+                      </p>
+                      <h4 className="font-display text-xl md:text-2xl text-white font-bold leading-snug tracking-[-0.02em] line-clamp-2">
+                        {featured.title}
+                      </h4>
+                    </div>
                   </div>
                 </Link>
               )}

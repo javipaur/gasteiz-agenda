@@ -11,6 +11,7 @@ import HomeEventsClient from "./components/HomeEventsClient";
 import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos, type Evento } from "@/lib/eventos";
+import { getPeliculas } from "@/lib/cines";
 import { getPopularEvents } from "@/lib/popularity";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
@@ -101,8 +102,11 @@ async function HeroWithData() {
 }
 
 async function MoodWithData() {
-  const eventos = await getCachedEventos();
-  return <MoodFilter eventos={eventos} />;
+  const [eventos, peliculas] = await Promise.all([
+    getCachedEventos(),
+    getPeliculas(),
+  ]);
+  return <MoodFilter eventos={eventos} peliculas={peliculas} />;
 }
 
 async function TopWithData() {

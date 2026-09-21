@@ -2,29 +2,14 @@ import Link from "next/link";
 import { Music, Landmark, Trophy, Clapperboard } from "lucide-react";
 import { getProximosEventos } from "@/lib/eventos";
 import { normalizeCategory } from "@/lib/categories";
-import { getCachedOrFetch } from "@/lib/cache";
-import { scrapeFlorida } from "@/lib/sources/cines";
-import { scrapeBoulevard } from "@/app/services/boulevard";
+import { getPeliculas } from "@/lib/cines";
 
 const CULTURA_SET = new Set(["Teatro", "Exposiciones", "Danza", "Conferencias", "Talleres", "Visitas"]);
 const DEPORTE_SET = new Set(["Deporte", "Senderismo"]);
 
 async function getCarteleraCount(): Promise<number> {
   try {
-    const peliculas = await getCachedOrFetch(
-      "api-cines",
-      5 * 60 * 1000,
-      async () => {
-        const [florida, boulevard] = await Promise.allSettled([
-          scrapeFlorida(),
-          scrapeBoulevard(),
-        ]);
-        return [
-          ...(florida.status === "fulfilled" ? florida.value : []),
-          ...(boulevard.status === "fulfilled" ? boulevard.value : []),
-        ];
-      }
-    );
+    const peliculas = await getPeliculas();
     return peliculas.length;
   } catch {
     return 0;
@@ -53,13 +38,16 @@ async function getCategoryCounts(): Promise<{ conciertos: number; cultura: numbe
 }
 
 export default async function CategoriesGrid() {
-  const counts = await getCategoryCounts();
+  const [counts, carteleraCount] = await Promise.all([
+    getCategoryCounts(),
+    getCarteleraCount(),
+  ]);
 
   const categories = [
     { label: "Conciertos", href: "/conciertos", desc: "Música en vivo", tint: "bg-teal/10 border-teal/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--teal-wash), transparent 60%)", icon: Music, count: counts.conciertos },
     { label: "Cultura", href: "/culture", desc: "Teatro, exposiciones", tint: "bg-accent/10 border-accent/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--accent-wash), transparent 60%)", icon: Landmark, count: counts.cultura },
     { label: "Deporte", href: "/deporte", desc: "Running, trail, eventos", tint: "bg-green/10 border-green/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(43,107,74,0.08), transparent 60%)", icon: Trophy, count: counts.deporte },
-    { label: "Cartelera", href: "/movies", desc: "Cine en Vitoria", tint: "bg-blue/10 border-blue/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(74,124,156,0.08), transparent 60%)", icon: Clapperboard, count: 0 },
+    { label: "Cartelera", href: "/movies", desc: "Cine en Vitoria", tint: "bg-blue/10 border-blue/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(74,124,156,0.08), transparent 60%)", icon: Clapperboard, count: carteleraCount },
   ];
 
   return (
