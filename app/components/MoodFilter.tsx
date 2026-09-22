@@ -43,9 +43,13 @@ const MOODS: Mood[] = [
 export default function MoodFilter({
   eventos,
   peliculas = [],
+  infantil = [],
+  deporte = [],
 }: {
   eventos: Evento[];
   peliculas?: PeliculaConCine[];
+  infantil?: Evento[];
+  deporte?: Evento[];
 }) {
   const [active, setActive] = useState<string>("todo");
   const [cineFilter, setCineFilter] = useState<"all" | "Florida" | "Boulevard">("all");
@@ -69,16 +73,20 @@ export default function MoodFilter({
       }
     }
     if (peliculas.length > 0) map.cine = peliculas.length;
+    if (infantil.length > 0) map.familiar = infantil.length;
+    if (deporte.length > 0) map.deporte = deporte.length;
     return map;
-  }, [eventos, peliculas]);
+  }, [eventos, peliculas, infantil, deporte]);
 
   const filtered = useMemo(() => {
     const mood = MOODS.find((m) => m.id === active);
     if (!mood || mood.id === "todo") return [];
+    if (mood.id === "familiar") return infantil.slice(0, 8);
+    if (mood.id === "deporte") return deporte.slice(0, 8);
     return eventos
       .filter((e) => mood.categories.has(e.category || ""))
       .slice(0, 8);
-  }, [eventos, active]);
+  }, [eventos, infantil, deporte, active]);
 
   const filteredPeliculas = useMemo(() => {
     if (cineFilter === "all") return peliculas;

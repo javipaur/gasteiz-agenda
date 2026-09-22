@@ -13,6 +13,8 @@ import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos, type Evento } from "@/lib/eventos";
 import { getPeliculas } from "@/lib/cines";
+import { getKidsEventos } from "@/lib/kids";
+import { getDeporteEventos } from "@/lib/deporte";
 import { getPopularEvents } from "@/lib/popularity";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
@@ -104,11 +106,20 @@ async function NextDaysWithData() {
 }
 
 async function MoodWithData() {
-  const [eventos, peliculas] = await Promise.all([
+  const [eventos, peliculas, infantil, deporte] = await Promise.all([
     getCachedEventos(),
     getPeliculas(),
+    getKidsEventos(),
+    getDeporteEventos(),
   ]);
-  return <MoodFilter eventos={eventos} peliculas={peliculas} />;
+  return (
+    <MoodFilter
+      eventos={eventos}
+      peliculas={peliculas}
+      infantil={infantil}
+      deporte={deporte}
+    />
+  );
 }
 
 async function TopWithData() {
