@@ -18,12 +18,14 @@ export default function CategoryCarousel({
   events,
   href,
   categoryColors,
+  variant = "rail",
 }: {
   title: string;
   subtitle?: string;
   events: EventCardEvento[];
   href?: string;
   categoryColors?: Record<string, string>;
+  variant?: "rail" | "grid";
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -36,12 +38,18 @@ export default function CategoryCarousel({
   if (events.length === 0) return null;
 
   return (
-    <section className="px-5 sm:px-6 py-10 md:py-14">
+    <section
+      className={
+        variant === "grid"
+          ? "px-5 sm:px-6 py-10 md:py-14"
+          : "px-5 sm:px-6 py-10 md:py-14 bg-bg-muted"
+      }
+    >
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
           <div className="flex items-end justify-between gap-4 mb-6">
             <div>
-              <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em] leading-tight">
+              <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em] leading-tight">
                 {title}
               </h2>
               {subtitle && (
@@ -58,45 +66,77 @@ export default function CategoryCarousel({
                   <ArrowIcon className="w-3.5 h-3.5" />
                 </Link>
               )}
-              <button
-                onClick={() => scrollBy(-1)}
-                aria-label="Anterior"
-                className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer disabled:opacity-40"
-              >
-                <ArrowIcon className="w-4 h-4 rotate-180" />
-              </button>
-              <button
-                onClick={() => scrollBy(1)}
-                aria-label="Siguiente"
-                className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
-              >
-                <ArrowIcon className="w-4 h-4" />
-              </button>
+              {variant === "rail" && (
+                <>
+                  <button
+                    onClick={() => scrollBy(-1)}
+                    aria-label="Anterior"
+                    className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer disabled:opacity-40"
+                  >
+                    <ArrowIcon className="w-4 h-4 rotate-180" />
+                  </button>
+                  <button
+                    onClick={() => scrollBy(1)}
+                    aria-label="Siguiente"
+                    className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
+                  >
+                    <ArrowIcon className="w-4 h-4" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </InViewWrapper>
 
-        <InViewWrapper>
-          <div
-            ref={scrollerRef}
-            className="flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 -mx-1 px-1"
-          >
-            {events.map((evento, i) => (
-              <div
-                key={evento.id}
-                className="w-[64vw] sm:w-72 shrink-0 snap-start"
-              >
+        {variant === "grid" ? (
+          <InViewWrapper>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {events.map((evento, i) => (
                 <EventCard
+                  key={evento.id}
                   evento={evento}
                   showSource
                   categoryColors={categoryColors}
                   size="compact"
-                  priority={i < 3}
+                  priority={i < 4}
                 />
+              ))}
+            </div>
+            {href && (
+              <div className="mt-8 sm:hidden">
+                <Link
+                  href={href}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300"
+                >
+                  Ver todo
+                  <ArrowIcon className="w-3.5 h-3.5" />
+                </Link>
               </div>
-            ))}
-          </div>
-        </InViewWrapper>
+            )}
+          </InViewWrapper>
+        ) : (
+          <InViewWrapper>
+            <div
+              ref={scrollerRef}
+              className="flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 -mx-1 px-1"
+            >
+              {events.map((evento, i) => (
+                <div
+                  key={evento.id}
+                  className="w-[64vw] sm:w-72 shrink-0 snap-start"
+                >
+                  <EventCard
+                    evento={evento}
+                    showSource
+                    categoryColors={categoryColors}
+                    size="compact"
+                    priority={i < 3}
+                  />
+                </div>
+              ))}
+            </div>
+          </InViewWrapper>
+        )}
       </div>
     </section>
   );

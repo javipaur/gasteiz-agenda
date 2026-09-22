@@ -41,7 +41,7 @@ export default function TopEventsSection({
                 <span className="grid size-8 place-items-center rounded-lg bg-accent/15 text-accent">
                   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z" /></svg>
                 </span>
-                <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em] leading-tight">
+                <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em] leading-tight">
                   Top 10 en Vitoria-Gasteiz
                 </h2>
               </div>

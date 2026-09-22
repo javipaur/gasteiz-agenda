@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Montserrat, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
@@ -11,6 +11,14 @@ import Analytics from "./components/Analytics";
 import CookieConsent from "./components/CookieConsent";
 import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 import "./globals.css";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  style: ["normal", "italic"],
+  weight: "variable",
+});
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -102,7 +110,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${montserrat.variable} ${jetbrainsMono.variable}`}
+      className={`${montserrat.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}
     >
       <head>
         <meta name="color-scheme" content="light dark" />

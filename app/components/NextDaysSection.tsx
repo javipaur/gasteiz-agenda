@@ -124,7 +124,7 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
     <section className="px-5 sm:px-6 py-8 md:py-14 max-w-5xl mx-auto">
       <InViewWrapper>
         <div className="flex items-center gap-2 mb-2">
-          <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em]">
+          <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em]">
             Próximos 7 días
           </h2>
           <span className="text-fg-subtle text-sm tabular-nums">

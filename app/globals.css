@@ -9,24 +9,24 @@
   --fg-subtle: #7E8C93;
   --border: #E3E9EB;
   --border-hover: #C9D5D9;
-  --accent: #EB0052;
-  --accent-hover: #C70045;
-  --accent-subtle: #FFE8F1;
-  --accent-soft: rgba(235, 0, 82, 0.08);
+  --accent: #C94A3D;
+  --accent-hover: #A93A2D;
+  --accent-subtle: #F6E3DE;
+  --accent-soft: rgba(201, 74, 61, 0.10);
   --surface: #FFFFFF;
   --surface-hover: #F6F8F8;
-  --green: #00A36C;
-  --blue: #0A5FC2;
-  --teal: #00BFB2;
+  --green: #2E8F68;
+  --blue: #2E5D8F;
+  --teal: #1F9D94;
   --bezel-highlight: rgba(255, 255, 255, 0.6);
   --bezel-shadow: rgba(3, 20, 25, 0.05);
   --bezel-hover: rgba(3, 20, 25, 0.14);
-  --accent-wash: rgba(235, 0, 82, 0.07);
-  --teal-wash: rgba(0, 191, 178, 0.06);
-  --amber: #E8A33D;
-  --amber-subtle: #FFF3DC;
-  --amber-soft: rgba(232, 163, 61, 0.12);
-  --amber-wash: rgba(232, 163, 61, 0.08);
+  --accent-wash: rgba(201, 74, 61, 0.07);
+  --teal-wash: rgba(31, 157, 148, 0.06);
+  --amber: #C98A2E;
+  --amber-subtle: #FBF1DD;
+  --amber-soft: rgba(201, 138, 46, 0.12);
+  --amber-wash: rgba(201, 138, 46, 0.08);
 }
 
 :root[data-theme="dark"] {
@@ -38,24 +38,24 @@
   --fg-subtle: #7E8F96;
   --border: #1E3138;
   --border-hover: #33505C;
-  --accent: #EB0052;
-  --accent-hover: #FF2E70;
-  --accent-subtle: #3A1230;
-  --accent-soft: rgba(235, 0, 82, 0.14);
+  --accent: #C94A3D;
+  --accent-hover: #DA6A55;
+  --accent-subtle: #3A1711;
+  --accent-soft: rgba(218, 106, 85, 0.16);
   --surface: #0D242C;
   --surface-hover: #122C35;
-  --green: #00A36C;
-  --blue: #4D7FCC;
-  --teal: #00BFB2;
+  --green: #3F8F72;
+  --blue: #4D6E99;
+  --teal: #2AA59C;
   --bezel-highlight: rgba(255, 255, 255, 0.04);
   --bezel-shadow: rgba(0, 0, 0, 0.35);
   --bezel-hover: rgba(0, 0, 0, 0.55);
-  --accent-wash: rgba(235, 0, 82, 0.09);
-  --teal-wash: rgba(0, 191, 178, 0.06);
-  --amber: #E8A33D;
+  --accent-wash: rgba(201, 74, 61, 0.12);
+  --teal-wash: rgba(42, 165, 156, 0.07);
+  --amber: #D09A4E;
   --amber-subtle: #3A2A10;
-  --amber-soft: rgba(232, 163, 61, 0.15);
-  --amber-wash: rgba(232, 163, 61, 0.09);
+  --amber-soft: rgba(208, 154, 78, 0.15);
+  --amber-wash: rgba(208, 154, 78, 0.10);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,24 +68,24 @@
     --fg-subtle: #7E8F96;
     --border: #1E3138;
     --border-hover: #33505C;
-    --accent: #EB0052;
-    --accent-hover: #FF2E70;
-    --accent-subtle: #3A1230;
-    --accent-soft: rgba(235, 0, 82, 0.14);
+    --accent: #C94A3D;
+    --accent-hover: #DA6A55;
+    --accent-subtle: #3A1711;
+    --accent-soft: rgba(218, 106, 85, 0.16);
     --surface: #0D242C;
     --surface-hover: #122C35;
-    --green: #00A36C;
-    --blue: #4D7FCC;
-    --teal: #00BFB2;
+    --green: #3F8F72;
+    --blue: #4D6E99;
+    --teal: #2AA59C;
     --bezel-highlight: rgba(255, 255, 255, 0.04);
     --bezel-shadow: rgba(0, 0, 0, 0.35);
     --bezel-hover: rgba(0, 0, 0, 0.55);
-    --accent-wash: rgba(235, 0, 82, 0.09);
-    --teal-wash: rgba(0, 191, 178, 0.06);
-    --amber: #E8A33D;
+    --accent-wash: rgba(201, 74, 61, 0.12);
+    --teal-wash: rgba(42, 165, 156, 0.07);
+    --amber: #D09A4E;
     --amber-subtle: #3A2A10;
-    --amber-soft: rgba(232, 163, 61, 0.15);
-    --amber-wash: rgba(232, 163, 61, 0.09);
+    --amber-soft: rgba(208, 154, 78, 0.15);
+    --amber-wash: rgba(208, 154, 78, 0.10);
   }
 }
 
@@ -107,12 +107,12 @@
   --color-green: var(--green);
   --color-blue: var(--blue);
   --color-teal: var(--teal);
-  --color-teal-soft: rgba(0, 191, 178, 0.12);
+  --color-teal-soft: rgba(31, 157, 148, 0.12);
   --color-amber: var(--amber);
   --color-amber-subtle: var(--amber-subtle);
   --color-amber-soft: var(--amber-soft);
 
-  --font-display: var(--font-montserrat), system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-body: var(--font-montserrat), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 
@@ -221,14 +221,16 @@
     outline: 1px solid var(--color-border);
   }
 
-  .hero-wash {
+  .hero-grid {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background:
-      radial-gradient(1100px 520px at 88% -12%, var(--accent-wash), transparent 58%),
-      radial-gradient(850px 460px at -8% 108%, var(--teal-wash), transparent 56%),
-      radial-gradient(500px 260px at 50% 40%, rgba(201, 74, 61, 0.03), transparent 50%);
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--fg) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--fg) 7%, transparent) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, black 28%, transparent 78%);
+    mask-image: radial-gradient(120% 90% at 50% 0%, black 28%, transparent 78%);
   }
 
   .accent-glow {

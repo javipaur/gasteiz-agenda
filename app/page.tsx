@@ -145,8 +145,9 @@ async function CulturaCarousel() {
       title="Cultura"
       subtitle="Teatro, exposiciones y visitas"
       href="/culture"
-      events={filterByCats(eventos, CULTURA_CATS).slice(0, 10)}
+      events={filterByCats(eventos, CULTURA_CATS).slice(0, 8)}
       categoryColors={CATEGORY_COLORS}
+      variant="grid"
     />
   );
 }
@@ -158,8 +159,9 @@ async function InfantilCarousel() {
       title="Planes familiares"
       subtitle="Con niños y para todos"
       href="/kids"
-      events={filterByCats(eventos, INFANTIL_CATS).slice(0, 10)}
+      events={filterByCats(eventos, INFANTIL_CATS).slice(0, 8)}
       categoryColors={CATEGORY_COLORS}
+      variant="grid"
     />
   );
 }

@@ -22,7 +22,7 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
           <div className="mb-8">
-            <h2 className="font-display text-2xl md:text-3xl text-fg font-bold tracking-[-0.02em] leading-tight mb-2">
+            <h2 className="font-display text-2xl md:text-3xl text-fg font-semibold tracking-[-0.02em] leading-tight mb-2">
               Próximos eventos
             </h2>
             <p className="text-fg-muted text-sm">

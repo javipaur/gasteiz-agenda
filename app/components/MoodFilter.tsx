@@ -92,7 +92,7 @@ export default function MoodFilter({
       <div className="max-w-5xl mx-auto">
         <InViewWrapper>
           <div className="flex items-center gap-3 mb-4">
-            <h2 className="font-display text-lg md:text-xl text-fg font-bold tracking-[-0.02em]">
+            <h2 className="font-display text-lg md:text-xl text-fg font-semibold tracking-[-0.02em]">
               ¿Qué te apetece?
             </h2>
             <span className="inline-flex items-center rounded-full bg-fg text-bg px-2 py-0.5 text-[10px] font-bold tracking-[0.08em] uppercase">

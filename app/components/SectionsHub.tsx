@@ -159,7 +159,7 @@ export default async function SectionsHub() {
   return (
     <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em]">
+        <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em]">
           Explora Vitoria-Gasteiz
         </h2>
         <span className="h-px flex-1 bg-border" aria-hidden="true" />
@@ -188,7 +188,7 @@ export default async function SectionsHub() {
                 </span>
               </div>
               <div className="relative">
-                <h3 className="font-display text-lg font-bold text-fg leading-tight tracking-[-0.01em] group-hover:text-accent transition-colors duration-300">
+                <h3 className="font-display text-lg font-semibold text-fg leading-tight tracking-[-0.01em] group-hover:text-accent transition-colors duration-300">
                   {label}
                 </h3>
                 <p className="text-xs text-fg-muted mt-0.5 tabular-nums">

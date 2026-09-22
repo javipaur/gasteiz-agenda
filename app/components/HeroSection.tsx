@@ -29,34 +29,34 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   }, [eventos]);
 
   return (
-    <section className="relative px-5 sm:px-6 pt-28 pb-10 md:pt-36 md:pb-14">
-      <div className="hero-wash" aria-hidden="true" />
+    <section className="relative px-5 sm:px-6 pt-28 pb-10 md:pt-36 md:pb-14 overflow-hidden">
+      <div className="hero-grid" aria-hidden="true" />
       <div className="max-w-5xl mx-auto">
         <InViewWrapper eager>
-          <p className="inline-flex items-center gap-2.5 mb-6 font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle">
-            <span className="relative flex size-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-green opacity-60 animate-ping" />
-              <span className="relative inline-flex size-1.5 rounded-full bg-green" />
+          <p className="flex items-center gap-3 mb-7">
+            <span aria-hidden="true" className="inline-block h-6 w-[3px] rounded-full bg-accent" />
+            <span className="text-sm font-medium text-fg">
+              {totalThisWeek > 0
+                ? `${totalThisWeek} planes para esta semana`
+                : "Agenda de la ciudad"}
             </span>
-            {totalThisWeek > 0 ? (
-              `${totalThisWeek} planes esta semana en Vitoria-Gasteiz`
-            ) : (
-              "Vitoria-Gasteiz"
-            )}
+            <span aria-hidden="true" className="h-px w-10 bg-border" />
+            <span className="font-mono text-[11px] text-fg-subtle">Vitoria-Gasteiz</span>
           </p>
         </InViewWrapper>
 
         <InViewWrapper eager>
-          <h1 className="font-display text-[clamp(2.5rem,6.5vw,4.25rem)] font-bold text-fg leading-[1.05] tracking-[-0.03em] mb-4 max-w-3xl">
-            Qué hacer en
-            <br />
-            <span className="text-accent">Vitoria-Gasteiz</span>
+          <h1 className="font-display text-[clamp(2.75rem,7vw,5rem)] font-semibold text-fg leading-[1.03] tracking-[-0.02em] mb-5 max-w-3xl">
+            La agenda de
+            <span className="block font-display italic font-medium text-accent">
+              Vitoria-Gasteiz
+            </span>
           </h1>
 
           <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-8">
             {totalThisWeek > 0
-              ? `${totalThisWeek} eventos esta semana. Cultura, deporte, cine y planes para todos.`
-              : "Conciertos, exposiciones, cine, deporte y planes familiares."}
+              ? `Conciertos, teatro, cine, deporte y planes familiares: ${totalThisWeek} propuestas confirmadas.`
+              : "Conciertos, exposiciones, cine, deporte y planes familiares, recogidos en un solo sitio."}
           </p>
 
           <div className="mb-10 max-w-xl">
