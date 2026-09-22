@@ -23,6 +23,10 @@
   --bezel-hover: rgba(3, 20, 25, 0.14);
   --accent-wash: rgba(235, 0, 82, 0.07);
   --teal-wash: rgba(0, 191, 178, 0.06);
+  --amber: #E8A33D;
+  --amber-subtle: #FFF3DC;
+  --amber-soft: rgba(232, 163, 61, 0.12);
+  --amber-wash: rgba(232, 163, 61, 0.08);
 }
 
 :root[data-theme="dark"] {
@@ -48,6 +52,10 @@
   --bezel-hover: rgba(0, 0, 0, 0.55);
   --accent-wash: rgba(235, 0, 82, 0.09);
   --teal-wash: rgba(0, 191, 178, 0.06);
+  --amber: #E8A33D;
+  --amber-subtle: #3A2A10;
+  --amber-soft: rgba(232, 163, 61, 0.15);
+  --amber-wash: rgba(232, 163, 61, 0.09);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,6 +82,10 @@
     --bezel-hover: rgba(0, 0, 0, 0.55);
     --accent-wash: rgba(235, 0, 82, 0.09);
     --teal-wash: rgba(0, 191, 178, 0.06);
+    --amber: #E8A33D;
+    --amber-subtle: #3A2A10;
+    --amber-soft: rgba(232, 163, 61, 0.15);
+    --amber-wash: rgba(232, 163, 61, 0.09);
   }
 }
 
@@ -95,6 +107,9 @@
   --color-green: var(--green);
   --color-blue: var(--blue);
   --color-teal: var(--teal);
+  --color-amber: var(--amber);
+  --color-amber-subtle: var(--amber-subtle);
+  --color-amber-soft: var(--amber-soft);
 
   --font-display: var(--font-montserrat), system-ui, sans-serif;
   --font-body: var(--font-montserrat), system-ui, sans-serif;
