@@ -18,6 +18,7 @@
     "rangoPrecio": "€€",
     "direccion": "Calle de la Herrería, 12",
     "coords": { "lat": 42.8473, "lng": -2.6725 },
+    "imagen": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Vitoria_-_Asador_Sagartoki_%28Calle_del_Prado%29.jpg",
     "descripcion": "Cocina de mercado con toque creativo en platos de cuchara y brasa.",
     "recomendado": true
   },
@@ -29,6 +30,7 @@
     "rangoPrecio": "€€€",
     "direccion": "Calle Correría, 163",
     "coords": { "lat": 42.8484, "lng": -2.6749 },
+    "imagen": "https://upload.wikimedia.org/wikipedia/commons/7/77/El_Portal%C3%B3n%2C_Vitoria-Gasteiz.jpg",
     "descripcion": "Asador histórico en un palacio del siglo XV: chuletón al punto y cocina tradicional alavesa."
   },
   {

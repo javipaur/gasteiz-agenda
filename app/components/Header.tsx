@@ -371,6 +371,8 @@ export default function Header() {
                           { label: "Fiestas La Blanca", href: "/fiestas-blanca" },
                           { label: "Turismo", href: "/turismo" },
                           { label: "Gastronomía", href: "/gastronomia" },
+                          { label: "Bus y tranvía", href: "/bus" },
+                          { label: "Farmacias", href: "/farmacias" },
                         ].map((l) => (
                           <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
                             {l.label}

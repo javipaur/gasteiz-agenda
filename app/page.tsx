@@ -1,10 +1,11 @@
 import { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
+import SectionsHub from "./components/SectionsHub";
+import NextDaysSection from "./components/NextDaysSection";
 import MoodFilter from "./components/MoodFilter";
 import TopEventsSection from "./components/TopEventsSection";
 import CategoryCarousel from "./components/CategoryCarousel";
-import CategoriesGrid from "./components/CategoriesGrid";
 import SocialProof from "./components/SocialProof";
 import FiestasBlancaSection from "./components/FiestasBlancaSection";
 import HomeEventsClient from "./components/HomeEventsClient";
@@ -50,15 +51,11 @@ async function AgendaJsonLd() {
 function HeroSkeleton() {
   return (
     <div className="px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="h-3 w-40 bg-surface rounded animate-pulse mb-8" />
         <div className="h-14 w-80 bg-surface rounded-xl animate-pulse mb-3" />
         <div className="h-5 w-64 bg-surface rounded-lg animate-pulse mb-10" />
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="w-12 h-12 bg-surface rounded-full animate-pulse" />
-          ))}
-        </div>
+        <div className="h-11 w-72 bg-surface rounded-xl animate-pulse" />
       </div>
     </div>
   );
@@ -99,6 +96,11 @@ function FiestasSkeleton() {
 async function HeroWithData() {
   const eventos = await getCachedEventos();
   return <HeroSection eventos={eventos} />;
+}
+
+async function NextDaysWithData() {
+  const eventos = await getCachedEventos();
+  return <NextDaysSection eventos={eventos} />;
 }
 
 async function MoodWithData() {
@@ -181,6 +183,36 @@ export default async function HomeEventsPage() {
 
       <Suspense
         fallback={
+          <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
+            <div className="h-6 w-40 bg-surface rounded-lg animate-pulse mb-6" />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="h-[132px] bg-surface rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          </section>
+        }
+      >
+        <SectionsHub />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <section className="px-5 sm:px-6 py-8 md:py-14 max-w-5xl mx-auto">
+            <div className="h-7 w-56 bg-surface rounded-lg animate-pulse mb-6" />
+            <div className="flex gap-2 overflow-hidden">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-16 h-9 bg-surface rounded-full animate-pulse" />
+              ))}
+            </div>
+          </section>
+        }
+      >
+        <NextDaysWithData />
+      </Suspense>
+
+      <Suspense
+        fallback={
           <section className="px-5 sm:px-6 py-8 md:py-10 max-w-7xl mx-auto">
             <div className="h-6 w-40 bg-surface rounded-lg animate-pulse" />
           </section>
@@ -191,21 +223,6 @@ export default async function HomeEventsPage() {
 
       <Suspense fallback={<CarouselSkeleton />}>
         <TopWithData />
-      </Suspense>
-
-      <Suspense
-        fallback={
-          <section className="px-5 sm:px-6 py-12 md:py-16 max-w-7xl mx-auto">
-            <div className="h-7 w-64 bg-surface rounded-lg animate-pulse mb-6" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-[68px] bg-surface rounded-xl animate-pulse" />
-              ))}
-            </div>
-          </section>
-        }
-      >
-        <CategoriesGrid />
       </Suspense>
 
       <Suspense fallback={<CarouselSkeleton />}>

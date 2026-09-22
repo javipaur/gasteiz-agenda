@@ -10,6 +10,7 @@ const PUBLIC_API_ROUTES = [
   "/api/push/subscribe",
   "/api/cines",
   "/api/farmacias",
+  "/api/vgbus",
   "/api/actividades",
 ];
 

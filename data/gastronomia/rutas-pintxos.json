@@ -35,5 +35,40 @@
       { "nombre": "Bliss", "direccion": "San Prudencio, 22", "pintxo": "Torre de huevas de trucha", "precio": "4,00 €" },
       { "nombre": "Kultur", "direccion": "Postas, 7", "pintxo": "Ensaladilla con queso Idiazábal", "precio": "3,50 €" }
     ]
+  },
+  {
+    "slug": "salburua",
+    "zona": "Salburua",
+    "nombre": "Ruta de pintxos por Salburua",
+    "duracion": "1 h 30 min",
+    "consejo": "Barrio residencial junto a los humedales; los bares son amplios y sin colas. Podéis rematar con un paseo por el humedal o el poteo del jueves.",
+    "paradas": [
+      { "nombre": "Bar Urria", "direccion": "Bulevar de Salburua, 42", "pintxo": "Pintxo-pote y croquetas caseras", "precio": "2,50 €" },
+      { "nombre": "Cafetería Iliada", "direccion": "Bulevar de Salburua", "pintxo": "Tortilla y raciones de picoteo", "precio": "3,50 €" }
+    ]
+  },
+  {
+    "slug": "zabalgana",
+    "zona": "Zabalgana",
+    "nombre": "Ruta de pintxos por Zabalgana",
+    "duracion": "2 h",
+    "consejo": "El barrio más poblado de Vitoria; buenas terrazas y el mejor pincho-pote de los jueves. El H2O es todo un referente por su tortilla.",
+    "paradas": [
+      { "nombre": "H2O", "direccion": "Calle Oyón, 28", "pintxo": "Tortilla de patata (Soléte Repsol)", "precio": "4,00 €" },
+      { "nombre": "Black & White", "direccion": "Alto de Armentia, 44", "pintxo": "Tortilla jugosa y gildas de caserío", "precio": "3,50 €" },
+      { "nombre": "Deep Blue", "direccion": "Av. de la Ilustración, 48", "pintxo": "Smash burger y pintxos de la casa", "precio": "3,50 €" }
+    ]
+  },
+  {
+    "slug": "san-martin",
+    "zona": "San Martín",
+    "nombre": "Ruta de pintxos por San Martín",
+    "duracion": "1 h 30 min",
+    "consejo": "Barrio de bares de toda la vida junto a la Florida; el Serranito del Rincón de Luis Mari es leyenda local, pide el Antxopi para acompañar.",
+    "paradas": [
+      { "nombre": "El Rincón de Luis Mari", "direccion": "Rioja, 14", "pintxo": "Serranito y Antxopi", "precio": "2,50 €" },
+      { "nombre": "Bar Bikoka", "direccion": "Martin Susaeta", "pintxo": "Pintxos calientes y rabas", "precio": "3,00 €" },
+      { "nombre": "¡Waska!", "direccion": "Siervas de Jesús, 17", "pintxo": "Bonito a la brasa y pintxos de poteo", "precio": "3,50 €" }
+    ]
   }
 ]

@@ -4,6 +4,11 @@ import { scrapeGasteizHoy } from "./sources/gasteizhoy";
 import { scrapeVamEvents } from "./sources/vam";
 import { scrapeMunicipalCalendar } from "./sources/municipal";
 import { scrapeEuskadi } from "./sources/euskadi";
+import { scrapeMunicipalRss } from "./sources/municipal-rss";
+import { scrapeEventbrite } from "./sources/eventbrite";
+import { scrapeEntradium } from "./sources/entradium";
+import { scrapeVital } from "./sources/vital";
+import { scrapeArkabia } from "./sources/arkabia";
 import { getCachedOrFetch } from "./cache";
 import { logger } from "./axiom/server";
 
@@ -45,13 +50,30 @@ function normalizeEvento(e: any): Evento {
 }
 
 async function fetchAllSources(): Promise<any[]> {
-  const [fever, rula, gasteizhoy, vam, municipal, euskadi] = await Promise.allSettled([
+  const [
+    fever,
+    rula,
+    gasteizhoy,
+    vam,
+    municipal,
+    euskadi,
+    municipalRss,
+    eventbrite,
+    entradium,
+    vital,
+    arkabia,
+  ] = await Promise.allSettled([
     scrapeFever(),
     scrapeRula(),
     scrapeGasteizHoy(),
     scrapeVamEvents(),
     scrapeMunicipalCalendar(),
     scrapeEuskadi(),
+    scrapeMunicipalRss(),
+    scrapeEventbrite(),
+    scrapeEntradium(),
+    scrapeVital(),
+    scrapeArkabia(),
   ]);
 
   const sources = [
@@ -61,6 +83,11 @@ async function fetchAllSources(): Promise<any[]> {
     ["vam", vam],
     ["vitoria-gasteiz", municipal],
     ["euskadi", euskadi],
+    ["vitoria-gasteiz-rss", municipalRss],
+    ["eventbrite", eventbrite],
+    ["entradium", entradium],
+    ["vital", vital],
+    ["arkabia", arkabia],
   ];
 
   for (const [name, result] of sources as Array<[string, PromiseSettledResult<unknown>]>) {
@@ -93,6 +120,31 @@ async function fetchAllSources(): Promise<any[]> {
   }
   if (euskadi.status === "fulfilled") {
     allEvents.push(...euskadi.value.map((e) => normalizeEvento({ ...e, source: "euskadi" })));
+  }
+  if (municipalRss.status === "fulfilled") {
+    allEvents.push(
+      ...municipalRss.value.map((e) =>
+        normalizeEvento({ ...e, source: "vitoria-gasteiz-rss" })
+      )
+    );
+  }
+  if (eventbrite.status === "fulfilled") {
+    allEvents.push(
+      ...eventbrite.value.map((e) => normalizeEvento({ ...e, source: "eventbrite" }))
+    );
+  }
+  if (entradium.status === "fulfilled") {
+    allEvents.push(
+      ...entradium.value.map((e) => normalizeEvento({ ...e, source: "entradium" }))
+    );
+  }
+  if (vital.status === "fulfilled") {
+    allEvents.push(...vital.value.map((e) => normalizeEvento({ ...e, source: "vital" })));
+  }
+  if (arkabia.status === "fulfilled") {
+    allEvents.push(
+      ...arkabia.value.map((e) => normalizeEvento({ ...e, source: "arkabia" }))
+    );
   }
 
   return allEvents;

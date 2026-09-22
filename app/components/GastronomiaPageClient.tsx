@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Utensils, MapPin, CalendarDays, ExternalLink, Star } from "lucide-react";
 import { InViewWrapper } from "@/lib/shared";
 import { eventSlug } from "@/lib/slug";
@@ -123,6 +124,17 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
               <InViewWrapper key={sitio.slug} delay={Math.min(index * 0.04, 0.4)}>
                 <article className="group double-bezel-outer rounded-2xl p-1.5 h-full">
                   <div className="double-bezel rounded-xl overflow-hidden h-full flex flex-col">
+                    {sitio.imagen && (
+                      <div className="relative aspect-[16/9] shrink-0">
+                        <Image
+                          src={sitio.imagen}
+                          alt={`Fachada de ${sitio.nombre}`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+                        />
+                      </div>
+                    )}
                     <div className="p-5 flex-1">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h3 className="font-display text-lg font-bold text-fg leading-tight tracking-[-0.01em]">

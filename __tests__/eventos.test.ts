@@ -34,6 +34,26 @@ jest.mock("@/lib/sources/euskadi", () => ({
   scrapeEuskadi: jest.fn().mockResolvedValue([]),
 }));
 
+jest.mock("@/lib/sources/municipal-rss", () => ({
+  scrapeMunicipalRss: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/eventbrite", () => ({
+  scrapeEventbrite: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/entradium", () => ({
+  scrapeEntradium: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/vital", () => ({
+  scrapeVital: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/arkabia", () => ({
+  scrapeArkabia: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock("@/lib/cache", () => ({
   getCachedOrFetch: jest.fn(
     async (_key: string, _ttlMs: number, fetcher: () => Promise<unknown>) =>
