@@ -25,6 +25,8 @@ const navItems = [
   { name: "Niños", href: "/kids" },
   { name: "Cultura", href: "/culture" },
   { name: "Deporte", href: "/deporte" },
+  { name: "Turismo", href: "/turismo" },
+  { name: "Gastronomía", href: "/gastronomia" },
 ];
 
 function getVisibleNavItems() {
@@ -367,6 +369,8 @@ export default function Header() {
                           { label: "Cartelera", href: "/movies" },
                           { label: "Planes familiares", href: "/kids" },
                           { label: "Fiestas La Blanca", href: "/fiestas-blanca" },
+                          { label: "Turismo", href: "/turismo" },
+                          { label: "Gastronomía", href: "/gastronomia" },
                         ].map((l) => (
                           <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
                             {l.label}

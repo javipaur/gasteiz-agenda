@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Music, Landmark, Trophy, Clapperboard } from "lucide-react";
+import { Music, Landmark, Trophy, Clapperboard, Utensils } from "lucide-react";
 import { getProximosEventos } from "@/lib/eventos";
 import { normalizeCategory } from "@/lib/categories";
 import { getPeliculas } from "@/lib/cines";
+import { getQueVer } from "@/lib/turismo";
+import { getSitios } from "@/lib/gastronomia";
 
 const CULTURA_SET = new Set(["Teatro", "Exposiciones", "Danza", "Conferencias", "Talleres", "Visitas"]);
 const DEPORTE_SET = new Set(["Deporte", "Senderismo"]);
@@ -37,10 +39,16 @@ async function getCategoryCounts(): Promise<{ conciertos: number; cultura: numbe
   }
 }
 
+async function getCuratedCounts(): Promise<{ turismo: number; gastronomia: number }> {
+  const [queVer, sitios] = await Promise.all([getQueVer(), getSitios()]);
+  return { turismo: queVer.length, gastronomia: sitios.length };
+}
+
 export default async function CategoriesGrid() {
-  const [counts, carteleraCount] = await Promise.all([
+  const [counts, carteleraCount, curatedCounts] = await Promise.all([
     getCategoryCounts(),
     getCarteleraCount(),
+    getCuratedCounts(),
   ]);
 
   const categories = [
@@ -48,6 +56,8 @@ export default async function CategoriesGrid() {
     { label: "Cultura", href: "/culture", desc: "Teatro, exposiciones", tint: "bg-accent/10 border-accent/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--accent-wash), transparent 60%)", icon: Landmark, count: counts.cultura },
     { label: "Deporte", href: "/deporte", desc: "Running, trail, eventos", tint: "bg-green/10 border-green/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(43,107,74,0.08), transparent 60%)", icon: Trophy, count: counts.deporte },
     { label: "Cartelera", href: "/movies", desc: "Cine en Vitoria", tint: "bg-blue/10 border-blue/20", wash: "radial-gradient(420px 160px at 90% -20%, rgba(74,124,156,0.08), transparent 60%)", icon: Clapperboard, count: carteleraCount },
+    { label: "Turismo", href: "/turismo", desc: "Qué ver en Gasteiz", tint: "bg-teal/10 border-teal/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--teal-wash), transparent 60%)", icon: Landmark, count: curatedCounts.turismo },
+    { label: "Gastronomía", href: "/gastronomia", desc: "Pintxos y sitios", tint: "bg-amber/10 border-amber/20", wash: "radial-gradient(420px 160px at 90% -20%, var(--amber-wash), transparent 60%)", icon: Utensils, count: curatedCounts.gastronomia },
   ];
 
   return (
@@ -59,7 +69,7 @@ export default async function CategoriesGrid() {
         <span className="h-px flex-1 bg-border" aria-hidden="true" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {categories.map(({ label, href, desc, tint, wash, icon: Icon, count }) => (
           <Link
             key={href}
