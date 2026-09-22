@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { eventSlug } from "@/lib/slug";
-import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura";
+import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura-sources";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
