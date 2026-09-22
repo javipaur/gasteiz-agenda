@@ -10,6 +10,7 @@ import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import Analytics from "./components/Analytics";
 import CookieConsent from "./components/CookieConsent";
 import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
+import { getAccentSeason } from "@/lib/season";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -110,6 +111,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      data-accent={getAccentSeason()}
       className={`${montserrat.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}
     >
       <head>

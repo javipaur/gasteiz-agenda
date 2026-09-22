@@ -10,6 +10,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { InViewWrapper } from "@/lib/shared";
+import { SECTION_TINT } from "@/lib/sectionTint";
 import { eventSlug } from "@/lib/slug";
 import { formatDate } from "@/lib/utils";
 import EmptyState from "./EmptyState";
@@ -46,9 +47,10 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <InViewWrapper>
         <header className="mb-12">
-          <p className="font-mono text-xs tracking-[0.2em] uppercase text-teal mb-3">
-            Turismo
-          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <span aria-hidden="true" className={`inline-block h-5 w-[3px] rounded-full ${SECTION_TINT.turismo.bar}`} />
+            <span className={`font-display italic ${SECTION_TINT.turismo.text} text-sm`}>Turismo</span>
+          </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Descubre Vitoria-Gasteiz
           </h1>
@@ -68,7 +70,7 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 tab === t.key
-                  ? "bg-teal text-white"
+                  ? `${SECTION_TINT.turismo.active}`
                   : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
               }`}
             >

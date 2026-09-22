@@ -81,3 +81,21 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Senderismo: "#7CB342",
   Otros: "#9C9996",
 };
+
+export const CATEGORY_FILLS: Record<string, string> = {
+  Música: "#C94A3D",
+  Teatro: "#7A5232",
+  Cine: "#2E5D8F",
+  Exposiciones: "#1F5438",
+  Infantil: "#2A7A6C",
+  Deporte: "#4E7A28",
+  Danza: "#9C4E60",
+  Festival: "#7A5232",
+  Conferencias: "#6B4A7D",
+  Fiestas: "#C94A3D",
+  Visitas: "#1F5438",
+  Talleres: "#6B4A7D",
+  Gastronomía: "#7A5232",
+  Senderismo: "#4E7A28",
+  Otros: "#6E6B68",
+};

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
+import { SECTION_TINT } from "@/lib/sectionTint";
 import { eventSlug } from "@/lib/slug";
 import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura-sources";
 import FavoriteButton from "./FavoriteButton";
@@ -93,6 +94,10 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <InViewWrapper>
         <header className="mb-12">
+          <div className="flex items-center gap-2 mb-3">
+            <span aria-hidden="true" className={`inline-block h-5 w-[3px] rounded-full ${SECTION_TINT.cultura.bar}`} />
+            <span className={`font-display italic ${SECTION_TINT.cultura.text} text-sm`}>Agenda</span>
+          </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Agenda Cultural
           </h1>

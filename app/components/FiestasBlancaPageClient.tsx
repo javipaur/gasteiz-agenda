@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
+import { SECTION_TINT } from "@/lib/sectionTint";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 
@@ -114,6 +115,10 @@ export default function FiestasBlancaPageClient({
       <section className="pt-32 md:pt-36 pb-8 px-5 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <InViewWrapper>
+            <div className="flex items-center gap-2 mb-3">
+              <span aria-hidden="true" className={`inline-block h-5 w-[3px] rounded-full ${SECTION_TINT.fiestas.bar}`} />
+              <span className={`font-display italic ${SECTION_TINT.fiestas.text} text-sm`}>La Blanca</span>
+            </div>
             <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-semibold tracking-[-0.02em] leading-tight mb-4">
               Fiestas de la Virgen Blanca
             </h1>

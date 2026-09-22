@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
-import { CATEGORY_COLORS } from "@/lib/categories";
+import { CATEGORY_COLORS, CATEGORY_FILLS } from "@/lib/categories";
 import type { Evento } from "@/lib/eventos";
 import type { PeliculaConCine } from "@/lib/cines";
 import MovieCard from "./MovieCard";
@@ -39,6 +39,15 @@ const MOODS: Mood[] = [
   { id: "gastro", label: "Gastronomía", categories: new Set(["Gastronomía"]) },
   { id: "cine", label: "Cine", categories: new Set(["Cine"]) },
 ];
+
+const MOOD_FILLS: Record<string, string> = {
+  musica: CATEGORY_FILLS["Música"],
+  cultura: CATEGORY_FILLS["Conferencias"],
+  familiar: CATEGORY_FILLS["Infantil"],
+  deporte: CATEGORY_FILLS["Deporte"],
+  gastro: CATEGORY_FILLS["Gastronomía"],
+  cine: CATEGORY_FILLS["Cine"],
+};
 
 export default function MoodFilter({
   eventos,
@@ -114,9 +123,14 @@ export default function MoodFilter({
                 aria-pressed={active === mood.id}
                 className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
                   active === mood.id
-                    ? "bg-accent text-white shadow-lg shadow-accent/20 ring-1 ring-white/20 ring-inset scale-[1.02]"
+                    ? `${MOOD_FILLS[mood.id] ? "" : "bg-accent "}text-white shadow-lg shadow-black/10 ring-1 ring-white/20 ring-inset scale-[1.02]`
                     : "bg-surface border border-border text-fg-muted hover:text-fg hover:border-accent/30"
                 }`}
+                style={
+                  active === mood.id && MOOD_FILLS[mood.id]
+                    ? { backgroundColor: MOOD_FILLS[mood.id] }
+                    : undefined
+                }
               >
                 {mood.label}
                 {mood.id !== "todo" && counts[mood.id] !== undefined && (

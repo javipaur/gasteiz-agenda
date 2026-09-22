@@ -8,6 +8,7 @@ export async function GET() {
       source: "cofalava",
       date: farmacias[0]?.date || "",
       count: farmacias.length,
+      fetchedAt: Date.now(),
       data: farmacias,
     });
   } catch (error) {

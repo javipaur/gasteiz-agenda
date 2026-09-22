@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
+import { SECTION_TINT } from "@/lib/sectionTint";
 import { eventSlug } from "@/lib/slug";
 import FavoriteButton from "./FavoriteButton";
 
@@ -52,8 +53,8 @@ export default function SportPageClient({ eventos }: { eventos: Evento[] }) {
       <InViewWrapper>
         <header className="mb-12">
           <div className="flex items-center gap-2 mb-3">
-            <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
-            <span className="font-display italic text-accent text-sm">Deporte</span>
+            <span aria-hidden="true" className={`inline-block h-5 w-[3px] rounded-full ${SECTION_TINT.deporte.bar}`} />
+            <span className={`font-display italic ${SECTION_TINT.deporte.text} text-sm`}>Deporte</span>
           </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Agenda Deportiva

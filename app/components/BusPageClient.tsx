@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Bus, TramFront, MapPin, Navigation, Search, X, Loader2 } from "lucide-react";
+import FreshnessBadge from "./FreshnessBadge";
 
 function horaActualMadrid(): string {
   return new Date().toLocaleTimeString("es-ES", {
@@ -422,9 +423,12 @@ export default function BusPageClient() {
             </div>
           )}
 
-          <p className="text-xs text-fg-subtle mb-3 tabular-nums uppercase tracking-[0.15em]">
-            Próximas llegadas · <span className="normal-case">ahora son las {horaActualMadrid()}</span>
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <p className="text-xs text-fg-subtle tabular-nums uppercase tracking-[0.15em]">
+              Próximas llegadas · <span className="normal-case">ahora son las {horaActualMadrid()}</span>
+            </p>
+            {detalle?.fetchedAt ? <FreshnessBadge since={detalle.fetchedAt} /> : null}
+          </div>
 
           {cargandoDetalle && llegadas.length === 0 && (
             <div className="flex items-center gap-3 text-fg-muted text-sm py-6" role="status">

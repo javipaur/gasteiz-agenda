@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
+import { SECTION_TINT } from "@/lib/sectionTint";
 import { eventSlug } from "@/lib/slug";
 import FavoriteButton from "./FavoriteButton";
 
@@ -66,8 +67,8 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
       <InViewWrapper>
         <header className="mb-10">
           <div className="flex items-center gap-2 mb-3">
-            <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
-            <span className="font-display italic text-accent text-sm">Música</span>
+            <span aria-hidden="true" className={`inline-block h-5 w-[3px] rounded-full ${SECTION_TINT.conciertos.bar}`} />
+            <span className={`font-display italic ${SECTION_TINT.conciertos.text} text-sm`}>Música</span>
           </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Conciertos

@@ -2,6 +2,7 @@ import { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
 import SectionsHub from "./components/SectionsHub";
+import TodayStrip from "./components/TodayStrip";
 import NextDaysSection from "./components/NextDaysSection";
 import MoodFilter from "./components/MoodFilter";
 import TopEventsSection from "./components/TopEventsSection";
@@ -103,6 +104,11 @@ async function HeroWithData() {
 async function NextDaysWithData() {
   const eventos = await getCachedEventos();
   return <NextDaysSection eventos={eventos} />;
+}
+
+async function TodayWithData() {
+  const eventos = await getCachedEventos();
+  return <TodayStrip eventos={eventos} />;
 }
 
 async function MoodWithData() {
@@ -207,6 +213,10 @@ export default async function HomeEventsPage() {
         }
       >
         <SectionsHub />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <TodayWithData />
       </Suspense>
 
       <Suspense

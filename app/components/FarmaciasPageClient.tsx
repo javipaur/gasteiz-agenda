@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Phone, MapPin, Clock, Loader2, RefreshCw } from "lucide-react";
+import FreshnessBadge from "./FreshnessBadge";
 import type { FarmaciaGuardia } from "@/lib/sources/farmacias";
 import { formatDate } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ function FechaDebito({ iso }: { iso: string }) {
 export default function FarmaciasPageClient() {
   const [farmacias, setFarmacias] = useState<FarmaciaGuardia[]>([]);
   const [fecha, setFecha] = useState("");
+  const [fetchedAt, setFetchedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -46,6 +48,7 @@ export default function FarmaciasPageClient() {
       const json = await res.json();
       setFarmacias(json.data || []);
       setFecha(json.date || "");
+      setFetchedAt(json.fetchedAt || Date.now());
       setError("");
     } catch {
       setError("No se pudieron cargar las farmacias de guardia. Inténtalo de nuevo.");
@@ -92,9 +95,12 @@ export default function FarmaciasPageClient() {
       <p className="inline-flex items-center gap-2 mb-4 font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle">
         <MapPin size={13} aria-hidden="true" /> Farmacias de guardia
       </p>
-      <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
-        Farmacias abiertas hoy
-      </h1>
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+        <h1 className="font-display text-4xl md:text-5xl text-fg tracking-[-0.02em]">
+          Farmacias abiertas hoy
+        </h1>
+        {fetchedAt > 0 && <FreshnessBadge since={fetchedAt} />}
+      </div>
       <p className="text-fg-muted max-w-xl mb-8">
         De guardia en Vitoria-Gasteiz{ fecha ? ` para el ${fecha}` : "" }. Pulsa el teléfono para llamar directamente.
       </p>

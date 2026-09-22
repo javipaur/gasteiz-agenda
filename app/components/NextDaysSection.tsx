@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { localDateStr } from "@/lib/utils";
-import { normalizeCategory, CATEGORY_COLORS } from "@/lib/categories";
+import { normalizeCategory, CATEGORY_COLORS, CATEGORY_FILLS } from "@/lib/categories";
 import { eventSlug } from "@/lib/slug";
 import EmptyState from "./EmptyState";
 
@@ -232,9 +232,14 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
                     onClick={() => setCategoryFilter(cat)}
                     className={`px-3 py-1 text-xs font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
                       categoryFilter === cat
-                        ? "bg-accent text-white"
+                        ? `${cat !== "all" && CATEGORY_FILLS[cat] ? "" : "bg-accent "}text-white`
                         : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
                     }`}
+                    style={
+                      categoryFilter === cat && cat !== "all" && CATEGORY_FILLS[cat]
+                        ? { backgroundColor: CATEGORY_FILLS[cat] }
+                        : undefined
+                    }
                   >
                     {cat === "all" ? "Todos" : cat}
                   </button>
