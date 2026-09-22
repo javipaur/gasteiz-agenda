@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "salburua",
+    "nombre": "Ruta de los Humedales de Salburua",
+    "dificultad": "Baja",
+    "duracion": "1 h 30 min",
+    "distancia": "6 km",
+    "puntoSalida": "Centro de Interpretación de Salburua (Ataria)",
+    "coords": { "lat": 42.8544, "lng": -2.6495 },
+    "descripcion": "Senda circular por el humedal urbano Ramsar: observatorio de aves, lagunas de Arkaute y Betoño."
+  },
+  {
+    "slug": "olarizu",
+    "nombre": "Parque de Olarizu y Jardín Botánico",
+    "dificultad": "Baja",
+    "duracion": "1 h 30 min",
+    "distancia": "5,5 km",
+    "puntoSalida": "Casa de Deportes de Olarizu",
+    "coords": { "lat": 42.8347, "lng": -2.669 },
+    "descripcion": "Campas, arboleda y jardín botánico; enlaza con el puente de las cuarenta pilas hacia el centro."
+  },
+  {
+    "slug": "zadorra",
+    "nombre": "Senda del Zadorra por Zabalgana",
+    "dificultad": "Media",
+    "duracion": "2 h",
+    "distancia": "9 km",
+    "puntoSalida": "Embalse de Zabalgana",
+    "coords": { "lat": 42.8287, "lng": -2.7171 },
+    "descripcion": "Paseo junto al río y los humedales de Zabalgana; en invierno se concentran aves acuáticas."
+  }
+]

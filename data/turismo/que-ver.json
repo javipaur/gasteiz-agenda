@@ -1,0 +1,52 @@
+[
+  {
+    "slug": "catedral-santa-maria",
+    "nombre": "Catedral de Santa María",
+    "descripcion": "La 'catedral abierta' alberga el centro de interpretación y permite visitas por la restauración en vivo del templo gótico.",
+    "zona": "Casco Viejo",
+    "coords": { "lat": 42.8488, "lng": -2.6735 },
+    "linkOficial": "https://catedralvitoria.eus",
+    "tags": ["patrimonio", "visita guiada"]
+  },
+  {
+    "slug": "casco-viejo",
+    "nombre": "Casco Medieval",
+    "descripcion": "Calles estrechas con palacios renacentistas, la plaza del Machete y el toldo verde architectónico más famoso de la ciudad.",
+    "zona": "Casco Viejo",
+    "coords": { "lat": 42.8483, "lng": -2.6741 },
+    "tags": ["paseo", "arquitectura"]
+  },
+  {
+    "slug": "plaza-virgen-blanca",
+    "nombre": "Plaza de la Virgen Blanca",
+    "descripcion": "El corazón de Vitoria-Gasteiz, con el monumento a la Batalla de Vitoria y animación constante.",
+    "zona": "Centro",
+    "coords": { "lat": 42.8472, "lng": -2.6716 },
+    "tags": ["paseo", "arquitectura"]
+  },
+  {
+    "slug": "artium",
+    "nombre": "Museo Artium",
+    "descripcion": "Museo de Arte Contemporáneo del País Vasco: exposiciones temporales y núcleo permanente de artistas vascos.",
+    "zona": "Centro",
+    "coords": { "lat": 42.8459, "lng": -2.6695 },
+    "linkOficial": "https://www.artium.eus",
+    "tags": ["museo", "arte"]
+  },
+  {
+    "slug": "anillo-verde",
+    "nombre": "Anillo Verde",
+    "descripcion": "Cinturón de parques y humedales que rodea la ciudad, ideal para caminar y ver aves a pocos minutos del centro.",
+    "zona": "Periferia",
+    "coords": { "lat": 42.8544, "lng": -2.6803 },
+    "tags": ["naturaleza", "senderismo"]
+  },
+  {
+    "slug": "parque-florida",
+    "nombre": "Parque de La Florida",
+    "descripcion": "Jardín romántico junto a la Virgen Blanca con el famoso 'túnel de castaños de Indias'.",
+    "zona": "Centro",
+    "coords": { "lat": 42.8457, "lng": -2.6704 },
+    "tags": ["naturaleza", "paseo"]
+  }
+]

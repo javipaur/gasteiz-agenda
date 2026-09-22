@@ -1,0 +1,45 @@
+{
+  "intro": "Vitoria-Gasteiz es la capital verde de Euskadi: pequeña, caminable y con el Anillo Verde a las puertas del centro.",
+  "bloques": [
+    {
+      "id": "llegar",
+      "titulo": "Cómo llegar",
+      "icono": "train",
+      "items": [
+        "Tren: estación de Vitoria-Gasteiz (Renfe Cercanías y Media Distancia) a 10 min andando del centro.",
+        "Autobús: estación de autobuses junto a la estación de tren, líneas urbanas e interurbanas de Euskotren/TUVISA.",
+        "Avión: Vitoria está a 1 h 15 min del aeropuerto de Bilbao y a 1 h 30 min del de Vitoria-Foronda (vuelos chárter)."
+      ]
+    },
+    {
+      "id": "moverse",
+      "titulo": "Moverse por la ciudad",
+      "icono": "bus",
+      "items": [
+        "El centro y el Casco Viejo se recorren a pie en 15-20 minutos.",
+        "Tranvía y autobuses urbanos de TUVISA conectan barrios y aparcamientos disuasorios.",
+        "El servicio público de bicicletas convierte el Anillo Verde en un plan accesible."
+      ]
+    },
+    {
+      "id": "dormir",
+      "titulo": "Dónde dormir",
+      "icono": "bed",
+      "items": [
+        "Casco Viejo: hoteles boutique y casas de huéspedes cerca de la zona de pintxos.",
+        "Centro/Ensanche: oferta hotelera media y alta junto a la Virgen Blanca.",
+        "Paradores y hoteles rurales en los pueblos del entorno (a 15-30 minutos)."
+      ]
+    },
+    {
+      "id": "consejos",
+      "titulo": "Consejos útiles",
+      "icono": "info",
+      "items": [
+        "La oferta cultural más amplia se concentra de jueves a domingo.",
+        "Consulta la agenda de Gasteiz Click cada viernes para no perderte nada.",
+        "En agosto, la Virgen Blanca llena la ciudad; reserva alojamiento con antelación."
+      ]
+    }
+  ]
+}
