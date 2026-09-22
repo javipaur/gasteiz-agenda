@@ -128,7 +128,7 @@ export default function PushNotifications() {
     <section className="mt-10 px-5 sm:px-6">
       <div className="max-w-2xl mx-auto border border-line rounded-2xl p-5 flex items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-lg font-bold text-fg tracking-[-0.01em]">
+          <h2 className="font-display text-lg font-semibold text-fg tracking-[-0.01em]">
             Avisos de eventos
           </h2>
           <p className="text-fg-muted text-sm mt-1 leading-relaxed">

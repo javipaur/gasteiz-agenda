@@ -107,9 +107,10 @@ export default async function AgendaMesPage({ params }: PageProps) {
 
       <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
         <header className="mb-10">
-          <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-3">
-            Archivo · Agenda
-          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
+            <span className="font-display italic text-accent text-sm">Archivo · Agenda</span>
+          </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Eventos · {mesLabel(year, month)}
           </h1>
@@ -165,7 +166,7 @@ export default async function AgendaMesPage({ params }: PageProps) {
               });
               return (
                 <section key={dia}>
-                  <h2 className="font-display text-lg md:text-xl text-fg font-bold tracking-[-0.01em] capitalize mb-5 flex items-center gap-3">
+                  <h2 className="font-display text-lg md:text-xl text-fg font-semibold tracking-[-0.01em] capitalize mb-5 flex items-center gap-3">
                     {label}
                     <span className="h-px flex-1 bg-border" aria-hidden="true" />
                     <span className="font-mono text-xs text-fg-subtle font-normal">

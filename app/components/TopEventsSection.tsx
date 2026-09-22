@@ -101,7 +101,7 @@ export default function TopEventsSection({
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                    <span className="absolute top-2.5 left-2.5 grid size-9 place-items-center rounded-xl bg-black/50 backdrop-blur-md font-display text-lg font-bold text-white border border-white/20 shadow-lg shadow-black/20">
+                    <span className="absolute top-2.5 left-2.5 grid size-9 place-items-center rounded-xl bg-black/50 backdrop-blur-md font-display text-lg font-semibold text-white border border-white/20 shadow-lg shadow-black/20">
                       {evento.ranking}
                     </span>
 

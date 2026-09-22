@@ -39,6 +39,7 @@
   --border: #1E3138;
   --border-hover: #33505C;
   --accent: #C94A3D;
+  --accent-ink: #E37663;
   --accent-hover: #DA6A55;
   --accent-subtle: #3A1711;
   --accent-soft: rgba(218, 106, 85, 0.16);
@@ -69,6 +70,7 @@
     --border: #1E3138;
     --border-hover: #33505C;
     --accent: #C94A3D;
+    --accent-ink: #E37663;
     --accent-hover: #DA6A55;
     --accent-subtle: #3A1711;
     --accent-soft: rgba(218, 106, 85, 0.16);
@@ -288,5 +290,19 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@layer utilities {
+  html[data-theme="dark"] .text-accent {
+    color: var(--accent-ink);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  @layer utilities {
+    :root:not([data-theme="light"]) .text-accent {
+      color: var(--accent-ink);
+    }
   }
 }

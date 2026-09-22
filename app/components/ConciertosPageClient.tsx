@@ -65,9 +65,10 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <InViewWrapper>
         <header className="mb-10">
-          <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-3">
-            Música
-          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
+            <span className="font-display italic text-accent text-sm">Música</span>
+          </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Conciertos
           </h1>

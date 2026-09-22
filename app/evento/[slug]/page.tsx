@@ -158,19 +158,20 @@ export default async function EventoDetallePage({ params }: PageProps) {
           </div>
 
           {evento.category && (
-            <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-3">
-              {evento.category}
-            </p>
+            <div className="flex items-center gap-2 mb-3">
+              <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
+              <span className="font-display italic text-accent text-sm">{evento.category}</span>
+            </div>
           )}
 
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-fg leading-tight tracking-[-0.02em] mb-5">
+          <h1 className="font-display text-3xl md:text-4xl font-semibold text-fg leading-tight tracking-[-0.02em] mb-5">
             {evento.title}
           </h1>
 
           {(ratingStr || evento.price) && (
             <div className="flex flex-wrap items-center gap-3 mb-6">
               {evento.price && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft px-3.5 py-1.5 font-display text-sm font-bold text-accent">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft px-3.5 py-1.5 font-display text-sm font-semibold text-accent">
                   {evento.price}
                 </span>
               )}
@@ -240,10 +241,11 @@ export default async function EventoDetallePage({ params }: PageProps) {
             <div className="rounded-2xl border border-border bg-surface p-5 md:p-6 mb-10">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle mb-1">
-                    Información y entradas
-                  </p>
-                  <p className="font-display text-xl font-bold text-fg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span aria-hidden="true" className="inline-block h-4 w-[3px] rounded-full bg-accent-subtle" />
+                    <span className="font-display italic text-fg-subtle text-sm">Información y entradas</span>
+                  </div>
+                  <p className="font-display text-xl font-semibold text-fg">
                     {evento.price || "Acceso al evento"}
                   </p>
                 </div>
@@ -267,7 +269,7 @@ export default async function EventoDetallePage({ params }: PageProps) {
 
           {related.length > 0 && (
             <section className="mt-14">
-              <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em] mb-6">
+              <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em] mb-6">
                 También te puede interesar
               </h2>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -294,8 +296,8 @@ export default async function EventoDetallePage({ params }: PageProps) {
         <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom,0px)+0.75rem)] z-[var(--z-toast)] px-4 md:hidden">
           <div className="mx-auto max-w-md rounded-2xl border border-border/60 bg-fg text-bg shadow-2xl shadow-black/30 p-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-60">Entradas</p>
-              <p className="font-display text-base font-bold truncate">{evento.price || "Ver evento"}</p>
+              <span className="font-display italic text-bg/70 text-sm font-medium">Entradas</span>
+              <p className="font-display text-base font-semibold truncate">{evento.price || "Ver evento"}</p>
             </div>
             <a
               href={evento.link}

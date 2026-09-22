@@ -55,7 +55,7 @@ export default function Footer() {
       <div className="bg-[#1A1816] text-white">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-20 grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 md:gap-10">
           <div>
-            <h2 className="font-display text-2xl font-bold text-white mb-3 tracking-[-0.02em]">
+            <h2 className="font-display text-2xl font-semibold text-white mb-3 tracking-[-0.02em]">
               Gasteiz Click
             </h2>
             <p className="text-sm text-white/60 leading-relaxed max-w-sm mb-8">

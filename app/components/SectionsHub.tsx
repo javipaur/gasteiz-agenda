@@ -240,7 +240,6 @@ export default async function SectionsHub() {
               ) : (
                 <>
                   <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: wash }} />
-                  <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="relative flex items-start justify-between gap-2">
                     <span className="grid size-11 place-items-center rounded-xl bg-surface border border-border shadow-sm text-fg transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:border-accent/30 group-hover:text-accent group-hover:-translate-y-0.5">
                       <Icon size={18} strokeWidth={1.75} />

@@ -114,7 +114,7 @@ export default function FiestasBlancaPageClient({
       <section className="pt-32 md:pt-36 pb-8 px-5 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <InViewWrapper>
-            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-bold tracking-[-0.02em] leading-tight mb-4">
+            <h1 className="font-display text-4xl md:text-[2.75rem] text-fg font-semibold tracking-[-0.02em] leading-tight mb-4">
               Fiestas de la Virgen Blanca
             </h1>
             <p className="text-fg-muted text-lg md:text-xl leading-relaxed max-w-2xl">
@@ -183,7 +183,7 @@ export default function FiestasBlancaPageClient({
               <div key={day} className="mb-16 last:mb-0">
                 <InViewWrapper>
                   <div className="mb-10">
-                    <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.01em] mb-2">
+                    <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.01em] mb-2">
                       {day !== "sin-fecha" ? formatDateLong(day) : "Sin fecha"}
                     </h2>
                     <span className="text-xs font-mono text-fg-subtle">

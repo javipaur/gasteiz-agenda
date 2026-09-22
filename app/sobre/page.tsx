@@ -37,10 +37,11 @@ export default function SobrePage() {
   return (
     <article className="px-5 sm:px-6 pt-28 md:pt-32 pb-24">
       <div className="max-w-3xl mx-auto">
-        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-4">
-          Vitoria-Gasteiz
-        </p>
-        <h1 className="font-display text-3xl md:text-5xl text-fg font-bold tracking-[-0.03em] leading-[1.05] mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
+          <span className="font-display italic text-accent text-sm">Vitoria-Gasteiz</span>
+        </div>
+        <h1 className="font-display text-3xl md:text-5xl text-fg font-semibold tracking-[-0.03em] leading-[1.05] mb-6">
           La agenda cultural
           <br />
           que mira a Vitoria-Gasteiz
@@ -53,7 +54,7 @@ export default function SobrePage() {
 
         <div className="space-y-10">
           <section>
-            <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em] mb-4">
+            <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em] mb-4">
               Cómo trabajamos
             </h2>
             <div className="space-y-4 text-base leading-relaxed text-fg-muted">
@@ -72,7 +73,7 @@ export default function SobrePage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em] mb-4">
+            <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em] mb-4">
               Nuestras fuentes
             </h2>
             <ul className="grid gap-3 sm:grid-cols-2">
@@ -81,7 +82,7 @@ export default function SobrePage() {
                   key={f.nombre}
                   className="rounded-2xl border border-border bg-surface p-5"
                 >
-                  <h3 className="font-display text-base font-bold text-fg mb-1.5">
+                  <h3 className="font-display text-base font-semibold text-fg mb-1.5">
                     {f.nombre}
                   </h3>
                   <p className="text-sm text-fg-muted leading-relaxed">
@@ -93,7 +94,7 @@ export default function SobrePage() {
           </section>
 
           <section>
-            <h2 className="font-display text-xl md:text-2xl text-fg font-bold tracking-[-0.02em] mb-4">
+            <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em] mb-4">
               Contacto
             </h2>
             <p className="text-base text-fg-muted leading-relaxed mb-4">

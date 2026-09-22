@@ -20,7 +20,7 @@ export default function PrivacidadPage() {
           <span className="text-fg-muted">Privacidad</span>
         </nav>
 
-        <h1 className="font-display text-3xl md:text-4xl font-bold text-fg leading-tight tracking-[-0.02em] mb-3">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold text-fg leading-tight tracking-[-0.02em] mb-3">
           Privacidad
         </h1>
         <p className="font-mono text-xs uppercase tracking-[0.15em] text-fg-subtle mb-10">

@@ -19,9 +19,10 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
   return (
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <header className="mb-12">
-        <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-3">
-          Familia
-        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
+          <span className="font-display italic text-accent text-sm">Familia</span>
+        </div>
         <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
           Planes con Niños
         </h1>

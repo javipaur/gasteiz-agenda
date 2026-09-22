@@ -92,8 +92,8 @@ export default function Newsletter() {
 
         <div className="relative flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
           <div className="max-w-md">
-            <h3 className="font-display text-2xl md:text-3xl text-white font-bold tracking-[-0.02em] mb-2">
-              No te pierdas nada
+            <h3 className="font-display text-2xl md:text-3xl text-white font-semibold tracking-[-0.02em] mb-2">
+              No te pierdas <span className="italic text-white/90">nada</span>
             </h3>
             <p className="text-white/80 text-sm md:text-base leading-relaxed">
               Un email a la semana con los mejores planes de Vitoria-Gasteiz.
@@ -144,7 +144,7 @@ export default function Newsletter() {
                   </button>
                 </div>
                 {message && (
-                  <p className="flex items-center gap-1.5 text-xs font-mono text-white/90">
+                  <p className="flex items-center gap-1.5 text-xs text-white/90">
                     {message}
                   </p>
                 )}

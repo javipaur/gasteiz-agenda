@@ -256,14 +256,17 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" aria-hidden="true" />
-                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 text-fg backdrop-blur-xl px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em]">
-                    {weekDays[selectedDay]?.isToday ? "Destacado hoy" : "Destacado"}
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-2">
+                    <span aria-hidden="true" className="inline-block h-4 w-[3px] rounded-full bg-accent" />
+                    <span className="font-display italic text-white text-base drop-shadow">
+                      {weekDays[selectedDay]?.isToday ? "Destacado hoy" : "Destacado"}
+                    </span>
                   </span>
                   <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/70 mb-1">
+                    <p className="text-sm text-white/80 mb-1">
                       {featured.location || "Vitoria-Gasteiz"}
                     </p>
-                    <h4 className="font-display text-xl md:text-2xl text-white font-bold leading-snug tracking-[-0.02em] line-clamp-2">
+                    <h4 className="font-display text-xl md:text-2xl text-white font-semibold leading-snug tracking-[-0.02em] line-clamp-2">
                       {featured.title}
                     </h4>
                   </div>

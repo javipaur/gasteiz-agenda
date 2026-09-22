@@ -137,7 +137,7 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                     )}
                     <div className="p-5 flex-1">
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="font-display text-lg font-bold text-fg leading-tight tracking-[-0.01em]">
+                        <h3 className="font-display text-lg font-semibold text-fg leading-tight tracking-[-0.01em]">
                           {sitio.nombre}
                         </h3>
                         {sitio.rangoPrecio && precio(sitio.rangoPrecio)}
@@ -183,7 +183,7 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                 <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-amber mb-2">
                   {ruta.zona}
                 </p>
-                <h3 className="font-display text-lg font-bold text-fg mb-1 leading-tight">
+                <h3 className="font-display text-lg font-semibold text-fg mb-1 leading-tight">
                   {ruta.nombre}
                 </h3>
                 <p className="font-mono text-xs text-fg-subtle mb-4">
@@ -237,7 +237,7 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                       <span className="block font-mono text-[10px] uppercase text-amber">
                         {month}
                       </span>
-                      <span className="block font-display text-lg font-bold text-fg">
+                      <span className="block font-display text-lg font-semibold text-fg">
                         {day}
                       </span>
                     </span>

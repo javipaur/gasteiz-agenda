@@ -28,9 +28,10 @@ function BlancaOffSeason({ year }: { year: number }) {
   return (
     <section className="mx-auto max-w-7xl px-4 pt-28 md:pt-36 pb-24">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-accent mb-6">
-          Vitoria-Gasteiz · Agosto
-        </p>
+        <div className="inline-flex items-center gap-2 mb-6">
+          <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
+          <span className="font-display italic text-accent text-sm">Vitoria-Gasteiz · Agosto</span>
+        </div>
         <h1 className="font-display text-5xl md:text-6xl font-semibold tracking-tight text-fg">
           La Blanca <span className="text-accent">{year}</span>
         </h1>

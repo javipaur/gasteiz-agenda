@@ -300,7 +300,7 @@ export default function Header() {
           <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-2">
             <Link
               href="/"
-              className="font-display text-lg md:text-xl font-bold tracking-tight text-accent hover:text-accent-hover transition-colors duration-300 shrink-0"
+              className="font-display text-lg md:text-xl font-semibold tracking-tight text-accent hover:text-accent-hover transition-colors duration-300 shrink-0"
             >
               Gasteiz Click
             </Link>

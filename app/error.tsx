@@ -30,7 +30,7 @@ export default function GlobalError({
           <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
         </svg>
       </div>
-      <h1 className="font-display text-3xl md:text-4xl font-bold text-fg mb-4 tracking-[-0.02em]">
+      <h1 className="font-display text-3xl md:text-4xl font-semibold text-fg mb-4 tracking-[-0.02em]">
         Algo ha salido mal
       </h1>
       <p className="text-fg-muted text-base max-w-md mb-8 leading-relaxed">
