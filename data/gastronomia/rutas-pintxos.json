@@ -1,0 +1,39 @@
+[
+  {
+    "slug": "casco-viejo",
+    "zona": "Casco Viejo",
+    "nombre": "Ruta clásica del Casco Viejo",
+    "duracion": "2-3 h",
+    "consejo": "Empezad en la subida de la Correría y bajad hacia la Herrería; los jueves hay ambiente extra.",
+    "paradas": [
+      { "nombre": "Tximitxurri", "direccion": "Correría, 15", "pintxo": "Gilda de autor", "precio": "3,50 €" },
+      { "nombre": "Zarra", "direccion": "Herrería, 1", "pintxo": "Txistorra con pimiento", "precio": "3,00 €" },
+      { "nombre": "Gasteiz", "direccion": "Cuchillería, 34", "pintxo": "Huevos rotos con txistorra", "precio": "3,50 €" },
+      { "nombre": "Portalón", "direccion": "Correría, 163", "pintxo": "Pincho de buen pastor", "precio": "4,00 €" }
+    ]
+  },
+  {
+    "slug": "centro",
+    "zona": "Centro",
+    "nombre": "Ruta del Centro y La Florida",
+    "duracion": "2 h",
+    "consejo": "Aprovechad el paseo por el parque de La Florida entre pintxo y pintxo.",
+    "paradas": [
+      { "nombre": "El hermano de Anto", "direccion": "San Antonio, 9", "pintxo": "Gilda verde", "precio": "3,00 €" },
+      { "nombre": "La Reineta", "direccion": "Dato, 7", "pintxo": "Hamburguesa en miniatura", "precio": "3,50 €" },
+      { "nombre": "Alcotán", "direccion": "Gaztelako Atea, 12", "pintxo": "Risotto trufado", "precio": "4,00 €" }
+    ]
+  },
+  {
+    "slug": "ensanche",
+    "zona": "Ensanche",
+    "nombre": "Ruta del Ensanche",
+    "duracion": "2 h",
+    "consejo": "Bares más amplios y tranquilos; buen plan para terminar el día sin esperas largas.",
+    "paradas": [
+      { "nombre": "Sagartoki", "direccion": "Herrería, 12", "pintxo": "Croquetas de jamón", "precio": "3,50 €" },
+      { "nombre": "Bliss", "direccion": "San Prudencio, 22", "pintxo": "Torre de huevas de trucha", "precio": "4,00 €" },
+      { "nombre": "Kultur", "direccion": "Postas, 7", "pintxo": "Ensaladilla con queso Idiazábal", "precio": "3,50 €" }
+    ]
+  }
+]

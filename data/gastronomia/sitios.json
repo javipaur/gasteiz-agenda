@@ -1,0 +1,65 @@
+[
+  {
+    "slug": "tximitxurri",
+    "nombre": "Tximitxurri",
+    "barrio": "Casco Viejo",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle Correría, 15",
+    "coords": { "lat": 42.8489, "lng": -2.6744 },
+    "descripcion": "Referencia de la ruta de pintxos del Casco Viejo, con elaboraciones premiadas en concursos locales.",
+    "recomendado": true
+  },
+  {
+    "slug": "sagartoki",
+    "nombre": "Sagartoki",
+    "barrio": "Ensanche",
+    "tipoCocina": "Vasca",
+    "rangoPrecio": "€€",
+    "direccion": "Calle de la Herrería, 12",
+    "coords": { "lat": 42.8473, "lng": -2.6725 },
+    "descripcion": "Cocina de mercado con toque creativo en platos de cuchara y brasa.",
+    "recomendado": true
+  },
+  {
+    "slug": "portalon",
+    "nombre": "Portalón",
+    "barrio": "Casco Viejo",
+    "tipoCocina": "Tradicional",
+    "rangoPrecio": "€€€",
+    "direccion": "Calle Correría, 163",
+    "coords": { "lat": 42.8484, "lng": -2.6749 },
+    "descripcion": "Asador histórico en un palacio del siglo XV: chuletón al punto y cocina tradicional alavesa."
+  },
+  {
+    "slug": "el-hermano-de-anto",
+    "nombre": "El hermano de Anto",
+    "barrio": "Centro",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle San Antonio, 9",
+    "coords": { "lat": 42.8458, "lng": -2.6715 },
+    "descripcion": "Barra de pintxos moderna junto a La Florida; la 'gilda verde' es casi obligada."
+  },
+  {
+    "slug": "la-quimera",
+    "nombre": "La Quimera",
+    "barrio": "Centro",
+    "tipoCocina": "Mexicana",
+    "rangoPrecio": "€€",
+    "direccion": "Calle de la Pintorería, 35",
+    "coords": { "lat": 42.8471, "lng": -2.6756 },
+    "descripcion": "Comida mexicana de verdad para variar la ruta de pintxos tradicionales."
+  },
+  {
+    "slug": "zarra",
+    "nombre": "Zarra",
+    "barrio": "Casco Viejo",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle Herrería, 1",
+    "coords": { "lat": 42.8476, "lng": -2.6736 },
+    "descripcion": "Clásico de la Herrería con pintxo de txistorra y propuestas de temporada.",
+    "recomendado": true
+  }
+]
