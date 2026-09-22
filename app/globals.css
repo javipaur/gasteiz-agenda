@@ -107,6 +107,7 @@
   --color-green: var(--green);
   --color-blue: var(--blue);
   --color-teal: var(--teal);
+  --color-teal-soft: rgba(0, 191, 178, 0.12);
   --color-amber: var(--amber);
   --color-amber-subtle: var(--amber-subtle);
   --color-amber-soft: var(--amber-soft);
