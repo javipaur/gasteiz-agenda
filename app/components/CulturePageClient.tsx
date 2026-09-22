@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { eventSlug } from "@/lib/slug";
+import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
@@ -26,27 +27,6 @@ const CATEGORIES = [
   { key: "conciertos", label: "Conciertos" },
   { key: "exposiciones", label: "Exposiciones" },
 ];
-
-const SOURCE_PILLS: Record<string, { key: string; label: string }[]> = {
-  conciertos: [
-    { key: "all", label: "Todos" },
-    { key: "jimmyjazz", label: "Jimmy Jazz" },
-    { key: "vam", label: "VAM Cultura" },
-    { key: "municipal", label: "Agenda" },
-    { key: "fever", label: "Fever" },
-    { key: "lagenterula", label: "Rula" },
-    { key: "gasteizhoy", label: "Gasteiz Hoy" },
-  ],
-};
-
-const SOURCE_LABELS: Record<string, string> = {
-  jimmyjazz: "Jimmy Jazz",
-  vam: "VAM Cultura",
-  municipal: "Agenda Municipal",
-  fever: "Fever",
-  lagenterula: "Rula",
-  gasteizhoy: "Gasteiz Hoy",
-};
 
 export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
   const searchParams = useSearchParams();
@@ -139,9 +119,9 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
           ))}
         </div>
 
-        {filter === "conciertos" && SOURCE_PILLS.conciertos && (
+        {filter === "conciertos" && CULTURE_SOURCE_PILLS.conciertos && (
           <div className="flex gap-2 mb-8 flex-wrap">
-            {SOURCE_PILLS.conciertos.map((pill) => (
+            {CULTURE_SOURCE_PILLS.conciertos.map((pill) => (
               <button
                 key={pill.key}
                 onClick={() => setSourceFilter(pill.key)}
@@ -263,7 +243,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
                       <div className="absolute bottom-0 left-0 right-0 p-4">
                         <span className="font-mono text-[11px] uppercase tracking-wider text-accent bg-accent/20 px-2 py-0.5 inline-block mb-2 rounded">
                           {evento.category === "conciertos" && evento.source
-                            ? SOURCE_LABELS[evento.source] || evento.source
+                            ? CULTURE_SOURCE_LABELS[evento.source] || evento.source
                             : evento.category}
                         </span>
                         <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
