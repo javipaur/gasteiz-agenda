@@ -95,9 +95,6 @@ export default function MoodFilter({
             <h2 className="font-display text-lg md:text-xl text-fg font-semibold tracking-[-0.02em]">
               ¿Qué te apetece?
             </h2>
-            <span className="inline-flex items-center rounded-full bg-fg text-bg px-2 py-0.5 text-[10px] font-bold tracking-[0.08em] uppercase">
-              IA
-            </span>
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
           </div>
 
