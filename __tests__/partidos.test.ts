@@ -5,6 +5,28 @@ jest.mock("@/lib/cache", () => ({
   getCachedOrFetch: jest.fn(async (_k: string, _t: number, fn: () => Promise<unknown>) => fn()),
 }));
 
+jest.mock("fs/promises", () => {
+  const futuro = new Date(Date.now() + 30 * 86400000).toISOString();
+  return {
+    readFile: jest.fn(async () =>
+      JSON.stringify({
+        equipo: "Kutxabank Araski",
+        actualizado: new Date().toISOString().slice(0, 10),
+        partidos: [
+          {
+            fecha: futuro,
+            competicion: "Liga Femenina Endesa",
+            local: { nombre: "Kutxabank Araski", escudo: null },
+            visitante: { nombre: "IDK Euskotren", escudo: null },
+            estadio: "Mendizorrotza",
+            link: "https://kutxabankaraski.com",
+          },
+        ],
+      })
+    ),
+  };
+});
+
 function mockCms() {
   const now = new Date();
   const far = new Date(now.getTime() + 10 * 86400000).toISOString().slice(0, 10);
