@@ -16,7 +16,7 @@ function startOfDay(d: Date): Date {
 }
 
 function parseDate(dateStr: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
   if (m) {
     const d = new Date(+m[1], +m[2] - 1, +m[3]);
     return isNaN(d.getTime()) ? null : d;

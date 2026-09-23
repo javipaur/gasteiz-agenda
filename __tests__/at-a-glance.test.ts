@@ -55,3 +55,16 @@ describe("formatFechaViva", () => {
     expect(formatFechaViva(NOW)).toBe("miércoles, 23 sept");
   });
 });
+
+describe("datetime fallback (ISO with time and offset)", () => {
+  it("counts datetime strings consistently with the app's own Date rendering on any host", () => {
+    const iso = "2026-09-26T22:30:00.000Z";
+    const parsed = new Date(iso);
+    const now = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0);
+    const localStr = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+    const withDatetime = getAtAGlance([{ id: "dt", title: "DT", date: iso } as never], now);
+    const withLocalDate = getAtAGlance([{ id: "dt", title: "DT", date: localStr } as never], now);
+    expect(withDatetime).toEqual(withLocalDate);
+    expect(withDatetime.hoy).toBe(1);
+  });
+});
