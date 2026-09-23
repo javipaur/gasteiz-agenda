@@ -34,6 +34,17 @@ test.describe("Homepage", () => {
     await expect(page.locator('a[href="/deporte"]').first()).toBeVisible();
   });
 
+  test("partidos section uses the sports lime tag", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const tag = page
+      .locator('[aria-label="Partidos de los equipos de Vitoria"]')
+      .getByText("Deporte", { exact: true })
+      .first();
+    await expect(tag).toBeVisible({ timeout: 30_000 });
+  });
+
   test("renders event cards with a colored category pill", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");

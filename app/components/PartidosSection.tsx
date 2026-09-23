@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getProximosPartidos } from "@/lib/partidos";
 import type { Partido } from "@/lib/sources/clubCms";
+import SectionHead from "./SectionHead";
 
 const CLUB_NOMBRE: Record<string, string> = {
   baskonia: "Baskonia",
@@ -21,9 +22,9 @@ function formatearDia(fecha: string | null): string {
 
 async function PartidoCard({ partido }: { partido: Partido }) {
   return (
-    <article className="double-bezel rounded-2xl p-5 flex flex-col gap-3 card-hover h-full">
+    <article className="rounded-2xl border border-border bg-surface p-5 flex flex-col gap-3 card-hover h-full">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-sec-green">
+        <span className="text-xs font-bold uppercase tracking-wide text-lime">
           {CLUB_NOMBRE[partido.equipo] ?? partido.club}
         </span>
         <span className="text-xs text-fg-subtle font-mono">{formatearDia(partido.fecha)}</span>
@@ -60,7 +61,7 @@ async function PartidoCard({ partido }: { partido: Partido }) {
       </div>
       {partido.link && (
         <Link href={partido.link} target="_blank" rel="noopener noreferrer"
-              className="text-sm font-semibold text-sec-green hover:underline">
+              className="text-sm font-semibold text-lime hover:underline">
           Entradas →
         </Link>
       )}
@@ -72,16 +73,14 @@ export default async function PartidosSection() {
   const partidos = await getProximosPartidos(1);
   return (
     <section aria-label="Partidos de los equipos de Vitoria" className="px-5 sm:px-6 py-10 md:py-16 max-w-7xl mx-auto">
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-sec-green mb-2">Deporte</p>
-          <h2 className="text-2xl md:text-4xl font-semibold text-fg">Nuestros equipos en acción</h2>
-          <p className="text-fg-muted mt-1">Baskonia, Alavés y Araski, sus próximas citas.</p>
-        </div>
-        <Link href="/deporte" className="text-sm font-semibold text-accent hover:underline whitespace-nowrap">
-          Ver agenda deportiva →
-        </Link>
-      </div>
+      <SectionHead
+        tag="Deporte"
+        title="Nuestros equipos en acción"
+        subtitle="Baskonia, Alavés y Araski, sus próximas citas."
+        href="/deporte"
+        linkLabel="Ver agenda deportiva"
+        color="var(--lime)"
+      />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {partidos.length === 0 ? (
           <p className="text-fg-muted sm:col-span-3">No hay partidos confirmados todavía. Vuelve en unos días.</p>
