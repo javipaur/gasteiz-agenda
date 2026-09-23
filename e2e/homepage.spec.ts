@@ -75,6 +75,15 @@ test.describe("Homepage", () => {
       await expect(page.locator(`[data-testid="e2e-hub"] a[href="${href}"]`).first()).toBeVisible({ timeout: 30_000 });
     }
   });
+
+  test("shows carousels, top10 and events headers", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByRole("heading", { name: /Top 10 en Vitoria-Gasteiz/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /Próximos eventos/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Conciertos/i }).first()).toBeVisible();
+  });
 });
 
 test.describe("Event detail", () => {

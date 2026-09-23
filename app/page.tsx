@@ -154,6 +154,8 @@ async function ConciertosCarousel() {
       href="/conciertos"
       events={filterByCats(eventos, CONCIERTOS_CATS).slice(0, 10)}
       categoryColors={CATEGORY_COLORS}
+      tag="Música"
+      tagColor="var(--hot)"
     />
   );
 }
@@ -168,6 +170,8 @@ async function CulturaCarousel() {
       events={filterByCats(eventos, CULTURA_CATS).slice(0, 8)}
       categoryColors={CATEGORY_COLORS}
       variant="grid"
+      tag="Cultura"
+      tagColor="var(--violet)"
     />
   );
 }
@@ -182,6 +186,8 @@ async function InfantilCarousel() {
       events={filterByCats(eventos, INFANTIL_CATS).slice(0, 8)}
       categoryColors={CATEGORY_COLORS}
       variant="grid"
+      tag="Niños"
+      tagColor="var(--teal)"
     />
   );
 }

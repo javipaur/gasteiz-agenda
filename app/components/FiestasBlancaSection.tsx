@@ -3,6 +3,7 @@
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
+import SectionHead from "./SectionHead";
 
 const BLANCA_COLORS: Record<string, string> = {
   ...CATEGORY_COLORS,
@@ -51,18 +52,14 @@ export default function FiestasBlancaSection({
     <section className="py-16 md:py-20 px-5 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="mb-10">
-            <div className="flex items-center gap-3 mb-4">
-              <span aria-hidden="true" className="inline-block h-6 w-[3px] rounded-full bg-accent" />
-              <span className="font-display italic text-accent text-base">Las fiestas de la ciudad</span>
-            </div>
-            <h2 className="font-display text-3xl md:text-[2.5rem] text-fg font-semibold tracking-[-0.02em] leading-tight mb-2">
-              La Blanca {year}
-            </h2>
-            <p className="text-fg-muted text-base">
-              {range && `${range} · `}Programación completa
-            </p>
-          </div>
+          <SectionHead
+            tag="Fiestas"
+            title={`La Blanca ${year}`}
+            subtitle={range ? `${range} · Programación completa` : "Programación completa"}
+            href="/fiestas-blanca"
+            linkLabel="Ver programa completo"
+            color="var(--hot)"
+          />
         </InViewWrapper>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -75,28 +72,6 @@ export default function FiestasBlancaSection({
             </InViewWrapper>
           ))}
         </div>
-
-        <InViewWrapper>
-          <div className="mt-10">
-            <a
-              href="/fiestas-blanca"
-              className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-hover transition-colors duration-300 group"
-            >
-              Ver programa completo
-              <svg
-                className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 8h10M9 4l4 4-4 4" />
-              </svg>
-            </a>
-          </div>
-        </InViewWrapper>
       </div>
     </section>
   );

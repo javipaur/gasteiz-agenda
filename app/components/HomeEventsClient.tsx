@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { CATEGORY_COLORS } from "@/lib/categories";
+import SectionHead from "./SectionHead";
 import EmptyState from "./EmptyState";
 
 type Evento = {
@@ -21,14 +21,14 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
     <section className="py-12 md:py-16 px-5 sm:px-6 bg-bg-muted">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
-          <div className="mb-8">
-            <h2 className="font-display text-2xl md:text-3xl text-fg font-semibold tracking-[-0.02em] leading-tight mb-2">
-              Próximos eventos
-            </h2>
-            <p className="text-fg-muted text-sm">
-              Lo que viene en Vitoria-Gasteiz
-            </p>
-          </div>
+          <SectionHead
+            tag="Agenda"
+            title="Próximos eventos"
+            subtitle="Lo que viene en Vitoria-Gasteiz"
+            href="/culture"
+            linkLabel="Ver todos los eventos"
+            color="var(--violet)"
+          />
         </InViewWrapper>
 
         {eventos.length > 0 ? (
@@ -63,22 +63,6 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
             />
           </InViewWrapper>
         )}
-
-        <InViewWrapper>
-          <div className="mt-10">
-            <Link
-              href="/culture"
-              className="group inline-flex items-center gap-3 rounded-full border border-border bg-surface pl-6 pr-2 py-2 text-sm font-medium text-fg hover:border-accent/40 hover:text-accent transition-all duration-300 active:scale-[0.98]"
-            >
-              Ver todos los eventos
-              <span className="grid size-8 place-items-center rounded-full bg-accent/10 text-accent transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1">
-                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 8h10M9 4l4 4-4 4" />
-                </svg>
-              </span>
-            </Link>
-          </div>
-        </InViewWrapper>
       </div>
     </section>
   );
