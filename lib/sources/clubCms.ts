@@ -74,8 +74,9 @@ function seasonIdOf(attrs: Record<string, unknown>): number | null {
   if (!Array.isArray(seasons)) return null;
   for (const s of seasons) {
     if (s && typeof s === "object") {
-      const a = attributesOf(s as { attributes?: unknown });
-      const id = Number(a.id);
+      const holder = s as { id?: unknown; attributes?: unknown };
+      const a = attributesOf(holder);
+      const id = Number(a.id ?? holder.id);
       if (Number.isFinite(id) && id > 0) return id;
     }
   }
@@ -100,6 +101,20 @@ function filterGameTime(gameTime: string | null): string | null {
   const m = gameTime.match(/(\d{1,2}):(\d{2})/);
   if (!m) return null;
   return `${m[1].padStart(2, "0")}:${m[2]}:00`;
+}
+
+function madridSuffix(dateStr: string): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Madrid",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "12");
+  const offset = hour - 12;
+  const sign = offset >= 0 ? "+" : "-";
+  return `${sign}${String(Math.abs(offset)).padStart(2, "0")}:00`;
 }
 
 function gamesUrl(cfg: ClubCfg, opts: { seasonId?: number; sort?: string }): string {
@@ -160,7 +175,9 @@ function mapGame(cfg: ClubCfg, game: unknown, index: number): Partido {
 
   let fecha: string | null = null;
   if (gameDate && /^\d{4}-\d{2}-\d{2}/.test(gameDate)) {
-    fecha = hora ? `${gameDate}T${hora}+02:00` : `${gameDate}T00:00:00+02:00`;
+    fecha = hora
+      ? `${gameDate}T${hora}${madridSuffix(gameDate)}`
+      : `${gameDate}T00:00:00${madridSuffix(gameDate)}`;
   }
 
   const homeScore = attrs.homeScore;

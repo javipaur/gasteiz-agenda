@@ -65,4 +65,12 @@ describe("scrapePartidosCMS", () => {
     expect(primero.fecha).toBe("2026-10-04T00:00:00+02:00");
     expect(primero.hora).toBeNull();
   });
+
+  it("uses the real Europe/Madrid offset for winter dates", async () => {
+    mockFetchWith([
+      { match: /cms\.deportivoalaves\.com/, content: game({ gameDate: "2026-11-15", gameTime: "20:45:00" }) },
+    ]);
+    const [primero] = await scrapePartidosCMS();
+    expect(primero.fecha).toBe("2026-11-15T20:45:00+01:00");
+  });
 });
