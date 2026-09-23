@@ -1,6 +1,7 @@
 import { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
+import AtAGlanceStrip from "./components/AtAGlanceStrip";
 import SectionsHub from "./components/SectionsHub";
 import TodayStrip from "./components/TodayStrip";
 import NextDaysSection from "./components/NextDaysSection";
@@ -14,6 +15,7 @@ import HomeEventsClient from "./components/HomeEventsClient";
 import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos, type Evento } from "@/lib/eventos";
+import { getProximosPartidos } from "@/lib/partidos";
 import { getPeliculas } from "@/lib/cines";
 import { getKidsEventos } from "@/lib/kids";
 import { getDeporteEventos } from "@/lib/deporte";
@@ -201,6 +203,10 @@ export default async function HomeEventsPage() {
         <HeroWithData />
       </Suspense>
 
+      <Suspense fallback={null}>
+        <AtAGlanceWithData />
+      </Suspense>
+
       <Suspense
         fallback={
           <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
@@ -313,6 +319,14 @@ function EventsSkeleton() {
 async function EventsWithData() {
   const eventos = await getCachedEventos();
   return <HomeEventsClient eventos={eventos} />;
+}
+
+async function AtAGlanceWithData() {
+  const [eventos, partidos] = await Promise.all([
+    getCachedEventos(),
+    getProximosPartidos(1),
+  ]);
+  return <AtAGlanceStrip eventos={eventos} partidos={partidos.length} />;
 }
 
 async function SocialProofWithData() {

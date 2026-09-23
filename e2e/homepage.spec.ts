@@ -51,6 +51,13 @@ test.describe("Homepage", () => {
     await expect(page.getByRole("heading", { name: /Próximos 7 días/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /¿Qué te apetece\?/i })).toBeVisible();
   });
+
+  test("shows the at-a-glance strip with live date and counters", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator(".e2e-ataglance")).toBeVisible({ timeout: 30_000 });
+  });
 });
 
 test.describe("Event detail", () => {
