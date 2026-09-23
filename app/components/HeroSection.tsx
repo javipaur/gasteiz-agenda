@@ -8,18 +8,7 @@ import { getPopularEvents } from "@/lib/popularity";
 import { formatDate, shortTime } from "@/lib/utils";
 import { eventSlug } from "@/lib/slug";
 import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
-
-type Evento = {
-  id: string;
-  title: string;
-  date: string;
-  image?: string;
-  location?: string;
-  link?: string;
-  category?: string;
-  source?: string;
-  time?: string;
-};
+import type { Evento } from "@/lib/eventos";
 
 export default function HeroSection({ eventos }: { eventos: Evento[] }) {
   const totalThisWeek = useMemo(() => {
