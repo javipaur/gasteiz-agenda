@@ -66,6 +66,15 @@ test.describe("Homepage", () => {
     await expect(page.locator('input[aria-label="Buscar eventos"]').first()).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('a[aria-label="Plan destacado"]').first()).toBeVisible();
   });
+
+  test("hub links cover the main categories", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    for (const href of ["/conciertos", "/movies", "/kids", "/culture", "/deporte", "/turismo", "/gastronomia"]) {
+      await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible({ timeout: 30_000 });
+    }
+  });
 });
 
 test.describe("Event detail", () => {

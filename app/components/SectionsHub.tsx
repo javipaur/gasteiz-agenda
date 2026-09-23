@@ -12,7 +12,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getProximosEventos } from "@/lib/eventos";
-import { normalizeCategory } from "@/lib/categories";
+import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
+import SectionHead from "./SectionHead";
 import { getPeliculas } from "@/lib/cines";
 import { getQueVer } from "@/lib/turismo";
 import { getSitios, getRutasPintxos } from "@/lib/gastronomia";
@@ -183,12 +184,7 @@ export default async function SectionsHub() {
 
   return (
     <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em]">
-          Explora Vitoria-Gasteiz
-        </h2>
-        <span className="h-px flex-1 bg-border" aria-hidden="true" />
-      </div>
+      <SectionHead tag="Categorías" title="Explora Vitoria-Gasteiz" color="var(--teal)" />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {categories.map(({ label, href, desc, tint, wash, icon: Icon, count, unit, imagen, meta }) => {
@@ -241,7 +237,10 @@ export default async function SectionsHub() {
                 <>
                   <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: wash }} />
                   <div className="relative flex items-start justify-between gap-2">
-                    <span className="grid size-11 place-items-center rounded-xl bg-surface border border-border shadow-sm text-fg transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:border-accent/30 group-hover:text-accent group-hover:-translate-y-0.5">
+                    <span
+                      className="grid size-11 place-items-center rounded-xl text-[#0B0E14] shadow-lg transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5"
+                      style={{ backgroundColor: CATEGORY_COLORS[label] || "var(--accent)", color: "#0B0E14" }}
+                    >
                       <Icon size={18} strokeWidth={1.75} />
                     </span>
                     <span
