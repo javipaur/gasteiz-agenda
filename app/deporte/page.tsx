@@ -1,7 +1,9 @@
 export const revalidate = 300;
 
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import SportPageClient from "../components/SportPageClient";
+import ProMatchesBlock from "../components/ProMatchesBlock";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
 import { scrapeBuscametasCalendario, scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
 import { scrapeSenderismo } from "@/lib/sources/senderismo";
@@ -33,14 +35,15 @@ function getImageUrl(rawImage?: string) {
   return fallback;
 }
 
-function mapEvento(evento: any, category: Evento["category"]): Evento {
+function mapEvento(evento: unknown, category: Evento["category"]): Evento {
+  const e = (evento ?? {}) as Record<string, unknown>;
   return {
-    id: evento.id ?? crypto.randomUUID(),
-    title: evento.title || evento.nombre || "Sin título",
-    date: parseDate(evento.date || evento.fecha_ini || evento.fecha),
-    image: getImageUrl(evento.image || evento.imagen),
-    location: evento.location || evento.poblacion || "Sin ubicación",
-    link: evento.link || evento.web || "#",
+    id: (e.id as string) ?? crypto.randomUUID(),
+    title: (e.title as string) || (e.nombre as string) || "Sin título",
+    date: parseDate((e.date as string) || (e.fecha_ini as string) || (e.fecha as string)),
+    image: getImageUrl((e.image as string) || (e.imagen as string)),
+    location: (e.location as string) || (e.poblacion as string) || "Sin ubicación",
+    link: (e.link as string) || (e.web as string) || "#",
     category,
   };
 }
@@ -115,6 +118,15 @@ export default async function DeportePage() {
           "/deporte"
         )}
       />
+      <Suspense
+        fallback={
+          <div className="px-5 sm:px-6 py-10 max-w-7xl mx-auto">
+            <div className="h-6 w-56 bg-surface rounded-lg animate-pulse" />
+          </div>
+        }
+      >
+        <ProMatchesBlock />
+      </Suspense>
       <SportPageClient eventos={eventos} />
     </>
   );
