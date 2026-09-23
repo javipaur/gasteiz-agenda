@@ -38,10 +38,8 @@ test.describe("Homepage", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const firstCard = page.locator("a[href^='/evento/']").first();
-    await expect(firstCard).toBeVisible({ timeout: 30_000 });
-    const pill = firstCard.locator(".e2e-cat-pill").first();
-    await expect(pill).toBeVisible();
+    const pill = page.locator("a[href^='/evento/'] .e2e-cat-pill").first();
+    await expect(pill).toBeVisible({ timeout: 30_000 });
     const bg = await pill.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(bg).toMatch(/rgb/);
   });
