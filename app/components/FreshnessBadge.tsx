@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function FreshnessBadge({ since }: { since: number }) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(since);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 15000);
