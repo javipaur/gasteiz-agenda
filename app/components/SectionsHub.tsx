@@ -183,7 +183,7 @@ export default async function SectionsHub() {
   ];
 
   return (
-    <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
+    <section data-testid="e2e-hub" className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
       <SectionHead tag="Categorías" title="Explora Vitoria-Gasteiz" color="var(--teal)" />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">

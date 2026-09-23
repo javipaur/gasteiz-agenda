@@ -72,7 +72,7 @@ test.describe("Homepage", () => {
     await page.waitForLoadState("networkidle");
 
     for (const href of ["/conciertos", "/movies", "/kids", "/culture", "/deporte", "/turismo", "/gastronomia"]) {
-      await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator(`[data-testid="e2e-hub"] a[href="${href}"]`).first()).toBeVisible({ timeout: 30_000 });
     }
   });
 });
