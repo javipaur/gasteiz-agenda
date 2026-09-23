@@ -1,26 +1,27 @@
 import { InViewWrapper } from "@/lib/shared";
+import FreshnessBadge from "./FreshnessBadge";
 
-function Stat({
-  value,
-  label,
-  detail,
-}: {
-  value: string;
-  label: string;
-  detail: string;
-}) {
+function Stat({ value, label, detail }: { value: string; label: string; detail: string }) {
   return (
     <div className="border-t border-border pt-4">
-      <dt className="font-display text-3xl md:text-4xl font-semibold text-fg tracking-[-0.02em] tabular-nums">
+      <dt className="font-display text-3xl md:text-4xl font-black text-fg tracking-[-0.02em] tabular-nums">
         {value}
       </dt>
-      <dd className="mt-1 text-sm font-medium text-fg">{label}</dd>
+      <dd className="mt-1 text-sm font-bold text-fg">{label}</dd>
       <dd className="mt-1 text-xs text-fg-muted leading-relaxed">{detail}</dd>
     </div>
   );
 }
 
-export default function SocialProof({ eventCount }: { eventCount: number }) {
+export default function SocialProof({
+  eventCount,
+  thisWeekCount,
+  since,
+}: {
+  eventCount: number;
+  thisWeekCount: number;
+  since: number;
+}) {
   if (eventCount <= 0) return null;
 
   return (
@@ -29,16 +30,21 @@ export default function SocialProof({ eventCount }: { eventCount: number }) {
         <InViewWrapper>
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
             <div className="max-w-md">
-              <span aria-hidden="true" className="inline-block h-6 w-[3px] rounded-full bg-accent mb-6" />
-              <h2 className="font-display text-3xl md:text-4xl font-semibold text-fg tracking-[-0.02em] leading-tight">
-                Los planes de la ciudad, recogidos en un solo sitio
+              <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-violet text-[#0B0E14] mb-6">
+                Cifras
+              </span>
+              <h2 className="font-display text-3xl md:text-4xl font-black uppercase tracking-[-0.03em] text-fg leading-tight">
+                Gasteiz Click en cifras
               </h2>
+              <div className="mt-4">
+                <FreshnessBadge since={since} />
+              </div>
             </div>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-10">
               <Stat
-                value={`${eventCount}+`}
-                label="planes publicados"
-                detail="Eventos confirmados fuera de las próximas dos semanas."
+                value={`${thisWeekCount}+`}
+                label="planes esta semana"
+                detail="Propuestas confirmadas en los próximos 7 días."
               />
               <Stat
                 value="15+"
@@ -51,9 +57,9 @@ export default function SocialProof({ eventCount }: { eventCount: number }) {
                 detail="La agenda se refresca cada pocos minutos."
               />
               <Stat
-                value="Gratis"
-                label="sin registro"
-                detail="No hace falta crear cuenta para ver la agenda."
+                value="3 clubes · 2 deportes · 1 ciudad"
+                label="deporte pro"
+                detail="Baskonia, Alavés y Araski en una sola agenda."
               />
             </dl>
           </div>

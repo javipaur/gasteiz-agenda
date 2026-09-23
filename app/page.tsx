@@ -337,5 +337,17 @@ async function AtAGlanceWithData() {
 
 async function SocialProofWithData() {
   const eventos = await getCachedEventos();
-  return <SocialProof eventCount={eventos.length} />;
+  // eslint-disable-next-line react-hooks/purity
+  const since = Date.now();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const horizon = new Date(today);
+  horizon.setDate(horizon.getDate() + 7);
+  const thisWeek = eventos.filter((e) => {
+    const d = new Date(e.date);
+    return !isNaN(d.getTime()) && d >= today && d < horizon;
+  }).length;
+  return (
+    <SocialProof eventCount={eventos.length} thisWeekCount={thisWeek} since={since} />
+  );
 }
