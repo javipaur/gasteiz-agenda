@@ -58,6 +58,14 @@ test.describe("Homepage", () => {
 
     await expect(page.locator(".e2e-ataglance")).toBeVisible({ timeout: 30_000 });
   });
+
+  test("hero shows the search and a featured plan card on desktop", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator('input[aria-label="Buscar eventos"]').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('a[aria-label="Plan destacado"]').first()).toBeVisible();
+  });
 });
 
 test.describe("Event detail", () => {
