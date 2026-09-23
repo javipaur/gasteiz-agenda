@@ -61,4 +61,12 @@ describe("CATEGORY_COLORS", () => {
     expect(CATEGORY_COLORS["Cine"]).toMatch(/^#[0-9A-Fa-f]{6}$/);
     expect(CATEGORY_COLORS["Otros"]).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });
+
+  it("uses the saturated fever palette", () => {
+    expect(CATEGORY_COLORS["Música"]).toBe("#FF4D7D");
+    expect(CATEGORY_COLORS["Teatro"]).toBe("#7B4DFF");
+    expect(CATEGORY_COLORS["Cine"]).toBe("#FFB300");
+    expect(CATEGORY_COLORS["Deporte"]).toBe("#9BFF57");
+    expect(CATEGORY_COLORS["Otros"]).toBe("#7C8794");
+  });
 });

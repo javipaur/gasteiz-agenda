@@ -33,6 +33,18 @@ test.describe("Homepage", () => {
     await expect(heading).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('a[href="/deporte"]').first()).toBeVisible();
   });
+
+  test("renders event cards with a colored category pill", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const firstCard = page.locator("a[href^='/evento/']").first();
+    await expect(firstCard).toBeVisible({ timeout: 30_000 });
+    const pill = firstCard.locator(".e2e-cat-pill").first();
+    await expect(pill).toBeVisible();
+    const bg = await pill.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(bg).toMatch(/rgb/);
+  });
 });
 
 test.describe("Event detail", () => {

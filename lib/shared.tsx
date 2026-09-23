@@ -174,12 +174,8 @@ export function EventCard({
               <div className="flex items-center gap-1.5 mb-1.5">
                 {showCategory && evento.category && (
                   <span
-                    className="font-mono text-[11px] uppercase tracking-wider px-1.5 py-0.5"
-                    style={{
-                      backgroundColor: `${catColor}CC`,
-                      color: "white",
-                      borderRadius: "3px",
-                    }}
+                    className="e2e-cat-pill font-mono text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: catColor, color: "#0B0E14" }}
                   >
                     {evento.category}
                   </span>
