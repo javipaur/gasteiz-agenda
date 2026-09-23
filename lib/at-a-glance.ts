@@ -12,10 +12,15 @@ function toLocalDateStr(d: Date): string {
 }
 
 function startOfDay(d: Date): Date {
-  return new Date(Math.floor(d.getTime() / 86400000) * 86400000 + d.getTimezoneOffset() * 60000);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function parseDate(dateStr: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if (m) {
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const d = new Date(dateStr);
   return isNaN(d.getTime()) ? null : d;
 }
