@@ -77,11 +77,13 @@ export default function Newsletter() {
     <section className="px-5 sm:px-6 py-16 md:py-20 max-w-7xl mx-auto">
       <div
         ref={ref}
-        className="relative overflow-hidden rounded-[1.5rem] bg-accent p-8 md:p-12"
+        className="relative overflow-hidden rounded-[1.5rem] p-8 md:p-12"
         style={{
+          background:
+            "linear-gradient(135deg, var(--violet) 0%, var(--hot) 55%, var(--amber) 120%)",
           opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 0.6s cubic-bezier(0.32, 0.72, 0, 1)',
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+          transition: "all 0.6s cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
         <div

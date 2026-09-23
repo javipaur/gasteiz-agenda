@@ -103,6 +103,14 @@ test.describe("Homepage", () => {
     await expect(page.getByRole("heading", { name: /Gasteiz Click en cifras/i })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/3 clubes · 2 deportes · 1 ciudad/i)).toBeVisible();
   });
+
+  test("newsletter panel is visible with subscribe form", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByText(/No te pierdas/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Suscribir" })).toBeVisible();
+  });
 });
 
 test.describe("Event detail", () => {
