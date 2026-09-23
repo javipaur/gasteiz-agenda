@@ -6,6 +6,7 @@ import { CATEGORY_COLORS, CATEGORY_FILLS } from "@/lib/categories";
 import type { Evento } from "@/lib/eventos";
 import type { PeliculaConCine } from "@/lib/cines";
 import MovieCard from "./MovieCard";
+import SectionHead from "./SectionHead";
 
 type Mood = {
   id: string;
@@ -108,13 +109,10 @@ export default function MoodFilter({
     <section className="px-5 sm:px-6 py-8 md:py-10">
       <div className="max-w-5xl mx-auto">
         <InViewWrapper>
-          <div className="flex items-center gap-3 mb-4">
-            <h2 className="font-display text-lg md:text-xl text-fg font-semibold tracking-[-0.02em]">
-              ¿Qué te apetece?
-            </h2>
-            <span className="h-px flex-1 bg-border" aria-hidden="true" />
-          </div>
+          <SectionHead tag="Moods" title="¿Qué te apetece?" color="var(--violet)" />
+        </InViewWrapper>
 
+        <InViewWrapper>
           <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
             {MOODS.map((mood) => (
               <button

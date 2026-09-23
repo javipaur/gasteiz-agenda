@@ -43,6 +43,14 @@ test.describe("Homepage", () => {
     const bg = await pill.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(bg).not.toBe("rgba(0, 0, 0, 0)");
   });
+
+  test("shows the fever section headers across the home", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /Hoy en Gasteiz/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /Próximos 7 días/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /¿Qué te apetece\?/i })).toBeVisible();
+  });
 });
 
 test.describe("Event detail", () => {

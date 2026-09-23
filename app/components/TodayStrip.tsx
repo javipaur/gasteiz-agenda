@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
 import { localDateStr } from "@/lib/utils";
 import { eventSlug } from "@/lib/slug";
+import SectionHead from "./SectionHead";
 
 export default function TodayStrip({ eventos }: { eventos: Evento[] }) {
   const hoy = localDateStr(new Date());
@@ -13,10 +14,7 @@ export default function TodayStrip({ eventos }: { eventos: Evento[] }) {
 
   return (
     <section className="px-5 sm:px-6 max-w-7xl mx-auto mt-8 md:mt-10" aria-label="Eventos de hoy">
-      <div className="flex items-center gap-2 mb-4">
-        <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
-        <h2 className="font-display italic text-accent text-sm">Hoy en Gasteiz</h2>
-      </div>
+      <SectionHead tag="Hoy" title="Hoy en Gasteiz" color="var(--lime)" />
       <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-1 px-1 pb-1">
         {deHoy.map((e, i) => (
           <Link

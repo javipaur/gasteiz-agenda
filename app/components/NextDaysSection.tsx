@@ -8,6 +8,7 @@ import { localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS, CATEGORY_FILLS } from "@/lib/categories";
 import { eventSlug } from "@/lib/slug";
 import EmptyState from "./EmptyState";
+import SectionHead from "./SectionHead";
 
 type Evento = {
   id: string;
@@ -105,8 +106,6 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
     return dayEvents.filter((e) => e.category === categoryFilter);
   }, [dayEvents, categoryFilter]);
 
-  const totalThisWeek = weekDays.reduce((s, d) => s + d.count, 0);
-
   const featured = useMemo(
     () => dayEvents.find((e) => e.image && e.image.length > 0) || null,
     [dayEvents]
@@ -123,17 +122,12 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
   return (
     <section className="px-5 sm:px-6 py-8 md:py-14 max-w-5xl mx-auto">
       <InViewWrapper>
-        <div className="flex items-center gap-2 mb-2">
-          <h2 className="font-display text-xl md:text-2xl text-fg font-semibold tracking-[-0.02em]">
-            Próximos 7 días
-          </h2>
-          <span className="text-fg-subtle text-sm tabular-nums">
-            {totalThisWeek > 0 ? `· ${totalThisWeek} planes` : ""}
-          </span>
-        </div>
-        <p className="text-sm text-fg-muted mb-6">
-          Planes confirmados en los próximos días en Vitoria-Gasteiz.
-        </p>
+        <SectionHead
+          tag="Esta semana"
+          title="Próximos 7 días"
+          subtitle="Planes confirmados en los próximos días en Vitoria-Gasteiz."
+          color="var(--teal)"
+        />
       </InViewWrapper>
 
       <InViewWrapper>
