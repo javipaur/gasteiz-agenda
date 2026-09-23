@@ -49,3 +49,24 @@ test.describe("Event detail", () => {
     await expect(page).toHaveURL(/\/evento\//);
   });
 });
+
+test.describe("Fever theme", () => {
+  test("defaults to dark and the toggle still switches to light", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bg).toBe("rgb(11, 14, 20)");
+
+    const lightBtn = page.getByRole("button", { name: "Tema claro" });
+    await lightBtn.click();
+    await page.waitForFunction(() =>
+      getComputedStyle(document.body).backgroundColor === "rgb(247, 246, 244)"
+    );
+
+    const darkBtn = page.getByRole("button", { name: "Tema oscuro" });
+    await darkBtn.click();
+    await page.waitForFunction(() =>
+      getComputedStyle(document.body).backgroundColor === "rgb(11, 14, 20)"
+    );
+  });
+});

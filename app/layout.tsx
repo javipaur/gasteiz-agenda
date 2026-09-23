@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Montserrat, JetBrains_Mono } from "next/font/google";
+import { Archivo, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
@@ -13,18 +13,12 @@ import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/se
 import { getAccentSeason } from "@/lib/season";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const archivo = Archivo({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  variable: "--font-archivo",
   display: "swap",
   style: ["normal", "italic"],
   weight: "variable",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  variable: "--font-montserrat",
-  display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -93,8 +87,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#C94A3D" },
-    { media: "(prefers-color-scheme: dark)", color: "#141110" },
+    { media: "(prefers-color-scheme: light)", color: "#FF4D7D" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0E14" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -112,7 +106,7 @@ export default function RootLayout({
     <html
       lang="es"
       data-accent={getAccentSeason()}
-      className={`${montserrat.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}
+      className={`${archivo.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <meta name="color-scheme" content="light dark" />
