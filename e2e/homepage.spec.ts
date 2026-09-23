@@ -41,7 +41,7 @@ test.describe("Homepage", () => {
     const pill = page.locator("a[href^='/evento/'] .e2e-cat-pill").first();
     await expect(pill).toBeVisible({ timeout: 30_000 });
     const bg = await pill.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(bg).toMatch(/rgb/);
+    expect(bg).not.toBe("rgba(0, 0, 0, 0)");
   });
 });
 
