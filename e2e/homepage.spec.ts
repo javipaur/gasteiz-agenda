@@ -24,6 +24,15 @@ test.describe("Homepage", () => {
     await page.waitForURL(/\/conciertos/i);
     await expect(page).toHaveURL(/\/conciertos/i);
   });
+
+  test("shows the pro sports section linking to /deporte", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const heading = page.getByRole("heading", { name: /Nuestros equipos en acción/i });
+    await expect(heading).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('a[href="/deporte"]').first()).toBeVisible();
+  });
 });
 
 test.describe("Event detail", () => {

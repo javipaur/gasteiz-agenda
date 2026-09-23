@@ -9,6 +9,7 @@ import TopEventsSection from "./components/TopEventsSection";
 import CategoryCarousel from "./components/CategoryCarousel";
 import SocialProof from "./components/SocialProof";
 import FiestasBlancaSection from "./components/FiestasBlancaSection";
+import PartidosSection from "./components/PartidosSection";
 import HomeEventsClient from "./components/HomeEventsClient";
 import InstallBanner from "./components/InstallBanner";
 import Newsletter from "./components/NewsLetter";
@@ -213,6 +214,22 @@ export default async function HomeEventsPage() {
         }
       >
         <SectionsHub />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <section className="px-5 sm:px-6 py-10 md:py-16 max-w-7xl mx-auto">
+            <div className="h-3 w-20 bg-surface rounded mb-4" />
+            <div className="h-8 w-64 bg-surface rounded-xl mb-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-surface rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          </section>
+        }
+      >
+        <PartidosSection />
       </Suspense>
 
       <Suspense fallback={null}>
