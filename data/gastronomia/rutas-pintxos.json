@@ -44,7 +44,8 @@
     "consejo": "Barrio residencial junto a los humedales; los bares son amplios y sin colas. Podéis rematar con un paseo por el humedal o el poteo del jueves.",
     "paradas": [
       { "nombre": "Bar Urria", "direccion": "Bulevar de Salburua, 42", "pintxo": "Pintxo-pote y croquetas caseras", "precio": "2,50 €" },
-      { "nombre": "Cafetería Iliada", "direccion": "Bulevar de Salburua", "pintxo": "Tortilla y raciones de picoteo", "precio": "3,50 €" }
+      { "nombre": "Cafetería Iliada", "direccion": "Bulevar de Salburua", "pintxo": "Tortilla y raciones de picoteo", "precio": "3,50 €" },
+      { "nombre": "Iceberg Salburua", "direccion": "Av. de Praga, 4", "pintxo": "Cocina tradicional con toque propio", "precio": "4,00 €" }
     ]
   },
   {
