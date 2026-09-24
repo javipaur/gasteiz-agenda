@@ -22,6 +22,46 @@ describe("scrapeMunicipalCalendar", () => {
     }
   });
 
+  it("maps extra fields (time, dateEnd, cancelled, audience)", async () => {
+    const json = loadFixture("municipal-response.json");
+
+    mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: json }]);
+
+    const events = await scrapeMunicipalCalendar();
+    const e = events[0];
+
+    expect(e).toMatchObject({
+      title: 'Exposición: "Tierra y Cielo"',
+      date: "2026-09-16T06:30Z",
+      time: "08:30",
+      dateEnd: "2026-09-16",
+    });
+    expect(e.cancelled).toBeUndefined();
+    expect(e.description).toBeUndefined();
+  });
+
+  it("maps cancelled events and non-generic audiences", async () => {
+    const json = loadFixture("municipal-response.json").replace(
+      '"Tierra y Cielo"',
+      '"Otra Expo"'
+    );
+    const custom = json.replace(
+      '"isCancelado":false',
+      '"isCancelado":true'
+    ).replace(
+      '"destinatario":"Todos los públicos",',
+      '"destinatario":"Público infantil",'
+    );
+
+    mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: custom }]);
+
+    const events = await scrapeMunicipalCalendar();
+    const e = events[0];
+
+    expect(e.cancelled).toBe(true);
+    expect(e.description).toBe("Público infantil");
+  });
+
   it("transforms smart image URLs", async () => {
     const json = loadFixture("municipal-response.json");
 

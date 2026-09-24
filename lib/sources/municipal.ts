@@ -22,6 +22,7 @@ export type MunicipialEvento = {
   id: string;
   title: string;
   date: string;
+  dateEnd?: string;
   image?: string;
   location: string;
   link: string;
@@ -29,7 +30,16 @@ export type MunicipialEvento = {
   source?: string;
   description?: string;
   time?: string;
+  cancelled?: boolean;
 };
+
+const GENERIC_AUDIENCES = ["todos los públicos", "público general", "todos"];
+
+function normalizeFecha(yyyymmdd?: string | null): string | undefined {
+  if (!yyyymmdd) return undefined;
+  const m = String(yyyymmdd).match(/^(\d{4})(\d{2})(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : undefined;
+}
 
 function normalizeEvento(evento: any): MunicipialEvento {
   const extractedPicture = extractSrcsetFromPicture(evento.picture);
@@ -37,13 +47,24 @@ function normalizeEvento(evento: any): MunicipialEvento {
     transformImageUrl(evento.imagen) ||
     transformImageUrl(extractedPicture ?? undefined);
   const fullImage = image ? "https://www.vitoria-gasteiz.org".concat(image) : undefined;
+
+  const audience = (evento.destinatario ?? "").trim();
+  const description =
+    audience && !GENERIC_AUDIENCES.includes(audience.toLowerCase())
+      ? audience
+      : undefined;
+
   return {
     id: evento.codigo || crypto.randomUUID(),
     title: evento.titulo ?? "",
     date: evento.datetime ?? evento.fechaInicio ?? "",
+    dateEnd: normalizeFecha(evento.fechaFin),
     image: fullImage,
     location: evento.localizacion ?? evento.dirUbicacion ?? "",
     link: evento.url ?? evento.linkDetalle ?? "",
+    description,
+    time: evento.horaInicio?.trim() || undefined,
+    cancelled: evento.isCancelado || undefined,
   };
 }
 

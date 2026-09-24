@@ -20,7 +20,30 @@ describe("scrapeEuskadi", () => {
       expect(typeof e.date).toBe("string");
       expect(typeof e.source).toBe("string");
       expect(typeof e.category).toBe("string");
+      expect(typeof e.location).toBe("string");
     }
+  });
+
+  it("maps rich fields (description, price, time, image, location)", async () => {
+    const json = loadFixture("euskadi-response.json");
+
+    mockFetchWith([{ match: /api\.euskadi\.eus/, content: json }]);
+
+    const events = await scrapeEuskadi();
+    const e = events[0];
+
+    expect(e).toMatchObject({
+      id: "2026090714222818",
+      title: "Semana de Música Antigua de Álava 2026: Manuel Ruiz & Ílliber Ensemble",
+      date: "2026-09-16T00:00:00Z",
+      category: "concierto",
+      price: "Gratis (con invitación)",
+      time: "19:00",
+      source: "euskadi",
+    });
+    expect(e.description).toBeTruthy();
+    expect(e.description).toContain("Manuel Ruiz");
+    expect(e.description).not.toContain("<");
   });
 
   it("returns an empty array when the API returns an error", async () => {
