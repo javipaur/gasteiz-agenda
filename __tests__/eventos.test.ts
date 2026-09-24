@@ -54,6 +54,10 @@ jest.mock("@/lib/sources/arkabia", () => ({
   scrapeArkabia: jest.fn().mockResolvedValue([]),
 }));
 
+jest.mock("@/lib/sources/miniature", () => ({
+  scrapeMiniature: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock("@/lib/cache", () => ({
   getCachedOrFetch: jest.fn(
     async (_key: string, _ttlMs: number, fetcher: () => Promise<unknown>) =>

@@ -9,6 +9,7 @@ import { scrapeEventbrite } from "./sources/eventbrite";
 import { scrapeEntradium } from "./sources/entradium";
 import { scrapeVital } from "./sources/vital";
 import { scrapeArkabia } from "./sources/arkabia";
+import { scrapeMiniature } from "./sources/miniature";
 import { getCachedOrFetch } from "./cache";
 import { logger } from "./axiom/server";
 
@@ -62,6 +63,7 @@ async function fetchAllSources(): Promise<any[]> {
     entradium,
     vital,
     arkabia,
+    miniature,
   ] = await Promise.allSettled([
     scrapeFever(),
     scrapeRula(),
@@ -74,6 +76,7 @@ async function fetchAllSources(): Promise<any[]> {
     scrapeEntradium(),
     scrapeVital(),
     scrapeArkabia(),
+    scrapeMiniature(),
   ]);
 
   const sources = [
@@ -88,6 +91,7 @@ async function fetchAllSources(): Promise<any[]> {
     ["entradium", entradium],
     ["vital", vital],
     ["arkabia", arkabia],
+    ["miniature", miniature],
   ];
 
   for (const [name, result] of sources as Array<[string, PromiseSettledResult<unknown>]>) {
@@ -144,6 +148,11 @@ async function fetchAllSources(): Promise<any[]> {
   if (arkabia.status === "fulfilled") {
     allEvents.push(
       ...arkabia.value.map((e) => normalizeEvento({ ...e, source: "arkabia" }))
+    );
+  }
+  if (miniature.status === "fulfilled") {
+    allEvents.push(
+      ...miniature.value.map((e) => normalizeEvento({ ...e, source: "miniature" }))
     );
   }
 
