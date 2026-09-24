@@ -14,6 +14,7 @@ describe("scrapeGasteizHoy", () => {
     ]);
 
     const events = await scrapeGasteizHoy();
+    const today = new Date().toISOString().slice(0, 10);
 
     expect(fetchMock).toHaveBeenCalled();
     expect(Array.isArray(events)).toBe(true);
@@ -23,6 +24,7 @@ describe("scrapeGasteizHoy", () => {
       expect(typeof e.title).toBe("string");
       expect(e.title.length).toBeGreaterThan(0);
       expect(e.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(e.date >= today).toBe(true);
       expect(typeof e.link).toBe("string");
       expect(e.source).toBe("gasteizhoy");
     }

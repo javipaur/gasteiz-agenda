@@ -24,7 +24,7 @@ function normalizeEvento(
   e: Record<string, unknown>,
   category: string,
   source: string
-): CulturaEvento {
+): CulturaEvento | null {
   const raw = e as {
     id?: string;
     title?: string;
@@ -36,10 +36,13 @@ function normalizeEvento(
     source?: string;
   };
 
+  const date = raw.date || "";
+  if (date && Number.isNaN(new Date(date).getTime())) return null;
+
   return {
     id: raw.id || crypto.randomUUID(),
     title: raw.title || "Sin título",
-    date: raw.date || "",
+    date,
     image: raw.image?.startsWith("http") ? raw.image : "",
     location: raw.location || "",
     link: raw.link || "",
@@ -70,9 +73,9 @@ async function fetchCultura(): Promise<CulturaEvento[]> {
   ) => {
     if (result.status === "fulfilled") {
       eventos.push(
-        ...result.value.map((e) =>
-          normalizeEvento(e as Record<string, unknown>, category, source)
-        )
+        ...result.value
+          .map((e) => normalizeEvento(e as Record<string, unknown>, category, source))
+          .filter((e): e is CulturaEvento => e !== null)
       );
     }
   };
@@ -85,13 +88,25 @@ async function fetchCultura(): Promise<CulturaEvento[]> {
   push(municipalExposiciones, "exposiciones", "municipal");
 
   if (fever.status === "fulfilled") {
-    eventos.push(...fever.value.map((e) => normalizeEvento({ ...e }, e.category || "agenda", "fever")));
+    eventos.push(
+      ...fever.value
+        .map((e) => normalizeEvento({ ...e }, e.category || "agenda", "fever"))
+        .filter((e): e is CulturaEvento => e !== null)
+    );
   }
   if (rula.status === "fulfilled") {
-    eventos.push(...rula.value.map((e) => normalizeEvento({ ...e }, e.category || "agenda", "rula")));
+    eventos.push(
+      ...rula.value
+        .map((e) => normalizeEvento({ ...e }, e.category || "agenda", "rula"))
+        .filter((e): e is CulturaEvento => e !== null)
+    );
   }
   if (gasteizhoy.status === "fulfilled") {
-    eventos.push(...gasteizhoy.value.map((e) => normalizeEvento({ ...e }, e.category || "agenda", "gasteizhoy")));
+    eventos.push(
+      ...gasteizhoy.value
+        .map((e) => normalizeEvento({ ...e }, e.category || "agenda", "gasteizhoy"))
+        .filter((e): e is CulturaEvento => e !== null)
+    );
   }
 
   return eventos.sort(

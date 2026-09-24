@@ -88,6 +88,7 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
   const listImages = listRes ? extractListImages(await listRes.text()) : new Map<string, string>();
 
   const events: GasteizHoyEvent[] = [];
+  const today = new Date().toISOString().slice(0, 10);
 
   $(".mec-calendar-events-sec").each((_, dayEl) => {
     const cell = $(dayEl).attr("data-mec-cell");
@@ -97,6 +98,8 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
     const month = cell.slice(4, 6);
     const day = cell.slice(6, 8);
     const dateStr = `${year}-${month}-${day}`;
+
+    if (dateStr < today) return;
 
     $(dayEl)
       .find("article.mec-event-article")

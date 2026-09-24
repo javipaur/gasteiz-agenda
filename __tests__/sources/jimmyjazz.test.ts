@@ -18,7 +18,8 @@ describe("scrapeJimmyJazz", () => {
     for (const e of events) {
       expect(typeof e.title).toBe("string");
       expect(e.title.length).toBeGreaterThan(0);
-      expect(typeof e.date).toBe("string");
+      expect(e.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(Number.isNaN(new Date(e.date).getTime())).toBe(false);
       expect(typeof e.location).toBe("string");
     }
   });

@@ -7,6 +7,10 @@ const imageCache = new Map<string, string | undefined>();
 const DEFAULT_EVENT_IMAGE =
   "https://opendata.euskadi.eus//contenidos/evento/2026070810071363/es_def/images/22.jpg";
 
+function esVitoria(city: unknown): boolean {
+  return /^vitoria/i.test(String(city || "").trim());
+}
+
 function inferCategory(vamCategory: string): string {
   const cat = vamCategory.toLowerCase();
   if (cat.includes("concierto") || cat.includes("música")) return "Música";
@@ -128,7 +132,11 @@ export type VamEvent = {
 async function fetchAllVamEvents(): Promise<any[]> {
   const res = await fetch(VAM_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
     body: "{}",
     next: { revalidate: 3600 },
   });
@@ -141,7 +149,7 @@ export async function scrapeVamEvents(): Promise<VamEvent[]> {
   const allEvents = await fetchAllVamEvents();
 
   const events = allEvents
-    .filter((e: any) => e.city === "Vitoria-Gasteiz")
+    .filter((e: any) => esVitoria(e.city))
     .map((e: any) => {
       const image = resolveImageUrl(e.image_url);
       const dateStr = e.date_start || e.date_end;
@@ -171,7 +179,7 @@ export async function scrapeVamConciertos(): Promise<any[]> {
   const events = allEvents
     .filter(
       (e: any) =>
-        e.city === "Vitoria-Gasteiz" &&
+        esVitoria(e.city) &&
         e.category?.includes("Concierto")
     )
     .map((e: any) => {

@@ -1,5 +1,5 @@
 import { loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
-import { scrapeVamEvents } from "@/lib/sources/vam";
+import { scrapeVamEvents, scrapeVamConciertos } from "@/lib/sources/vam";
 
 describe("scrapeVamEvents", () => {
   it("parses VAM API JSON and filters Vitoria-Gasteiz events", async () => {
@@ -48,5 +48,80 @@ describe("scrapeVamEvents", () => {
 
     const events = await scrapeVamEvents();
     expect(events).toEqual([]);
+  });
+
+  it("includes events whose city is spelled 'Vitoria'", async () => {
+    const json = JSON.stringify({
+      events: [
+        {
+          id: "1",
+          title: "Magufada",
+          city: "Vitoria",
+          category: "Concierto / Música",
+          date_start: "2026-09-25T21:00:00+02:00",
+          image_url: "",
+          source_url: "#",
+        },
+        {
+          id: "2",
+          title: "No vitoriano",
+          city: "Bilbao",
+          category: "Concierto / Música",
+          date_start: "2026-09-25T21:00:00+02:00",
+          image_url: "",
+          source_url: "#",
+        },
+      ],
+    });
+
+    mockFetchWith([
+      { match: /app\.vamcultura\.es/, content: json },
+    ]);
+
+    const events = await scrapeVamEvents();
+    expect(events.map((e) => e.title)).toEqual(["Magufada"]);
+  });
+
+  describe("scrapeVamConciertos", () => {
+    it("finds Vitoria concerts and ignores other cities/categories", async () => {
+      const json = JSON.stringify({
+        events: [
+          {
+            id: "1",
+            title: "Magufada",
+            city: "Vitoria",
+            category: "Concierto / Música",
+            date_start: "2026-09-25T21:00:00+02:00",
+            image_url: "",
+            source_url: "#",
+          },
+          {
+            id: "2",
+            title: "Charla vitoriana",
+            city: "Vitoria-Gasteiz",
+            category: "Conferencia",
+            date_start: "2026-09-25T19:00:00+02:00",
+            image_url: "",
+            source_url: "#",
+          },
+          {
+            id: "3",
+            title: "Concierto bilbaíno",
+            city: "Bilbao",
+            category: "Concierto / Música",
+            date_start: "2026-09-25T21:00:00+02:00",
+            image_url: "",
+            source_url: "#",
+          },
+        ],
+      });
+
+      mockFetchWith([
+        { match: /app\.vamcultura\.es/, content: json },
+      ]);
+
+      const events = await scrapeVamConciertos();
+      expect(events.map((e) => e.title)).toEqual(["Magufada"]);
+    });
   });
 });
