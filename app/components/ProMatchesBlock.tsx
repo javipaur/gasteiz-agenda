@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getProximosPartidos } from "@/lib/partidos";
 import type { Partido } from "@/lib/sources/clubCms";
 
 function formatearDia(fecha: string | null): string {
@@ -32,12 +31,11 @@ function RowPartido({ partido, index }: { partido: Partido; index: number }) {
   );
 }
 
-export default async function ProMatchesBlock() {
-  const partidos = await getProximosPartidos(3);
+export default async function ProMatchesBlock({ partidos }: { partidos: Partido[] }) {
   if (partidos.length === 0) return null;
 
   return (
-    <section aria-label="Partidos pro" className="px-5 sm:px-6 py-10 md:py-14 max-w-7xl mx-auto">
+    <section aria-label="Partidos pro" className="px-5 sm:px-6 pt-28 pb-2 max-w-7xl mx-auto">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-sec-green mb-2">Deporte · Profesional</p>

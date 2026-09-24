@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import SportPageClient from "../components/SportPageClient";
 import ProMatchesBlock from "../components/ProMatchesBlock";
+import { getProximosPartidos } from "@/lib/partidos";
 import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
 import { scrapeBuscametasCalendario, scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
 import { scrapeSenderismo } from "@/lib/sources/senderismo";
@@ -105,7 +106,10 @@ export async function generateMetadata({
 }
 
 export default async function DeportePage() {
-  const eventos = await getEventos();
+  const [eventos, partidos] = await Promise.all([
+    getEventos(),
+    getProximosPartidos(3),
+  ]);
   return (
     <>
       <JsonLd
@@ -125,9 +129,9 @@ export default async function DeportePage() {
           </div>
         }
       >
-        <ProMatchesBlock />
+        <ProMatchesBlock partidos={partidos} />
       </Suspense>
-      <SportPageClient eventos={eventos} />
+      <SportPageClient eventos={eventos} heroFirst={partidos.length === 0} />
     </>
   );
 }

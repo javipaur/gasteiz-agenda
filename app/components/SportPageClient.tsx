@@ -27,7 +27,13 @@ const CATEGORIES = [
   { key: "excursiones", label: "Excursiones" },
 ];
 
-export default function SportPageClient({ eventos }: { eventos: Evento[] }) {
+export default function SportPageClient({
+  eventos,
+  heroFirst = true,
+}: {
+  eventos: Evento[];
+  heroFirst?: boolean;
+}) {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
   const [filter, setFilter] = useState<string>("all");
@@ -49,7 +55,7 @@ export default function SportPageClient({ eventos }: { eventos: Evento[] }) {
   }, [eventos, filter, q]);
 
   return (
-    <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
+    <div className={`px-5 sm:px-6 max-w-7xl mx-auto ${heroFirst ? "pt-28" : "pt-12 md:pt-16"} pb-32`}>
       <InViewWrapper>
         <header className="mb-12">
           <div className="flex items-center gap-2 mb-3">
