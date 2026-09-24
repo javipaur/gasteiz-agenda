@@ -8,6 +8,7 @@ import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { eventSlug } from "@/lib/slug";
 import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura-sources";
+import { isTicketSource } from "@/lib/tickets";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
@@ -28,6 +29,15 @@ const CATEGORIES = [
   { key: "conciertos", label: "Conciertos" },
   { key: "exposiciones", label: "Exposiciones" },
 ];
+
+function TicketIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 4.5h14v7H1z" />
+      <path d="M5.5 6v4M8 6v4M10.5 6v4" />
+    </svg>
+  );
+}
 
 export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
   const searchParams = useSearchParams();
@@ -195,9 +205,8 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
                 key={evento.id || evento.title + evento.date + index}
                 delay={Math.min(index * 0.04, 0.4)}
               >
-                <Link
-                  href={`/evento/${eventSlug(evento)}`}
-                  className="group double-bezel-outer rounded-2xl p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
+                <div
+                  className="group double-bezel-outer rounded-2xl p-1.5 block"
                   style={{
                     animation: `fadeIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) ${
                       Math.min(index * 0.04, 0.4)
@@ -205,6 +214,10 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
                   }}
                 >
                   <div className="double-bezel rounded-xl overflow-hidden">
+                  <Link
+                    href={`/evento/${eventSlug(evento)}`}
+                    className="block focus-visible:outline-2 focus-visible:outline-accent"
+                  >
                     <div className="aspect-[4/3] relative">
                       {imageUrl ? (
                         <Image
@@ -262,8 +275,24 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
                         )}
                       </div>
                     </div>
+                  </Link>
+
+                  {evento.link && (
+                    <div className="p-4 bg-surface">
+                      <a
+                        href={evento.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full bg-accent text-white text-center py-3 font-medium text-sm hover:bg-accent-hover transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]"
+                        style={{ borderRadius: "999px" }}
+                      >
+                        <span>{isTicketSource(evento.source) ? "Comprar entradas" : "Más información"}</span>
+                        <TicketIcon className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  )}
                   </div>
-                </Link>
+                </div>
               </InViewWrapper>
             );
           })}

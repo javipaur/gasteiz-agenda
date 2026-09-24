@@ -11,6 +11,7 @@ import {
   eventToJsonLd,
 } from "@/lib/seo";
 import { sourceLabel } from "@/lib/utils";
+import { isTicketSource } from "@/lib/tickets";
 import { EventCard } from "@/lib/shared";
 import AddToCalendar from "@/app/components/AddToCalendar";
 import FavoriteButton from "@/app/components/FavoriteButton";
@@ -76,6 +77,15 @@ function ExternalIcon() {
   return (
     <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M3 11l8-8M5 3h6v6" />
+    </svg>
+  );
+}
+
+function TicketIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 4.5h14v7H1z" />
+      <path d="M5.5 6v4M8 6v4M10.5 6v4" />
     </svg>
   );
 }
@@ -255,8 +265,17 @@ export default async function EventoDetallePage({ params }: PageProps) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300 active:scale-[0.98]"
                 >
-                  Más información y entradas
-                  <ExternalIcon />
+                  {isTicketSource(evento.source) ? (
+                    <>
+                      Comprar entradas
+                      <TicketIcon className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      Más información y entradas
+                      <ExternalIcon />
+                    </>
+                  )}
                 </a>
               </div>
               {evento.source && (
@@ -305,8 +324,17 @@ export default async function EventoDetallePage({ params }: PageProps) {
               rel="noopener noreferrer"
               className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-full text-sm font-semibold active:scale-[0.97] transition-transform duration-200"
             >
-              Más información
-              <ExternalIcon />
+              {isTicketSource(evento.source) ? (
+                <>
+                  Comprar entradas
+                  <TicketIcon className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  Más información
+                  <ExternalIcon />
+                </>
+              )}
             </a>
           </div>
         </div>

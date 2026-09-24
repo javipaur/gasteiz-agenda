@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
+import { isTicketSource } from "@/lib/tickets";
 import { eventSlug } from "@/lib/slug";
 import FavoriteButton from "./FavoriteButton";
 
@@ -141,16 +142,26 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
   );
 }
 
+function TicketIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 4.5h14v7H1z" />
+      <path d="M5.5 6v4M8 6v4M10.5 6v4" />
+    </svg>
+  );
+}
+
 function EventCard({ evento, index }: { evento: Evento; index: number }) {
   const dateLabel = formatEventDate(evento.date);
 
   return (
     <InViewWrapper delay={Math.min(index * 0.04, 0.4)}>
-      <Link
-        href={`/evento/${eventSlug(evento)}`}
-        className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
-      >
+      <div className="group double-bezel-outer rounded-[1.25rem] p-1.5 block">
         <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
+          <Link
+            href={`/evento/${eventSlug(evento)}`}
+            className="block focus-visible:outline-2 focus-visible:outline-accent"
+          >
           <div className="aspect-[4/3] relative">
             {evento.image ? (
               <Image
@@ -214,8 +225,24 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
               )}
             </div>
           </div>
+          </Link>
+
+          {evento.link && (
+            <div className="p-4 bg-surface">
+              <a
+                href={evento.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-accent text-white text-center py-3 font-medium text-sm hover:bg-accent-hover transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98]"
+                style={{ borderRadius: "999px" }}
+              >
+                <span>{isTicketSource(evento.source) ? "Comprar entradas" : "Más información"}</span>
+                <TicketIcon className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
         </div>
-      </Link>
+      </div>
     </InViewWrapper>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCultureEventos } from "@/lib/cultura";
 import { CULTURA_CATEGORIAS, CulturaCategoriaSlug } from "@/lib/categories";
+import { isTicketSource } from "@/lib/tickets";
 import { eventSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
@@ -14,6 +15,15 @@ type PageProps = {
 
 function isValidCategoria(slug: string): slug is CulturaCategoriaSlug {
   return CULTURA_CATEGORIAS.some((c) => c.slug === slug);
+}
+
+function TicketIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 4.5h14v7H1z" />
+      <path d="M5.5 6v4M8 6v4M10.5 6v4" />
+    </svg>
+  );
 }
 
 export async function generateStaticParams() {
@@ -99,24 +109,39 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
                 ? ""
                 : d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
               return (
-                <Link
+                <div
                   key={evento.id + evento.title}
-                  href={`/evento/${eventSlug(evento)}`}
                   className="group rounded-2xl border border-border bg-surface p-5 block hover:border-accent/40 transition-all duration-300"
                 >
-                  {evento.category && (
-                    <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-accent mb-2">
-                      {evento.category}
-                    </p>
+                  <Link
+                    href={`/evento/${eventSlug(evento)}`}
+                    className="block focus-visible:outline-2 focus-visible:outline-accent"
+                  >
+                    {evento.category && (
+                      <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-accent mb-2">
+                        {evento.category}
+                      </p>
+                    )}
+                    <h2 className="font-display text-lg font-semibold text-fg leading-snug mb-3 line-clamp-2">
+                      {evento.title}
+                    </h2>
+                    <div className="flex items-center justify-between font-mono text-xs text-fg-subtle">
+                      <span>{fecha}</span>
+                      <span className="truncate max-w-[55%]">{evento.location}</span>
+                    </div>
+                  </Link>
+                  {evento.link && (
+                    <a
+                      href={evento.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-[0.15em] text-accent hover:text-accent-hover transition-colors"
+                    >
+                      {isTicketSource(evento.source) ? "Comprar entradas" : "Más información"}
+                      <TicketIcon className="w-3.5 h-3.5" />
+                    </a>
                   )}
-                  <h2 className="font-display text-lg font-semibold text-fg leading-snug mb-3 line-clamp-2">
-                    {evento.title}
-                  </h2>
-                  <div className="flex items-center justify-between font-mono text-xs text-fg-subtle">
-                    <span>{fecha}</span>
-                    <span className="truncate max-w-[55%]">{evento.location}</span>
-                  </div>
-                </Link>
+                </div>
               );
             })}
           </div>
