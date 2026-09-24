@@ -5,8 +5,14 @@
     {
       "fecha": "2026-10-11T18:00:00+02:00",
       "competicion": "Liga Femenina Endesa",
-      "local": { "nombre": "Kutxabank Araski", "escudo": null },
-      "visitante": { "nombre": "IDK Euskotren", "escudo": null },
+      "local": {
+        "nombre": "Kutxabank Araski",
+        "escudo": "https://upload.wikimedia.org/wikipedia/commons/d/de/Logo_Araski_-_Oficial.jpg"
+      },
+      "visitante": {
+        "nombre": "IDK Euskotren",
+        "escudo": "https://www.ibaetabasket.com/wp-content/uploads/2020/01/IDK-EUSKOTREN-vert.png"
+      },
       "estadio": "Mendizorrotza",
       "link": "https://kutxabankaraski.com"
     }
