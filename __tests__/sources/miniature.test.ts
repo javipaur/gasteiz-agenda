@@ -1,9 +1,9 @@
-import { loadFixture } from "../helpers";
+import { loadFixtureWithFutureDates } from "../helpers";
 import { scrapeMiniature } from "@/lib/sources/miniature";
 
 describe("scrapeMiniature", () => {
   function mockApi() {
-    const fixture = loadFixture("miniature-response.json");
+    const fixture = loadFixtureWithFutureDates("miniature-response.json");
     jest
       .spyOn(global, "fetch")
       .mockImplementation(async (input: Parameters<typeof fetch>[0]) => {
