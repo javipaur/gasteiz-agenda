@@ -39,6 +39,10 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "cultura": "Otros",
   "agenda": "Otros",
   "otros": "Otros",
+  // Euskadi no manda tipo cuando no lo reconoce, y lo manda como "evento".
+  // Sin este alias sale una categoria sin color: gris en la tarjeta y el
+  // identificador en crudo en /agenda/[mes].
+  "evento": "Otros",
 };
 
 export function normalizeCategory(cat?: string): string {
