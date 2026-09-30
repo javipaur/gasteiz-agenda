@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 
 import { SOURCE_DATA } from "@/lib/source-data";
 import { CATEGORY_COLORS } from "@/lib/categories";
+import { PUBLIC_API_ROUTES } from "@/lib/api-public-routes";
 
 /**
  * El contrato público de `/api/v1/events` contra lo que la ruta devuelve de
@@ -167,6 +168,55 @@ describe("el yaml es sintácticamente legible", () => {
 
     expect(sospechosos).toEqual([]);
   });
+
+  it("ninguna clave se cuela un nivel más hondo que su hermana", () => {
+    // **El fichero no parseaba.** El `enum` del parámetro `source` estaba
+    // indentado dos espacios donde su hermana `type` estaba a doce, así que
+    // cualquier validador o generador de cliente que abriera
+    // `public/openapi.yaml` se comía un `bad indentation of a mapping entry` y
+    // tirando. Estaba en el repo desde que se refrescó el enum de fuentes, y
+    // ningún test lo veía: el de arriba mira dos patrones de escalar flojo y
+    // este es un problema de sangría, no de sintaxis de escalar.
+    //
+    // No se parsea el fichero porque el proyecto no declara `js-yaml` (está en
+    // `node_modules` por analógico, y un test que dependa de un paquete
+    // transitivo se rompe en cuanto otro lo mueve). Lo que se comprueba es la
+    // regla que el parser rompe: una clave no puede ir más hondo que la línea
+    // anterior si esa línea ya tenía su valor.
+    //
+    // Dos excepciones, y las dos son legales:
+    // - la línea anterior abría un bloque (`schema:`) y la actual es su contenido;
+    // - la línea anterior era un elemento de secuencia (`- name: category`) y la
+    //   actual es la siguiente clave de ese mismo objeto.
+    // El contenido de `description: |` y `description: >-` se salta entero: es
+    // texto literal y se indenta como le da la gana, y muchas de sus líneas
+    // parecen claves.
+    //
+    // Medido sobre las 1.249 líneas del fichero: 0 falsos positivos, 1
+    // coincidencia en la versión de antes del arreglo (la línea 77).
+    const Escalera = /:\s*[|>][-+]?\s*$/;
+    const sospechosas: string[] = [];
+
+    for (let i = 1; i < LINEAS.length; i++) {
+      const linea = LINEAS[i];
+      if (linea.trim() === "" || linea.trimStart().startsWith("#")) continue;
+
+      const anterior = LINEAS[i - 1];
+      if (anterior.trim() === "") continue;
+      // Contenido de un escalar de bloque: no es estructura, no se juzga.
+      if (Escalera.test(anterior)) continue;
+
+      if (sangriaDe(linea) <= sangriaDe(anterior)) continue;
+
+      const abreBloque = anterior.trimEnd().endsWith(":");
+      const esElementoDeSecuencia = anterior.trimStart().startsWith("- ");
+      if (abreBloque || esElementoDeSecuencia) continue;
+
+      sospechosas.push(`${i + 1}: ${linea.trim()}`);
+    }
+
+    expect(sospechosas).toEqual([]);
+  });
 });
 
 describe("el ejemplo de la respuesta", () => {
@@ -188,5 +238,163 @@ describe("el ejemplo de la respuesta", () => {
 
     expect(CATEGORIAS).toContain(valorDe(categoria));
     expect(IDS_DEL_REGISTRO).toContain(valorDe(fuente));
+  });
+});
+
+/**
+ * El contrato de autenticación contra lo que el middleware hace de verdad.
+ *
+ * El documento declaraba `security: - apiKey: []` en la raíz y solo levantaba la
+ * exención en las tres rutas del newsletter. El código hacía otra cosa: abría
+ * con `startsWith` sobre una lista que incluía `"/api/actividades"`, así que en
+ * la práctica eran públicas unas veinte rutas. Ni el doc mentía por exceso ni
+ * por defecto: mentía de las dos formas a la vez, que es peor.
+ *
+ * Estas comprobaciones no escriben el documento —el yaml es un fichero estático
+ * y no se deriva— sino que lo **contrastan** con `PUBLIC_API_ROUTES`, la misma
+ * constante que lee el middleware. Si alguien abre una ruta en el código y no
+ * en el documento, el fallo dice exactamente cuál.
+ */
+const PATHS = bloqueDesde(
+  LINEAS.findIndex((l) => l.trimStart().startsWith("paths:") && sangriaDe(l) === 0),
+  2
+);
+
+/**
+ * Igual que `bloqueDesde`, pero sobre `PATHS` y no sobre `LINEAS`.
+ *
+ * Hace falta la segunda copia porque los índices son distintos: `PATHS` es
+ * `LINEAS` sin las líneas en blanco y sin lo que había antes de `paths:`, así
+ * que un índice de `PATHS` no sirve para recortar `LINEAS`. La versión que
+ * mezcla los dos arrays no falla de forma ruidosa —devuelve bloques vacíos y los
+ * tests pasan por no haber encontrado nada que comprobar—, que es peor.
+ */
+function bloqueDePaths(indice: number, sangria: number): string[] {
+  const out: string[] = [];
+  for (let i = indice + 1; i < PATHS.length; i++) {
+    const linea = PATHS[i];
+    if (linea.trim() === "") continue;
+    if (sangriaDe(linea) < sangria) break;
+    out.push(linea);
+  }
+  return out;
+}
+
+/** Las rutas de la clave `paths`, en el orden del fichero. */
+function rutasDocumentadas(): string[] {
+  return PATHS.filter((l) => sangriaDe(l) === 2 && l.trimEnd().endsWith(":")).map((l) =>
+    l.trim().replace(/:$/, "")
+  );
+}
+
+/** Las operaciones (`get`, `post`, ...) de una ruta documentada. */
+function operacionesDe(ruta: string): string[] {
+  const i = indiceDeRuta(ruta);
+  if (i < 0) return [];
+  return bloqueDePaths(i, 4)
+    .filter((l) => sangriaDe(l) === 4 && /^(get|post|put|patch|delete):$/.test(l.trim()))
+    .map((l) => l.trim().replace(/:$/, ""));
+}
+
+function indiceDeRuta(ruta: string): number {
+  return PATHS.findIndex((l) => sangriaDe(l) === 2 && l.trim() === `${ruta}:`);
+}
+
+/** Las líneas de una operación concreta. */
+function bloqueDeOperacion(ruta: string, operacion: string): string[] {
+  const i = indiceDeRuta(ruta);
+  if (i < 0) return [];
+  const j = bloqueDePaths(i, 4).findIndex(
+    (l) => sangriaDe(l) === 4 && l.trim() === `${operacion}:`
+  );
+  if (j < 0) return [];
+  return bloqueDePaths(i + 1 + j, 6);
+}
+
+const PUBLICAS = PUBLIC_API_ROUTES.map((r) => r.path);
+const PUBLICAS_DOCUMENTADAS = rutasDocumentadas().filter((r) => PUBLICAS.includes(r));
+
+describe("la autenticación que promete el documento", () => {
+  it("la raíz sigue declarando apiKey, que es lo que hace la mayoría de rutas", () => {
+    const i = LINEAS.findIndex((l) => l.trimStart().startsWith("security:") && sangriaDe(l) === 0);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const bloque = bloqueDesde(i, 2);
+    expect(bloque.some((l) => l.trim() === "- apiKey: []")).toBe(true);
+  });
+
+  it("toda ruta pública que el documento menciona va con `security: []`", () => {
+    // Este es el que muerde. `/api/cines`, `/api/cines/boulevard`,
+    // `/api/cines/florida` y `/api/farmacias` son públicas desde antes de esta
+    // fase, y el documento les pedía una clave que el servidor nunca pedía.
+    const sinExencion: string[] = [];
+    for (const ruta of PUBLICAS_DOCUMENTADAS) {
+      for (const operacion of operacionesDe(ruta)) {
+        if (!bloqueDeOperacion(ruta, operacion).some((l) => l.trim() === "security: []")) {
+          sinExencion.push(`${ruta} ${operacion}`);
+        }
+      }
+    }
+    expect(sinExencion).toEqual([]);
+  });
+
+  it("ninguna ruta protegida del documento se autolibera con `security: []`", () => {
+    // En sentido contrario: `security: []` es lo que hace pública una ruta, así
+    // que una línea de más en el documento abre de verdad para quien lo lea.
+    const autoliberadas: string[] = [];
+    for (const ruta of rutasDocumentadas().filter((r) => !PUBLICAS.includes(r))) {
+      for (const operacion of operacionesDe(ruta)) {
+        if (bloqueDeOperacion(ruta, operacion).some((l) => l.trim() === "security: []")) {
+          autoliberadas.push(`${ruta} ${operacion}`);
+        }
+      }
+    }
+    expect(autoliberadas).toEqual([]);
+  });
+
+  it("una ruta que no pide clave no puede prometer un 401", () => {
+    // `security: []` y `"401": Unauthorized` en la misma operación se contradicen
+    // en treinta líneas. El middleware devuelve 503 sin `API_KEY` y 401 solo con
+    // la clave puesta, y una ruta pública no llega ni a mirar la clave.
+    const contradictorias: string[] = [];
+    for (const ruta of PUBLICAS_DOCUMENTADAS) {
+      for (const operacion of operacionesDe(ruta)) {
+        const bloque = bloqueDeOperacion(ruta, operacion);
+        const autoliberada = bloque.some((l) => l.trim() === "security: []");
+        if (autoliberada && bloque.some((l) => l.includes("responses/Unauthorized"))) {
+          contradictorias.push(`${ruta} ${operacion}`);
+        }
+      }
+    }
+    expect(contradictorias).toEqual([]);
+  });
+
+  it("documenta al menos las cuatro de cines, que son las públicas de consumo externo", () => {
+    // Las que el OpenAPI publica para clientes móviles. Si mañana desaparecen
+    // del documento, quien integre contra él se queda sin saber que existen, y
+    // esta es la única señal de que la exención es deliberada.
+    for (const ruta of ["/api/cines", "/api/cines/boulevard", "/api/cines/florida"]) {
+      expect({ ruta, documentada: rutasDocumentadas().includes(ruta) }).toEqual({
+        ruta,
+        documentada: true,
+      });
+    }
+  });
+
+  it("el documento cubre las seis públicas que promete, de las diez del código", () => {
+    // Las cuatro que faltan —`/api/search`, `/api/vgbus`,
+    // `/api/push/subscribe` y `/api/farmacias`— no se documentan hoy. Este test
+    // no las exige: documentarlas es otra decisión, y tomarla aquí sería
+    // inventarse cuatro esquemas. Lo que fija es que la diferencia siga siendo
+    // cuatro y no seis, para que si alguien añade una quinta ruta pública sin
+    // documentarla, la deuda se vea en el número en vez de pasar desapercibida.
+    expect(PUBLICAS_DOCUMENTADAS.sort()).toEqual([
+      "/api/cines",
+      "/api/cines/boulevard",
+      "/api/cines/florida",
+      "/api/farmacias",
+      "/api/newsletter/confirm",
+      "/api/newsletter/subscribe",
+      "/api/newsletter/unsubscribe",
+    ]);
   });
 });

@@ -5,14 +5,22 @@ info:
     API pública de Gasteiz Click — agregador de eventos culturales de Vitoria-Gasteiz.
 
     ## Autenticación
-    Todos los endpoints (excepto newsletter) requieren una API key enviada via:
+    La mayoría de endpoints requieren una API key enviada via:
     - Header: `x-api-key: TU_API_KEY`
     - Query param: `?api_key=TU_API_KEY`
+
+    Las rutas marcadas con `security: []` no la requieren. Son las que consume la
+    propia web desde el navegador (que no puede mandar la clave), los enlaces del
+    newsletter, que llegan por correo, y las tres de cine, que se publican para
+    clientes móviles. La lista está en `lib/api-public-routes.ts` y
+    `__tests__/openapi.test.ts` la contrasta con este documento para que no
+    puedan divergir.
 
     ## Rate Limiting
     - 100 peticiones por minuto por IP
     - Headers de respuesta: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
     - Si se excede el límite: HTTP 429 con `Retry-After`
+    - El contador vive en memoria y solo corre en las rutas con API key
 
     ## Caché
     Las respuestas incluyen headers `Cache-Control`. Los clientes móviles deben respetarlos.
@@ -66,7 +74,7 @@ paths:
           in: query
           schema:
             type: string
-              enum: [municipal-agenda, municipal-teatro, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, mercado-abastos, miniature, buscametas-calendario, buscametas-inscripciones]
+            enum: [municipal-agenda, municipal-teatro, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, mercado-abastos, miniature, buscametas-calendario, buscametas-inscripciones]
           description: >-
             Filtrar por fuente. Los valores son los ids del registro de fuentes de la
             agenda agregada, no nombres de sala. La comparación es exacta y en minúsculas.
@@ -696,6 +704,7 @@ paths:
       tags: [cinema]
       summary: Cartelera combinada (Cine Florida + Yelmo Cines Boulevard)
       operationId: getCines
+      security: []
       responses:
         "200":
           description: Películas de ambos cines, cada una etiquetada con su cine
@@ -721,16 +730,13 @@ paths:
                             cine:
                               type: string
                               enum: [Florida, Boulevard]
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
 
   /api/cines/boulevard:
     get:
       tags: [cinema]
       summary: Cartelera de Yelmo Cines Boulevard
       operationId: getBoulevard
+      security: []
       responses:
         "200":
           description: Películas en cartelera
@@ -750,14 +756,13 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Pelicula"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   /api/cines/florida:
     get:
       tags: [cinema]
       summary: Cartelera de Cine Florida
       operationId: getFlorida
+      security: []
       responses:
         "200":
           description: Películas en cartelera
@@ -777,16 +782,13 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Pelicula"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
 
   /api/farmacias:
     get:
       tags: [sources]
       summary: Farmacias de guardia
       operationId: getFarmacias
+      security: []
       responses:
         "200":
           description: Lista de farmacias de guardia
@@ -796,8 +798,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Farmacia"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   /api/newsletter/subscribe:
     post:
