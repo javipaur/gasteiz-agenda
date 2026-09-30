@@ -1,47 +1,24 @@
-import { getCachedOrFetch } from "./cache";
-import { scrapeMunicipalCalendar } from "./sources/municipal";
-import { eventSlug } from "./slug";
-import type { Evento } from "./eventos";
+import { getAgendaEventos, type AgendaEvento } from "./agenda";
 
-type FuenteEvento = {
-  id?: string;
-  title?: string;
-  date?: string;
-  image?: string;
-  location?: string;
-  link?: string;
-};
+export type Evento = AgendaEvento;
 
-async function fetchKidsEventos(): Promise<Evento[]> {
-  const raw = (await scrapeMunicipalCalendar({ dest: ["infantil"] }).catch(
-    () => []
-  )) as FuenteEvento[];
-  return raw
-    .map((e) => {
-      const title = e.title ?? "Evento sin título";
-      const date = e.date ?? new Date().toISOString();
-      const link = e.link && e.link !== "#" ? e.link : "";
-      // `Evento` es `AgendaEvento` desde la T4, así que `slug` es obligatorio y
-      // `id` tiene que valer lo mismo. Este módulo entero se borra en la T7.
-      const slug = eventSlug({ title, date, link });
-      return {
-        id: slug,
-        slug,
-        title,
-        date,
-        image:
-          typeof e.image === "string" && e.image.startsWith("http")
-            ? e.image
-            : undefined,
-        location: e.location ?? "Vitoria-Gasteiz",
-        link,
-        category: "Infantil",
-        source: "vitoria-gasteiz",
-      };
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-}
+/**
+ * Vista infantil sobre el agregado: filtra por el tag `infantil` y nada más.
+ *
+ * Antes este módulo scrapeaba `dest: ["infantil"]` y lo cacheaba bajo
+ * `kids-eventos-mood`, mientras `app/kids/page.tsx` hacía lo mismo bajo
+ * `kids-eventos`. Dos listas para los mismos eventos, cada una con su
+ * `crypto.randomUUID()` de id, así que un favorito guardado desde /kids no
+ * coincidía con la tarjeta de la home.
+ *
+ * `category` se fuerza a "Infantil" porque es la etiqueta que pintan las fichas y
+ * la que leen los consumidores de esta vista; la entrada `municipal-infantil` no
+ * declara categoría en el registro, porque lo que la mete aquí es el tag.
+ */
+export async function getKidsEventos(): Promise<Evento[]> {
+  const agenda = await getAgendaEventos();
 
-export function getKidsEventos(): Promise<Evento[]> {
-  return getCachedOrFetch("kids-eventos-mood", 5 * 60 * 1000, fetchKidsEventos);
+  return agenda
+    .filter((ev) => ev.tags?.includes("infantil"))
+    .map((ev) => ({ ...ev, category: "Infantil" }));
 }

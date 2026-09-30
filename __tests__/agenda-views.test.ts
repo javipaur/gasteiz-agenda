@@ -100,3 +100,57 @@ describe("vista de deporte", () => {
     expect(ev.slug).toBe("x");
   });
 });
+
+describe("vista infantil", () => {
+  beforeEach(() => {
+    mockAgenda.mockResolvedValue([]);
+  });
+
+  it("filtra por el tag infantil y marca la categoría", async () => {
+    const { getKidsEventos } = await import("@/lib/kids");
+
+    mockAgenda.mockResolvedValue([
+      evento({
+        id: "a",
+        slug: "a",
+        source: "municipal-infantil",
+        category: "Otros",
+        tags: ["infantil"],
+      }),
+    ]);
+
+    const evs = await getKidsEventos();
+    expect(evs).toHaveLength(1);
+    expect(evs[0].tags).toContain("infantil");
+    expect(evs[0].category).toBe("Infantil");
+  });
+
+  it("deja fuera lo que no lleva el tag, aunque su categoría sea Infantil", async () => {
+    // `kind` y `tags` son ejes distintos de `category`: `municipal-infantil` no
+    // declara categoría, es el tag el que mete el evento en esta vista, y
+    // `municipal-deporte` no la trae aunque el scraping diga "infantil" en el texto.
+    const { getKidsEventos } = await import("@/lib/kids");
+
+    mockAgenda.mockResolvedValue([
+      evento({ id: "a", slug: "a", source: "municipal-infantil", tags: ["infantil"] }),
+      evento({ id: "b", slug: "b", source: "municipal-infantil", category: "Infantil" }),
+      evento({ id: "c", slug: "c", source: "municipal-deporte", category: "Deporte" }),
+      evento({ id: "d", slug: "d", source: "fiestas-blanca", tags: ["la-blanca"] }),
+    ]);
+
+    const evs = await getKidsEventos();
+    expect(evs.map((e) => e.id)).toEqual(["a"]);
+  });
+
+  it("no toca el id ni el slug del agregado", async () => {
+    const { getKidsEventos } = await import("@/lib/kids");
+
+    mockAgenda.mockResolvedValue([
+      evento({ id: "x", slug: "x", source: "municipal-infantil", tags: ["infantil"] }),
+    ]);
+
+    const [ev] = await getKidsEventos();
+    expect(ev.id).toBe("x");
+    expect(ev.slug).toBe("x");
+  });
+});
