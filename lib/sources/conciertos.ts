@@ -1,6 +1,4 @@
 import { scrapeJimmyJazz as scrapeJimmyJazzRaw } from "./jimmyjazz";
-import { scrapeHelldorado } from "./helldorado";
-import { scrapeMusikaze } from "./musikaze";
 
 export interface ConciertoEvent {
   title: string;
@@ -12,6 +10,18 @@ export interface ConciertoEvent {
   venue: string;
 }
 
+/**
+ * Jimmy Jazz con la forma que espera `/api/actividades/conciertos`.
+ *
+ * Este módulo ya no scrapea la cartelera de conciertos: eso lo hace el registro de
+ * `lib/source-registry.ts`, del que beben la home, `/conciertos` y `/culture`. Lo
+ * que queda es el envoltorio de la ruta de la API, que expone el recinto en un
+ * campo `venue` propio. Por eso sobrevive `lib/sources/conciertos.ts` después de que
+ * `scrapeAllConciertos()` y sus dos ayudantes privados dejaran de tener
+ * consumidores: borrarlo entero rompería el `import` de
+ * `app/api/actividades/conciertos/route.ts`, y cambiar esa ruta es parte de la Fase
+ * 2 de seguridad, con su propio plan.
+ */
 export async function scrapeJimmyJazz(): Promise<ConciertoEvent[]> {
   const events = await scrapeJimmyJazzRaw();
   return events.map((e) => ({
@@ -20,44 +30,4 @@ export async function scrapeJimmyJazz(): Promise<ConciertoEvent[]> {
     description: "",
     venue: "Jimmy Jazz Gasteiz",
   }));
-}
-
-async function scrapeHellDoradoEvents(): Promise<ConciertoEvent[]> {
-  const events = await scrapeHelldorado();
-  return events.map((e) => ({
-    ...e,
-    venue: "HellDorado",
-  }));
-}
-
-async function scrapeMusikazeEvents(): Promise<ConciertoEvent[]> {
-  const events = await scrapeMusikaze();
-  return events.map((e) => ({
-    ...e,
-    venue: e.location.includes("Jimmy Jazz") ? "Jimmy Jazz Gasteiz" : "Musikaze",
-  }));
-}
-
-export async function scrapeAllConciertos(): Promise<ConciertoEvent[]> {
-  const [jimmyJazz, helldorado, musikaze] = await Promise.allSettled([
-    scrapeJimmyJazz(),
-    scrapeHellDoradoEvents(),
-    scrapeMusikazeEvents(),
-  ]);
-
-  const all: ConciertoEvent[] = [];
-
-  if (jimmyJazz.status === "fulfilled") all.push(...jimmyJazz.value);
-  if (helldorado.status === "fulfilled") all.push(...helldorado.value);
-  if (musikaze.status === "fulfilled") all.push(...musikaze.value);
-
-  const seen = new Set<string>();
-  return all
-    .filter((e) => {
-      const key = `${e.title}|${e.date}`.toLowerCase().trim();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
