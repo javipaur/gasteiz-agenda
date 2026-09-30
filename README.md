@@ -36,6 +36,17 @@ Configurar en Dokploy o en `.env.local`:
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Misma clave pública VAPID (client-side) |
 | `ENABLE_PUSH_SCHEDULER` | `1` para habilitar el scheduler de push |
 | `PUSH_DIGEST_HOUR` | Hora del digest diario (formato 24h) |
+| `EMAIL_USER` | Cuenta SMTP Gmail que envía el newsletter. **Obligatoria en producción** |
+| `EMAIL_PASS` | Contraseña de aplicación de Gmail. **Obligatoria en producción** |
+| `NEXT_PUBLIC_SITE_URL` | URL base del sitio (newsletter, RSS, enlaces) |
+
+Sin `EMAIL_USER`/`EMAIL_PASS` el envío de correo **falla de forma explícita** en
+producción (`scripts/send-newsletter.ts` sale con código 1). Fuera de producción
+se registra en consola y no se envía nada, para poder desarrollar sin credenciales.
+
+> Antes de desplegar, comprueba que Dokploy tiene un volumen persistente montado.
+> `lib/db.ts` (suscriptores) y `.data/push.db` (push) escriben en disco; sin
+> volumen, ambos se pierden en cada redeploy.
 
 ## Estructura
 

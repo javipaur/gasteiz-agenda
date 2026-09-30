@@ -59,6 +59,11 @@ async function main() {
   }
 
   console.log(`[newsletter] ✅ ${sent} enviados, ❌ ${failed} fallos`);
+
+  // Salida distinta de cero para que un cron o Dokploy no lo tome por bueno.
+  if (failed > 0) {
+    process.exitCode = 1;
+  }
 }
 
 main().catch(console.error);
