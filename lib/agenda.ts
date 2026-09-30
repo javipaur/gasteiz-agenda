@@ -103,9 +103,15 @@ export async function aggregate(entries: readonly SourceEntry[]): Promise<Agenda
     if (!winner.location && ev.location) winner.location = ev.location;
   }
 
-  return [...byKey.values()].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  // Los cancelados se van despues del dedupe, no antes: manda la fuente que
+  // gana, que es la que mas se fia de la ficha. Antes se filtraban aqui mismo,
+  // solo que unicamente para La Blanca; sin este filtro un concierto anulado
+  // aparece en pantalla igual que uno que va a celebrarse, porque no hay badge
+  // de cancelado en ninguna tarjeta y lo unico que leeria el campo es el
+  // JSON-LD, que ademas declara lo contrario de lo que ve el usuario.
+  return [...byKey.values()]
+    .filter((ev) => !ev.cancelled)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 async function fetchAllAgenda(): Promise<AgendaEvento[]> {

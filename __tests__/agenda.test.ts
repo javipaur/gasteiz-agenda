@@ -158,6 +158,32 @@ describe("aggregate", () => {
     ]);
     expect(evs.map((e) => e.title)).toEqual(["Temprano", "Tarde"]);
   });
+
+  it("descarta los eventos cancelados", async () => {
+    // Sin este filtro un concierto anulado se ve en pantalla igual que uno que
+    // va a celebrarse: no hay badge de cancelado en ninguna tarjeta, y lo unico
+    // que leeria el campo es el JSON-LD de lib/seo.tsx, que ademas declara lo
+    // contrario de lo que ve el usuario.
+    const evs = await aggregate([
+      entry({ run: async () => [
+        BASE,
+        { ...BASE, title: "Cancelado", link: "https://e/c", cancelled: true },
+      ] }),
+    ]);
+    expect(evs.map((e) => e.title)).toEqual(["Concierto de prueba"]);
+  });
+
+  it("filtra despues del dedupe: manda el cancelado de la fuente que gana", async () => {
+    // El filtro va despues del dedupe a proposito, asi que si la fuente de mayor
+    // confianza dice que esta cancelado el evento desaparece aunque otra fuente,
+    // mas pobre, lo siga listando. Mover el filtro antes del dedupe lo traeria
+    // de vuelta con la ficha incompleta de la otra fuente.
+    const evs = await aggregate([
+      entry({ id: "fiable", priority: 0, run: async () => [{ ...BASE, cancelled: true }] }),
+      entry({ id: "pobre", priority: 4, run: async () => [{ ...BASE, link: "https://e/b" }] }),
+    ]);
+    expect(evs).toHaveLength(0);
+  });
 });
 
 describe("invariante: toda tarjeta tiene detalle", () => {
