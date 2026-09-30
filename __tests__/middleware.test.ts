@@ -279,3 +279,135 @@ describe("el comportamiento, no solo el predicado", () => {
     });
   });
 });
+
+/**
+ * Que el middleware llegue a ejecutarse.
+ *
+ * Todo lo de arriba llama a `middleware(request)` a mano, así que la mitad de la
+ * política —la que decide a qué rutas se le llama— era invisible para la suite.
+ * Es el punto de mayor apalancamiento y el que menos red tenía: si
+ * `config.matcher` se cambiara a `"/api/v1/:path*"`, las 324 pruebas habrían
+ * seguido en verde y `/api/fever` habría vuelto a estar abierta. Y si el
+ * middleware dejara de registrarse —Next 16.2.1 ya avisa de que el convenio
+ * pasa a ser `proxy`— igual: verde por aquí, API entera abierta por ahí.
+ *
+ * Este test cubre la primera mitad. La segunda, la de que se registre de verdad,
+ * solo se puede comprobar contra un servidor, y por eso los dos casos e2e de
+ * abajo no llevan skip: sin `API_KEY` en el proceso de Playwright corren igual,
+ * que es justo cuando no hay que depender de la configuración local.
+ */
+
+/** Los `source` de `config.matcher`, venga como venga declarado. */
+function sourcesDelMatcher(config: unknown): string[] {
+  const matcher = (config as { matcher?: unknown } | undefined)?.matcher;
+  if (typeof matcher === "string") return [matcher];
+  if (Array.isArray(matcher)) {
+    return matcher.map((m) => (typeof m === "string" ? m : (m as { source: string }).source));
+  }
+  throw new Error("config.matcher no es ni un string ni una lista");
+}
+
+/**
+ * `path-to-regexp`, que es lo que usa Next para el `matcher`, limitado a lo que
+ * aparece en él: `:param*` admite cero o más segmentos y `:param` uno solo.
+ *
+ * La barra va dentro del patrón a propósito, porque `path-to-regexp` la consume:
+ * `/api/:path*` es `/api` seguido de cero o más segmentos, no `/api/` seguido de
+ * cero o más. Si se deja la barra fuera, el patrón queda `^/api/(?:/...)?` con
+ * dos barras y no casa ni con `/api/farmacias`. Así se mostró en la primera
+ * versión del helper: tres tests en rojo y ningún cambio de producción detrás.
+ */
+function matcherEncaja(source: string, pathname: string): boolean {
+  const patron = new RegExp(
+    "^" +
+      source
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\/:[A-Za-z0-9_]+\*/g, "(?:/[^]*)?")
+        .replace(/\/:[A-Za-z0-9_]+/g, "/[^/]+") +
+      "$"
+  );
+  return patron.test(pathname);
+}
+
+describe("config.matcher", () => {
+  function matcher(): string[] {
+    jest.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("@/middleware") as typeof import("@/middleware");
+    return sourcesDelMatcher(mod.config);
+  }
+
+  it("existe, y el middleware se exporta como función", () => {
+    // Sin esto, Next registra el middleware igual y no pasa nada —hasta que se
+    // rompe por otra causa y el aviso aparece enterrado en un log de build.
+    jest.resetModules();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("@/middleware") as typeof import("@/middleware");
+    expect(typeof mod.middleware).toBe("function");
+    expect(mod.config).toBeDefined();
+    expect(matcher().length).toBeGreaterThan(0);
+  });
+
+  it("cubre las cuarenta rutas de API que hay en el disco", () => {
+    const sources = matcher();
+    const rutas = rutasEnDisco();
+    expect(rutas.length).toBeGreaterThanOrEqual(40);
+
+    const sinCubrir = rutas.filter(
+      (ruta) => !sources.some((s) => matcherEncaja(s, ruta))
+    );
+    expect(sinCubrir).toEqual([]);
+  });
+
+  it("cubre tanto las públicas como las protegidas, que es donde importa", () => {
+    // Si el matcher cubriera solo unas pocas, el error silencioso sería el peor:
+    // las pruebas unitarias seguirían en verde porque llaman al middleware a
+    // mano, y en producción algunas rutas estarían abiertas y otras cerradas sin
+    // que nadie lo note.
+    const sources = matcher();
+    const publicas = rutasEnDisco().filter(isPublicApiRoute);
+    const protegidas = rutasEnDisco().filter((r) => !isPublicApiRoute(r));
+    expect(publicas.length).toBeGreaterThan(0);
+    expect(protegidas.length).toBeGreaterThan(20);
+
+    for (const ruta of [...publicas, ...protegidas]) {
+      expect({ ruta, cubierta: sources.some((s) => matcherEncaja(s, ruta)) }).toEqual({
+        ruta,
+        cubierta: true,
+      });
+    }
+  });
+
+  it("cubre la ruta pelada y la query, que también llegan al middleware", () => {
+    // `/api` a secas no es una ruta nuestra, pero `:path*` admite cero segmentos
+    // y es mejor que el matcher la coja: si mañana alguien define `app/api/route.ts`
+    // sin querer, entra en la política en vez de quedarse fuera.
+    for (const ruta of ["/api", "/api/", "/api/farmacias", "/api/cines/boulevard"]) {
+      expect({ ruta, cubierta: matcher().some((s) => matcherEncaja(s, ruta)) }).toEqual({
+        ruta,
+        cubierta: true,
+      });
+    }
+  });
+
+  it("no toca nada fuera de `/api`, para no gastar trabajo en cada página", () => {
+    for (const ruta of [
+      "/",
+      "/agenda/2026-10",
+      "/evento/noche-de-piano",
+      "/_next/image",
+      "/favicon.ico",
+      "/feed.xml",
+      "/sitemap.xml",
+      // Y estos dos, que es donde un `startsWith` mal puesto se habría colado.
+      "/api-docs",
+      "/apidocs",
+    ]) {
+      expect({ ruta, cubierta: matcher().some((s) => matcherEncaja(s, ruta)) }).toEqual({
+        ruta,
+        cubierta: false,
+      });
+    }
+  });
+});
+
