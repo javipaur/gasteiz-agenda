@@ -1,96 +1,32 @@
-import { getCachedOrFetch } from "./cache";
-import { scrapeMunicipalCalendar } from "./sources/municipal";
-import {
-  scrapeBuscametasCalendario,
-  scrapeBuscametasInscripciones,
-} from "./sources/buscametas";
-import { scrapeSenderismo } from "./sources/senderismo";
-import { eventSlug } from "./slug";
-import type { Evento } from "./eventos";
+import { getAgendaEventos, type AgendaEvento } from "./agenda";
 
-type FuenteEvento = {
-  id?: string;
-  title?: string;
-  date?: string;
-  image?: string;
-  location?: string;
-  poblacion?: string;
-  link?: string;
-};
+export type Evento = AgendaEvento;
 
-function toEvento(e: FuenteEvento, category: string, source: string): Evento {
-  const date = e.date ?? new Date().toISOString();
-  const title = e.title ?? "Sin título";
-  const link = e.link && e.link !== "#" ? e.link : "";
-  // `Evento` es `AgendaEvento` desde la T4, así que `slug` es obligatorio y `id`
-  // tiene que valer lo mismo: un `crypto.randomUUID()` aquí no compila contra el
-  // detalle y hacía que los favoritos de /deporte no coincidieran con los de la
-  // home. Este módulo entero se borra en la T6.
-  const slug = eventSlug({ title, date, link });
-  return {
-    id: slug,
-    slug,
-    title,
-    date,
-    image:
-      typeof e.image === "string" && e.image.startsWith("http")
-        ? e.image
-        : undefined,
-    location: e.location ?? e.poblacion ?? "Vitoria-Gasteiz",
-    link,
-    category,
-    source,
-  };
-}
+/**
+ * Los cuatro tramos que `SportPageClient` sabe filtrar. Es una lista blanca y
+ * coincides con el `CATEGORIES` del componente: un `kind` nuevo se descarta aquí,
+ * porque mostrarse con una etiqueta que ninguna pill filtra es peor que no
+ * mostrarse.
+ */
+const TRAMOS = new Set(["agenda", "calendario", "inscripciones", "excursiones"]);
 
-async function fetchDeporteEventos(): Promise<Evento[]> {
-  const [agenda, calendario, inscripciones, excursiones] = await Promise.allSettled([
-    scrapeMunicipalCalendar({ calendariosID: 168 }),
-    scrapeBuscametasCalendario(),
-    scrapeBuscametasInscripciones(),
-    scrapeSenderismo(),
-  ]);
+/**
+ * Vista de deporte sobre el agregado: no scrapea, filtra.
+ *
+ * Antes este módulo corría cuatro scrapers y los cacheaba bajo
+ * `deporte-eventos-mood`, y `app/deporte/page.tsx` hacía lo mismo otra vez bajo
+ * `deporte-eventos`: dos fuentes de verdad para los mismos eventos, con
+ * `crypto.randomUUID()` por id. Ahora las dos leen el mismo agregado.
+ *
+ * `category` se sobrescribe con `kind` porque es lo que el componente cliente
+ * filtra y lo que pintaba la etiqueta de la tarjeta. El tipo dice `category:
+ * string` y aquí vale "agenda": es un truthy, no una taxonomía. La categoría real
+ * no se tira, vive en el evento del agregado.
+ */
+export async function getDeporteEventos(): Promise<Evento[]> {
+  const agenda = await getAgendaEventos();
 
-  const eventos: Evento[] = [];
-
-  if (agenda.status === "fulfilled") {
-    eventos.push(
-      ...(agenda.value as FuenteEvento[]).map((e) =>
-        toEvento(e, "Agenda", "vitoria-gasteiz")
-      )
-    );
-  }
-  if (calendario.status === "fulfilled") {
-    eventos.push(
-      ...(calendario.value as FuenteEvento[]).map((e) =>
-        toEvento(e, "Calendario", "buscametas")
-      )
-    );
-  }
-  if (inscripciones.status === "fulfilled") {
-    eventos.push(
-      ...(inscripciones.value as FuenteEvento[]).map((e) =>
-        toEvento(e, "Inscripciones", "buscametas")
-      )
-    );
-  }
-  if (excursiones.status === "fulfilled") {
-    eventos.push(
-      ...(excursiones.value as FuenteEvento[]).map((e) =>
-        toEvento(e, "Senderismo", "cm-gazteiz")
-      )
-    );
-  }
-
-  return eventos.sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-}
-
-export function getDeporteEventos(): Promise<Evento[]> {
-  return getCachedOrFetch(
-    "deporte-eventos-mood",
-    5 * 60 * 1000,
-    fetchDeporteEventos
-  );
+  return agenda
+    .filter((ev) => ev.kind && TRAMOS.has(ev.kind))
+    .map((ev) => ({ ...ev, category: ev.kind as string }));
 }

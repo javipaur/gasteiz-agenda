@@ -6,11 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
-import { eventSlug } from "@/lib/slug";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
   id: string;
+  slug: string;
   title: string;
   date: string;
   image?: string;
@@ -110,7 +110,7 @@ export default function SportPageClient({
                 delay={Math.min(index * 0.04, 0.4)}
               >
                 <Link
-                  href={`/evento/${eventSlug(evento)}`}
+                  href={`/evento/${evento.slug}`}
                   className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
                 >
                   <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
