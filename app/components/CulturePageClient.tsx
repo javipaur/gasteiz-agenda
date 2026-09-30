@@ -6,13 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
-import { eventSlug } from "@/lib/slug";
 import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura-sources";
 import { isTicketSource } from "@/lib/tickets";
+import { sourceGroup } from "@/lib/source-data";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
   id: string;
+  slug: string;
   title: string;
   date: string;
   image?: string;
@@ -21,6 +22,23 @@ type Evento = {
   category: string;
   source: string;
 };
+
+/**
+ * Puntos extra por familia de fuente en el orden de "Populares", indexados por el
+ * `group` del registro y no por id. Los tres números son los de antes.
+ *
+ * Por qué por familia: una fuente puede tener variantes, y los conciertos de VAM
+ * entran en `/culture` como `vam-conciertos`, no como `vam`. Con un
+ * `e.source === "vam"` no casaba nunca y los conciertos de VAM se quedaban con los
+ * tres puntos de la cola. Con `sourceGroup`, la variante y la familia se puntúan
+ * igual y una variante nueva hereda el peso sin tocar este fichero.
+ */
+const PESO_FAMILIA: Partial<Record<string, number>> = {
+  fever: 8,
+  jimmyjazz: 6,
+  vam: 6,
+};
+const PESO_FAMILIA_POR_DEFECTO = 3;
 
 const CATEGORIES = [
   { key: "all", label: "Todos" },
@@ -73,9 +91,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
         const days = Math.max(0, Math.round((new Date(e.date).getTime() - today) / 86400000));
         let s = 60 - days;
         if (e.image) s += 8;
-        if (e.source === "fever") s += 8;
-        else if (e.source === "jimmyjazz" || e.source === "vam") s += 6;
-        else s += 3;
+        s += PESO_FAMILIA[sourceGroup({ id: e.source })] ?? PESO_FAMILIA_POR_DEFECTO;
         if (e.category === "exposiciones") s += 3;
         return s;
       };
@@ -215,7 +231,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
                 >
                   <div className="double-bezel rounded-xl overflow-hidden">
                   <Link
-                    href={`/evento/${eventSlug(evento)}`}
+                    href={`/evento/${evento.slug}`}
                     className="block focus-visible:outline-2 focus-visible:outline-accent"
                   >
                     <div className="aspect-[4/3] relative">

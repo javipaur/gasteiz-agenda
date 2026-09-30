@@ -19,9 +19,12 @@ import { CULTURE_SOURCE_IDS } from "@/lib/source-data";
 
 const mockAgenda = getAgendaEventos as jest.MockedFunction<typeof getAgendaEventos>;
 
+// `id` y `slug` distintos a propósito. Con los dos iguales, una vista que los
+// intercambiara —o que se inventara un id— pasaría el test sin que se notara, que
+// es el bug de `/evento/[slug]` que esta vista podía reintroducir.
 const BASE = {
-  id: "e1",
-  slug: "e1",
+  id: "codigo-jimmy-jazz-8891",
+  slug: "concierto-2027-03-15-abc123",
   title: "Evento de prueba",
   date: "2027-03-15T20:00:00.000Z",
   location: "Vitoria-Gasteiz",
@@ -132,22 +135,37 @@ describe("getCultureEventos como vista del agregado", () => {
     expect(evs.map((e) => e.source)).toEqual(["municipal-agenda"]);
   });
 
-  it("conserva el resto del evento y no toca el id", async () => {
+  it("reproduce id y slug del agregado, y conserva el resto del evento", async () => {
+    // La vista no rehace el evento: si tocara `id` o `slug`, el enlace de la
+    // tarjeta daría 404 contra `/evento/[slug]`, que resuelve en el agregado. La
+    // matriz `[id, slug]` de los dos eventos cubre las tres cosas a la vez: que
+    // cada campo conserve su valor (si los intercambiara, saldrían cruzados), que
+    // no se cuele ninguno de fuera y que no se caiga ninguno.
     mockAgenda.mockResolvedValue([
       evento({
+        id: "codigo-jimmy-jazz-8891",
+        slug: "concierto-2027-03-15-abc123",
         source: "jimmyjazz",
         category: "Música",
         image: "https://cdn/x.jpg",
         description: "Concierto de prueba",
       }),
+      evento({
+        id: "codigo-vam-1207",
+        slug: "vam-2027-03-20-def456",
+        source: "vam-conciertos",
+        category: "Música",
+      }),
+      // Fuera de la vista: `buscametas-calendario` no es fuente de cultura.
+      evento({ id: "codigo-buscametas-3311", slug: "carrera-2027-03-15-ef789", source: "buscametas-calendario" }),
     ]);
 
-    const [ev] = await getCultureEventos();
-    // La vista no rehace el evento: si tocara `id` o `slug`, el enlace de la
-    // tarjeta daría 404 contra `/evento/[slug]`, que resuelve en el agregado.
-    expect(ev.id).toBe(BASE.id);
-    expect(ev.slug).toBe(BASE.slug);
-    expect(ev.image).toBe("https://cdn/x.jpg");
-    expect(ev.description).toBe("Concierto de prueba");
+    const evs = await getCultureEventos();
+    expect(evs.map((e) => [e.id, e.slug])).toEqual([
+      ["codigo-jimmy-jazz-8891", "concierto-2027-03-15-abc123"],
+      ["codigo-vam-1207", "vam-2027-03-20-def456"],
+    ]);
+    expect(evs[0].image).toBe("https://cdn/x.jpg");
+    expect(evs[0].description).toBe("Concierto de prueba");
   });
 });

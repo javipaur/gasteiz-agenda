@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { getCultureEventos } from "@/lib/cultura";
 import { CULTURA_CATEGORIAS, CulturaCategoriaSlug } from "@/lib/categories";
 import { isTicketSource } from "@/lib/tickets";
-import { eventSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -60,10 +59,10 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
     <>
       <JsonLd
         data={itemListJsonLd(
-          eventos
-            .filter((e) => e.link)
-            .slice(0, 50)
-            .map((e) => ({ ...e, slug: eventSlug(e) })),
+          // El slug viene resuelto en el evento: la tarjeta de abajo enlaza con
+          // `evento.slug` y el detalle resuelve en el agregado, así que aquí no
+          // hay nada que recalcular ni que pueda separarse de él.
+          eventos.filter((e) => e.link).slice(0, 50),
           `${label} en Vitoria-Gasteiz`,
           `/culture/${categoria}`
         )}
@@ -114,7 +113,7 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
                   className="group rounded-2xl border border-border bg-surface p-5 block hover:border-accent/40 transition-all duration-300"
                 >
                   <Link
-                    href={`/evento/${eventSlug(evento)}`}
+                    href={`/evento/${evento.slug}`}
                     className="block focus-visible:outline-2 focus-visible:outline-accent"
                   >
                     {evento.category && (

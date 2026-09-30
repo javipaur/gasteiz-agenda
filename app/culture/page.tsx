@@ -2,8 +2,7 @@ export const revalidate = 300;
 
 import type { Metadata } from "next";
 import CulturePageClient from "../components/CulturePageClient";
-import { getCultureEventos, CulturaEvento } from "@/lib/cultura";
-import { eventSlug } from "@/lib/slug";
+import { getCultureEventos } from "@/lib/cultura";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
 type PageProps = {
@@ -37,10 +36,12 @@ export default async function CulturePage() {
     <>
       <JsonLd
         data={itemListJsonLd(
-          eventos
-            .filter((e) => e.link)
-            .slice(0, 50)
-            .map((e) => ({ ...e, slug: eventSlug(e), id: eventSlug(e) })),
+          // El slug lo resuelve el agregado y viene en el evento. Antes esta línea
+          // lo recalculaba y además pisaba el `id` con el slug, con lo que el
+          // JSON-LD declaraba un id que ningún evento tenía. `/evento/[slug]`
+          // resuelve contra el agregado, así que si el cálculo se separara de él
+          // el enlace daría 404.
+          eventos.filter((e) => e.link).slice(0, 50),
           "Agenda cultural de Vitoria-Gasteiz",
           "/culture"
         )}

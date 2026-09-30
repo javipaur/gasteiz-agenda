@@ -56,14 +56,20 @@ paths:
           in: query
           schema:
             type: string
-          description: Filtrar por categoría (ej: conciertos, teatro, exposiciones, infantil, cine, deporte)
-          example: teatro
+            enum: [Música, Teatro, Cine, Exposiciones, Infantil, Deporte, Danza, Festival, Conferencias, Fiestas, Visitas, Talleres, Gastronomía, Senderismo, Otros]
+          description: >-
+            Filtrar por categoría. La comparación es por subcadena en minúsculas, así que
+            también entran valores parciales; el enum lista las quince categorías
+            canónicas que emite la agenda.
+          example: Música
         - name: source
           in: query
           schema:
             type: string
-            enum: [fever, rula, gasteizhoy, vam, vitoria-gasteiz, euskadi]
-          description: Filtrar por fuente de datos
+            enum: [municipal-agenda, municipal-teatro, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, miniature, buscametas-calendario, buscametas-inscripciones]
+          description: >-
+            Filtrar por fuente. Los valores son los ids del registro de fuentes de la
+            agenda agregada, no nombres de sala. La comparación es exacta y en minúsculas.
           example: fever
         - name: search
           in: query
@@ -122,7 +128,7 @@ paths:
                     image: "https://example.com/img.jpg"
                     location: "Plaza España, Vitoria-Gasteiz"
                     link: "https://feverup.com/event/123"
-                    category: "Conciertos"
+                    category: "Música"
                     source: "fever"
                     time: "20:00"
                     description: "Noche de jazz en la plaza principal"
@@ -818,7 +824,10 @@ components:
           description: Categoría del evento
         source:
           type: string
-          description: Fuente de datos (fever, rula, gasteizhoy, vam, vitoria-gasteiz, euskadi)
+          description: >-
+            Fuente de datos. Los valores son los ids del registro de fuentes, no nombres
+            de sala ni de sede; el enum del parámetro `source` de `/api/v1/events` los
+            lista todos.
         time:
           type: string
           description: Hora del evento
@@ -862,7 +871,7 @@ components:
           type: string
         category:
           type: string
-          enum: [Conciertos, Cine, Teatro, Exposiciones, Visitas, Gastronomía, Infantil, Talleres, Deporte, Cultura]
+          enum: [Música, Teatro, Cine, Exposiciones, Infantil, Deporte, Danza, Festival, Conferencias, Fiestas, Visitas, Talleres, Gastronomía, Senderismo, Otros]
 
     RulaEvent:
       type: object
@@ -956,7 +965,7 @@ components:
           type: string
         date:
           type: string
-          description: Fecha legible (ej: "Viernes 18 Julio 2026")
+          description: 'Fecha legible (ej: "Viernes 18 Julio 2026")'
         location:
           type: string
         image:
@@ -997,7 +1006,7 @@ components:
           type: array
           items:
             type: string
-          description: Lista de horarios (ej: ["16:30", "19:00", "21:30"])
+          description: 'Lista de horarios (ej: ["16:30", "19:00", "21:30"])'
 
     ArkabiaEvento:
       type: object
@@ -1013,7 +1022,7 @@ components:
           type: string
         fecha:
           type: string
-          description: Rango de fechas mostrado (ej: "04/06 - 13/10/2026")
+          description: 'Rango de fechas mostrado (ej: "04/06 - 13/10/2026")'
         precio:
           type: string
           description: Precio o "GRATIS"
