@@ -9,7 +9,7 @@ sueltos, PWA, push, newsletter. Se despliega en Dokploy con `nixpacks.toml`
 
 ```bash
 npm run dev            # localhost:3000
-npm test               # Jest, 35 suites / 248 tests
+npm test               # Jest, 40 suites / 366 tests
 npm run lint           # ESLint (ver "baseline de lint")
 npm run build
 npx tsc --noEmit --incremental false   # typecheck real
@@ -18,9 +18,13 @@ npm run test:e2e       # Playwright
 
 ## Estado (2026-09-30)
 
-Rebrand F0/F1 y Fase 1 de la unificación de la agenda, commiteados y
-verificados. Baseline verde: `tsc` 0 errores, 248/248 tests, `build` exit 0, 64
-problemas de lint (48 `no-explicit-any` preexistentes en scrapers).
+Rebrand F0/F1, unificación de la agenda (Fase 1) y seguridad (Fase 2) cerrados,
+commiteados, revisados y **desplegados en producción**. Baseline verde: `tsc` 0
+errores, 366/366 tests, `build` exit 0, 64 problemas de lint (48
+`no-explicit-any` preexistentes en scrapers), chunks de cliente 1.081 KB.
+
+Dos cosas siguen abiertas y **no son de código**: la rotación del token MEC en
+el servidor de La Genterula, y confirmar el volumen persistente en Dokploy.
 
 ## Hecho: la agenda unificada (Fase 1)
 
@@ -103,25 +107,22 @@ todavía; la ruta de Civitatis es aparte a propósito.
 
 ### Fases que quedan
 
-2. **Seguridad** — `subscribers.json` fuera de git, fail-closed sin `API_KEY`,
-   coincidencia exacta en `PUBLIC_API_ROUTES` (hoy `startsWith("/api/actividades")`
-   abre ~20 endpoints), CORS e `images.remotePatterns` con lista blanca,
-   `security: []` en `openapi.yaml` para las 8 rutas públicas, validar token en
-   `/api/newsletter/confirm`. Se sabe ya que `middleware.ts` sigue con el
-   convenio antiguo (`next build` avisa: usar `proxy`), y que
-   `app/api/actividades/route.ts`, `navidad/route.ts` y `senderismo/route.ts`
-   emiten `source: "vitoria-gasteiz"` y `"cm-gazteiz"`, ids que no son del
-   registro y que el enum de `openapi.yaml` no documenta.
-3. **Consolidación** — unificar el `beforeinstallprompt` triplicado, arreglar
-   regex rotos (`"visitias guiadas"`, `m[uú]sica`), fechas de La Blanca no
-   hardcodeadas, y `app/api/actividades/tours` y `tardeo` que responden
-   `source: "agregado"`. Los dos ficheros muertos (`app/types.ts`,
-   `lib/safeFetch.ts`) ya se borraron en la Fase 1.
-4. **Red de seguridad** — `jsdom` + tests de componentes, tests de
-   `middleware`/`push`/`db`/`email`, `/api/cron/send-newsletter`, ESLint.
-   Y cerrar de verdad el test del huso horario: hoy avisa por consola cuando el
-   runner está en UTC, porque en UTC `localDateKey(d)` y `d.slice(0,10)` son la
-   misma función y ningún test puede distinguirlas.
+3. **Consolidación** — unificar el `beforeinstallprompt`, que sigue duplicado en
+   `Header.tsx` (4 sitios) e `InstallBanner.tsx` (2) aunque `lib/useInstallPrompt.ts`
+   ya exista; fechas de La Blanca no hardcodeadas
+   (`lib/sources/fiestas-blanca.ts:12-13` fija `2026-07-15`/`2026-08-10`, y se
+   desincronizará solo); `app/api/actividades/tours` y `tardeo` que responden
+   `source: "agregado"`, que no es un id del registro; y
+   `app/api/actividades/{route,navidad/route,senderismo/route}.ts` que emiten
+   `source: "vitoria-gasteiz"` y `"cm-gazteiz"`, ids que tampoco son del registro.
+   Los dos ficheros muertos (`app/types.ts`, `lib/safeFetch.ts`) ya se borraron.
+4. **Red de seguridad** — `jsdom` + tests de componentes (hoy `testEnvironment:
+   "node"` y cero tests de React), tests de `push`/`email` (los de `middleware` y
+   `db` ya existen), `/api/cron/send-newsletter` (el script ya lo referencia y no
+   existe), y el baseline de ESLint. Y cerrar de verdad el test del huso horario:
+   hoy avisa por consola cuando el runner está en UTC, porque en UTC
+   `localDateKey(d)` y `d.slice(0,10)` son la misma función y ningún test puede
+   distinguirlas.
 
 Fuera de alcance, anotado para que no se pierda: el rate limit en `Map`
 in-memory no se arregla sin store compartido.
@@ -129,13 +130,14 @@ in-memory no se arregla sin store compartido.
 ## Trampas del repo
 
 - **Nada alcanzable desde un componente cliente llega a un módulo de servidor.**
-  Hay dos caminos y los dos importan: `lib/sources/` (los scrapers, y con ellos
-  el token MEC de La Genterula) y `lib/og-image.ts` (que importa `cheerio`, son
-  148,2 KB de chunk, y solo usa un scraper de servidor). El grafo de imports de
-  `__tests__/source-data.test.ts` los recorre desde las 44 raíces `"use client"`.
+  Hay dos caminos y los dos importan: `lib/sources/` (los scrapers) y cualquier
+  cosa que importe `cheerio`. El grafo de imports de
+  `__tests__/source-data.test.ts` los recorre desde todas las raíces `"use client"`.
   Es el mismo patrón hoja/composición: datos sin imports en un lado, scrapers en
   la composición. Un `import * as paquete` no se poda aunque nadie use el
-  paquete: Turbopack dejó 148 KB de cheerio en el cliente durante semanas.
+  paquete: Turbopack dejó 148 KB de cheerio en el cliente durante semanas, y
+  cuando se movió `fetchOgImage` a un módulo de servidor el chunk desapareció
+  entero. Ese es el patrón a seguir cuando algo grande se cuele.
 - **La regla de ESLint `no-restricted-imports` protege el slug.**
   Prohíbe importar `eventSlug` a pelo en `app/`, `lib/` y `scripts/`, con
   `importNames` para que siga al símbolo aunque se renombre al importar
@@ -162,13 +164,23 @@ in-memory no se arregla sin store compartido.
   `tsc` aborta en fase de parseo sin reportar ningún error real, lo que parece un
   typecheck roto cuando no lo está. Se arregla borrando `.next/dev` y pidiendo
   una página al server.
-- **Rula descarga 8,7 MB y nunca se cachea** (`lib/sources/rula.ts:42`): Next no
-  cachea fetches de más de 2 MB. La unificación eliminó la duplicación, no la
-  descarga. Y el token MEC de la línea 2 sigue hardcodeado: sacarlo del código no
-  lo revoca, hay que rotarlo en el servidor.
+- **Rula descarga 6,5 MB por petición** (`lib/sources/rula.ts`): Next no cachea
+  fetches de más de 2 MB, así que la entrada del registro declara
+  `cacheTtlMs` y su `run` se cachea por su cuenta. Con TTL de 2 h son ~79 MB al
+  día en vez de 1,9 GB. Y `lib/cache.ts` deduplica peticiones en vuelo, para que
+  una caché fría no dispare N descargas a la vez. El coste es que **un fallo
+  puntual de una fuente se queda cacheado 2 h**; `scrapeRula` avisa por consola
+  y devuelve vacío si falta `MEC_TOKEN`, en vez de gastar 6,5 MB en un 500.
+- **El token MEC viene de `MEC_TOKEN`, no del código, y no es un secreto.**
+  Medido: sin token o con uno falso la API responde 500, y no hay ruta pública
+  que lo sustituya (`wp-json/wp/v2/mec-events` responde sin token pero su
+  `content` es solo la descripción, sin fecha, hora ni lugar). Kiosko Cultura lo
+  publica en su bundle JS. Sacarlo del código no lo revoca ni lo saca del
+  historial de git: hay que pedir a La Genterula que lo revoque.
 - **`.data/push.db` y `data/subscribers.json` escriben en disco** y se pierden en
   cada redeploy si Dokploy no tiene volumen persistente montado. No es
-  verificable desde el repo. `README.md` lo advierte.
+  verificable desde el repo. `README.md` lo advierte. `subscribers.json` además
+  ya no está versionado y su ruta sale de `SUBSCRIBERS_PATH`.
 - **El envío de correo falla de forma explícita en producción** si faltan
   `EMAIL_USER`/`EMAIL_PASS` (`lib/mail.ts`): devuelve `ok: false` y
   `scripts/send-newsletter.ts` sale con código 1. Fuera de producción hace mock.
