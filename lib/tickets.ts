@@ -1,4 +1,4 @@
-import { SOURCE_REGISTRY } from "./source-registry";
+import { SOURCE_DATA } from "./source-data";
 
 /**
  * Ids de las fuentes donde el botón dice "Comprar entradas" en vez de "Más
@@ -13,7 +13,7 @@ import { SOURCE_REGISTRY } from "./source-registry";
  * solo agrega no las vende por sí misma.
  */
 export const TICKET_SOURCES: ReadonlySet<string> = new Set(
-  SOURCE_REGISTRY.filter((e) => e.tickets).map((e) => e.id)
+  SOURCE_DATA.filter((e) => e.tickets).map((e) => e.id)
 );
 
 export function isTicketSource(source?: string): boolean {

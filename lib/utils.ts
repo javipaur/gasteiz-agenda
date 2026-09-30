@@ -1,13 +1,10 @@
 import * as cheerio from "cheerio";
-// AVISO: este import mete los 19 scrapers en el grafo de cliente, porque
-// `lib/shared.tsx` es "use client" y llama a `sourceLabel`. Medido en `next
-// build`: el chunk compartido de la home pasa de 146 KB a 403 KB, +257 KB de
-// parsing con cheerio que el navegador nunca usa. La solución es mover los datos
-// del registro (id, label, group, priority, kind, tags, culture, tickets) a un
-// módulo hoja sin scrapers y dejar aquí solo los `run`, conservando los mismos
-// exports. No se ha hecho en esta tarea porque reordena
-// `lib/source-registry.ts`, que ya está cerrado y revisado.
-import { SOURCE_LABELS } from "./source-registry";
+// Importa de `source-data` y no de `source-registry` a propósito: este fichero
+// lo carga `lib/shared.tsx`, que es "use client", así que llegar al registro
+// compuesto arrastraría los 19 scrapers al navegador (+257 KB de chunk, medido).
+// El token de la API MEC de La Genterula venía dentro. La regla la comprueba
+// `__tests__/source-data.test.ts`.
+import { SOURCE_LABELS } from "./source-data";
 
 const ogImageCache = new Map<string, string | undefined>();
 
