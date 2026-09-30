@@ -20,6 +20,7 @@
 - La vista `/deporte` adopta el vocabulario del componente cliente: `agenda | calendario | inscripciones | excursiones`.
 - `category` se normaliza siempre con `normalizeCategory`; toda categoría resultante debe tener entrada en `CATEGORY_COLORS`.
 - Todo `sourceId` del registro tiene su `label` y su caso en `sourceLabel`.
+- **`SOURCE_LABELS` se indexa por `id`, nunca por `group`.** Siete variantes municipales comparten `label: "Ayuntamiento"`, así que un `Record` construido sobre `group` las fundiría y el bug de etiquetas reaparecería con otro nombre.
 - Comandos de verificación: `npm test`, `npx tsc --noEmit --incremental false`, `npm run lint`, `npm run build`.
 - `npm run build` descarga 8,7 MB de Rula cuatro veces. Es un problema preexistente y con fecha de aviso, no lo reintroduzcas ni lo "arregles" de paso.
 
@@ -98,10 +99,48 @@ describe("SOURCE_REGISTRY", () => {
     );
   });
 
-  it("cada variante municipal comparte group", () => {
+  it("cada variante tipada del municipal tiene su propia entrada", () => {
+    // No basta con comprobar que group === "municipal": hay que fijar que cada
+    // combinacion distinta de argumentos de scrapeMunicipalCalendar tiene
+    // entrada propia, porque si dos se fusionaran se perderia su taxonomia.
     const municipales = SOURCE_REGISTRY.filter((e) => e.group === "municipal");
-    expect(municipales.length).toBeGreaterThan(1);
-    for (const m of municipales) expect(m.group).toBe("municipal");
+    const ids = municipales.map((e) => e.id);
+    for (const esperado of [
+      "municipal-agenda",
+      "municipal-teatro",
+      "municipal-conciertos",
+      "municipal-exposiciones",
+      "municipal-general",
+      "municipal-deporte",
+      "municipal-infantil",
+      "municipal-rss",
+    ]) {
+      expect(ids).toContain(esperado);
+    }
+  });
+
+  it("el municipal sin filtro va detras de las variantes que llevan taxonomia", () => {
+    const prio = (id: string) =>
+      SOURCE_REGISTRY.find((e) => e.id === id)!.priority;
+    for (const variante of [
+      "municipal-agenda",
+      "municipal-teatro",
+      "municipal-conciertos",
+      "municipal-exposiciones",
+      "municipal-deporte",
+      "municipal-infantil",
+    ]) {
+      expect(prio(variante)).toBeLessThan(prio("municipal-general"));
+    }
+  });
+
+  it("las entradas que aportan kind o tags tienen prioridad sobre las que no", () => {
+    // Si municipal-general ganara el desempate, se comeria el kind y los tags de
+    // deporte e infantil y /deporte y /kids saldrian vacios.
+    for (const conTaxonomia of ["municipal-deporte", "municipal-infantil"]) {
+      const e = SOURCE_REGISTRY.find((x) => x.id === conTaxonomia)!;
+      expect(e.kind || e.tags).toBeDefined();
+    }
   });
 });
 ```
@@ -168,15 +207,21 @@ export type SourceEntry = {
   priority: number;
 };
 
-// Prioridad: municipal manda, despues las fuentes oficiales, y al final las
-// agregadoras comerciales. En una colision por titulo+fecha gana la de menor
-// numero, que es la que suele traer la ficha mas completa.
+// Prioridad: las variantes tipadas del municipal mandan, despues el municipal
+// sin filtro y las fuentes oficiales, y al final las agregadoras comerciales.
+// En una colision por titulo+fecha gana la de menor numero.
+//
+// `municipal-general` va por detras a proposito: sin filtro devuelve tambien
+// todo lo que ya devuelven las variantes, y si compartiera prioridad se
+// quedaria delante de `municipal-deporte` y `municipal-infantil` en el
+// desempate, se comerian su `kind` y sus `tags`, y `/deporte` y `/kids`
+// saldrian vacios.
 export const SOURCE_REGISTRY: readonly SourceEntry[] = [
   { id: "municipal-agenda", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [6] }), category: "Otros" },
   { id: "municipal-teatro", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [13] }), category: "Teatro" },
   { id: "municipal-conciertos", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [2] }), category: "Música" },
   { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [7] }), category: "Exposiciones" },
-  { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar() },
+  { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 1, run: () => scrapeMunicipalCalendar() },
   { id: "municipal-deporte", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ calendariosID: 168 }), category: "Deporte", kind: "agenda" },
   { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ dest: ["infantil"] }), tags: ["infantil"] },
   { id: "municipal-rss", group: "municipal", label: "Ayuntamiento (RSS)", priority: 1, run: () => scrapeMunicipalRss() },
@@ -391,6 +436,26 @@ describe("aggregate", () => {
     expect(evs[0].source).toBe("buena");
   });
 
+  it("desempata a igual prioridad por el orden del array", async () => {
+    // municipal-general empata en priority con vam, euskadi, senderismo y
+    // fiestas-blanca. El desempate es posicional, asi que hay que fijarlo o el
+    // proximo grupo al que se le de prioridad vuelve a colisionar en silencio.
+    const municipal = entry({ id: "municipal-x", priority: 1, run: async () => [BASE] });
+    const euskadi = entry({ id: "euskadi-x", priority: 1, run: async () => [{ ...BASE, link: "https://e/b" }] });
+    const [primero] = await aggregate([municipal, euskadi]);
+    expect(primero.source).toBe("municipal-x");
+
+    const [invertido] = await aggregate([euskadi, municipal]);
+    expect(invertido.source).toBe("euskadi-x");
+  });
+
+  it("la prioridad manda sobre el orden del array", async () => {
+    const sinPrioridad = entry({ id: "sin-prio", priority: 9, run: async () => [BASE] });
+    const conPrioridad = entry({ id: "con-prio", priority: 0, run: async () => [{ ...BASE, link: "https://e/b" }] });
+    const [ganador] = await aggregate([sinPrioridad, conPrioridad]);
+    expect(ganador.source).toBe("con-prio");
+  });
+
   it("ordena por fecha", async () => {
     const evs = await aggregate([
       entry({ run: async () => [
@@ -527,6 +592,12 @@ function dedupeKey(ev: AgendaEvento): string {
 }
 
 export async function aggregate(entries: readonly SourceEntry[]): Promise<AgendaEvento[]> {
+  // Regla de desempate, en este orden y sin excepciones:
+  //   1. menor `priority` gana
+  //   2. a igual prioridad, gana el que va antes en SOURCE_REGISTRY
+  // Array.prototype.sort es estable en V8, asi que ordenar por priority basta
+  // para que el orden del array sea el desempate. El array esta ordenado a mano
+  // por grupo: municipal, oficiales, consolidadas, agregadoras.
   const ordered = [...entries].sort((a, b) => a.priority - b.priority);
 
   const settled = await Promise.allSettled(ordered.map((e) => e.run()));
@@ -867,34 +938,41 @@ import { getAgendaEventos, type AgendaEvento } from "./agenda";
 
 - [ ] **Step 3: Derivar las pills del registro**
 
+`CulturePageClient.tsx:137` solo pinta pills cuando `filter === "conciertos"`, y
+filtra con `e.source === sourceFilter` usando `pill.key`. Como tras la
+unificación `evento.source` pasa a ser el `id` del registro, la clave `"municipal"`
+deja de existir y el filtro por fuente devolvería cero resultados en silencio.
+Las claves tienen que ser ids del registro.
+
 Reemplaza `lib/cultura-sources.ts` por:
 
 ```ts
-import { SOURCE_REGISTRY } from "./source-registry";
+import { SOURCE_REGISTRY, CULTURE_SOURCE_IDS, SOURCE_LABELS } from "./source-registry";
 
-/** Grupos de fuentes que la vista /culture puede filtrar, deducidos del registro. */
-export const CULTURE_SOURCES = SOURCE_REGISTRY.filter((e) => e.culture).map(
-  (e) => e.id
-);
+/** Fuentes que la vista /culture puede filtrar, deducidas del registro. */
+export const CULTURE_SOURCES = CULTURE_SOURCE_IDS;
 
 export const CULTURE_SOURCE_LABELS: Record<string, string> = Object.fromEntries(
-  SOURCE_REGISTRY.filter((e) => e.culture).map((e) => [e.id, e.label])
+  CULTURE_SOURCE_IDS.map((id) => [id, SOURCE_LABELS[id]])
 );
 
-export const CULTURE_SOURCE_PILLS: Record<string, { label: string; value: string }[]> =
-  Object.fromEntries(
-    ["teatro", "conciertos", "exposiciones", "agenda"].map((categoria) => [
-      categoria,
-      [
-        { label: "Todas", value: "" },
-        ...SOURCE_REGISTRY.filter((e) => e.culture).map((e) => ({
-          label: e.label,
-          value: e.id,
-        })),
-      ],
-    ])
-  );
+/**
+ * Misma forma que usa CulturePageClient: Record<bucket, { key, label }[]>.
+ * Solo "conciertos" tiene pills porque es el único bucket que las pinta.
+ * Se ofrecen todas las fuentes de cultura, no solo las musicales: el bucket ya
+ * esta filtrando por categoria, asi que el filtro por fuente tiene que poder
+ * combinarse con cualquiera de ellas.
+ */
+export const CULTURE_SOURCE_PILLS: Record<string, { key: string; label: string }[]> = {
+  conciertos: [
+    { key: "all", label: "Todos" },
+    ...CULTURE_SOURCE_IDS.map((id) => ({ key: id, label: SOURCE_LABELS[id] })),
+  ],
+};
 ```
+
+Comprueba que `SOURCE_REGISTRY` sigue exportando `SOURCE_LABELS`; si no, derivalo
+con `Object.fromEntries(SOURCE_REGISTRY.map((e) => [e.id, e.label]))`.
 
 - [ ] **Step 4: Ejecutar la suite**
 
