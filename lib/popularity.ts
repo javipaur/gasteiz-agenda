@@ -1,35 +1,104 @@
+import { SOURCE_GROUPS } from "./source-data";
+// `import type` y no `import`: TypeScript lo borra al compilar, y este módulo lo
+// carga `HeroSection`, que es `"use client"`. Un import de valor aquí arrastraría
+// a `lib/eventos` → `lib/agenda` → el registro compuesto → los 18 scrapers al
+// bundle del navegador. La regla la comprueba `__tests__/source-data.test.ts`.
 import type { Evento } from "./eventos";
 
-const SOURCE_WEIGHT: Record<string, number> = {
+/**
+ * Peso por familia de fuentes, indexado por el `group` del registro y no por id.
+ *
+ * Por qué `group` y no `id`: el Ayuntamiento son nueve entradas del registro
+ * (`municipal-agenda`, `-teatro`, `-conciertos`, `-exposiciones`, `-general`,
+ * `-deporte`, `-infantil`, `-visitas` y `-rss`) y todas comparten `group:
+ * "municipal"`. Escribirlas una por una es una lista mantenida a mano que se
+ * pudre en cuanto se añada una variante, que es exactamente como murió
+ * `"vitoria-gasteiz"`: un id que emitía el módulo viejo y que, al dejar de
+ * emitirlo, dejó a la fuente con más volumen de la agenda puntuando el mínimo
+ * por defecto, sin que nada se quejara.
+ *
+ * Por qué no se deriva de los otros campos del registro:
+ *
+ * - `priority` va de 0 a 5 y la revisión de la T1 documentó que **no** es una
+ *   escala de prestigio: `buscametas` está en 5 y `senderismo` en 1, y los dos
+ *   son fuentes oficiales. Usarla como peso puntuaría al club municipal por encima
+ *   del Ayuntamiento.
+ * - `tickets` dice quién **vende entradas**, no quién es más fiable: subiría a
+ *   Eventbrite y Entradium a la altura de Fever y no diría nada del Ayuntamiento,
+ *   que es justamente el que anuncia más cosas y no vende.
+ * - `culture` solo vale para `/culture`.
+ *
+ * Los seis valores que aparecen aquí son los que tenía la tabla antes de la
+ * unificación, con `vitoria-gasteiz` renombrado a su familia. Lo que no sale es una
+ * familia nueva ponderada: las salas con venta directa, las plataformas y CM
+ * Gazteiz se quedan en el mínimo, que es donde estaban. Cambiar eso es una
+ * decisión de producto sobre qué es "popular" en Vitoria-Gasteiz, no el arreglo de
+ * un id muerto, así que no se ha hecho aquí.
+ *
+ * Se exportan las dos tablas para que un test pueda atacar las dos invariantes
+ * que si no no se pueden comprobar: que no haya claves muertas y que ninguna
+ * fuente real se quede en el mínimo por descuido.
+ */
+export const SOURCE_WEIGHT: Readonly<Partial<Record<string, number>>> = {
   fever: 40,
-  "vitoria-gasteiz": 25,
+  municipal: 25,
   euskadi: 20,
   gasteizhoy: 20,
   vam: 18,
   rula: 15,
-  desconocido: 5,
 };
 
-const CATEGORY_WEIGHT: Record<string, number> = {
-  Conciertos: 30,
+const PESO_FUENTE_POR_DEFECTO = 5;
+
+function pesoFuente(source?: string): number {
+  if (!source) return PESO_FUENTE_POR_DEFECTO;
+  // `SOURCE_GROUPS` es `Partial` a propósito, así que el fallback es obligatorio
+  // para el typechecker: si el id no está en el mapa, su propio id es su grupo.
+  const grupo = SOURCE_GROUPS[source] ?? source;
+  return SOURCE_WEIGHT[grupo] ?? PESO_FUENTE_POR_DEFECTO;
+}
+
+/**
+ * Peso por categoría, con las quince que `normalizeCategory` produce de verdad:
+ * las mismas de `CATEGORY_COLORS`.
+ *
+ * Nueve números vienen de la tabla anterior y conservan su valor. Dos claves
+ * muertas se han tenido que llevar a la categoría que sí existe: `"Conciertos"`
+ * era `Música` desde antes de la unificación, y `"La Blanca"` es la categoría
+ * `Fiestas` (la fuente `fiestas-blanca` la declara así). Las seis que faltaban
+ * se colocan por banda, y la banda es la que ya usaba la tabla: espectáculo en
+ * escena (Teatro, Danza) por encima de la oferta cultural y formativa
+ * (Exposiciones, Visitas, Talleres), que por encima del deporte y el resto
+ * (Deporte, Senderismo, Cine, Conferencias). `Otros` se queda en el mínimo de
+ * categoría, que es el mismo valor que el `??` de abajo.
+ */
+export const CATEGORY_WEIGHT: Readonly<Partial<Record<string, number>>> = {
   Música: 30,
+  Festival: 26,
+  Fiestas: 25,
   Teatro: 22,
-  "La Blanca": 25,
+  Danza: 22,
   Exposiciones: 18,
   Infantil: 18,
-  Deporte: 14,
-  Senderismo: 12,
   Gastronomía: 16,
+  Visitas: 16,
+  Talleres: 16,
+  Deporte: 14,
   Cine: 12,
+  Conferencias: 12,
+  Senderismo: 12,
+  Otros: 10,
 };
+
+const PESO_CATEGORIA_POR_DEFECTO = 10;
 
 export function scoreEvento(e: Evento, today = new Date()): number {
   let score = 0;
 
-  score += SOURCE_WEIGHT[e.source || "desconocido"] ?? 5;
+  score += pesoFuente(e.source);
 
   if (e.category) {
-    score += CATEGORY_WEIGHT[e.category] ?? 10;
+    score += CATEGORY_WEIGHT[e.category] ?? PESO_CATEGORIA_POR_DEFECTO;
   }
 
   if (e.image) score += 15;
@@ -53,9 +122,18 @@ export function getPopularEvents(
   limit = 10,
   today = new Date()
 ): Evento[] {
-  return [...eventos]
+  // El score se calcula aparte y se ordena por él, en vez de meter una propiedad
+  // `popularity` en el evento que se devuelve: `AgendaEvento` no declara ese campo
+  // (se eliminó en la T2 por YAGNI) y las dos tarjetas que consumen esto —el
+  // destacado del hero y el bloque "Populares"— no lo leen.
+  //
+  // El desempate es la posición de entrada, que es lo que garantizaba el sort
+  // estable de V8 cuando dos eventos empataban. Ponerlo explícito evita depender
+  // de esa garantía sin escribirlo en ninguna parte.
+  return eventos
     .filter((e) => e.image)
-    .map((e) => ({ ...e, popularity: scoreEvento(e, today) }))
-    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-    .slice(0, limit);
+    .map((evento, i) => ({ evento, score: scoreEvento(evento, today), i }))
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .slice(0, limit)
+    .map((x) => x.evento);
 }
