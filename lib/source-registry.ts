@@ -49,6 +49,14 @@ export type SourceEntry = {
   tags?: readonly string[];
   culture?: boolean;
   /**
+   * Que en esta fuente se compran entradas de verdad: salas con venta directa y
+   * plataformas de venta. Es lo que decide que el botón diga "Comprar entradas"
+   * en vez de "Más información", así que no se marca a la ligera: el Ayuntamiento
+   * no vende entradas aunque anuncie conciertos, y una fuente que solo agrega
+   * no las vende por sí misma.
+   */
+  tickets?: boolean;
+  /**
    * Fiabilidad del dato, y qué fuente se queda con el evento cuando dos
    * declaran el mismo. En una colisión por título+fecha gana la de menor
    * número. A igualdad de prioridad gana el orden del array.
@@ -88,19 +96,19 @@ export const SOURCE_REGISTRY: readonly SourceEntry[] = [
   // la ruta que lo consume en producción es /api/actividades/eventos/agenda/visitas.
   { id: "municipal-visitas", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ tipo: ["visitias guiadas"] }), category: "Visitas" },
   { id: "municipal-rss", group: "municipal", label: "Ayuntamiento (RSS)", priority: 1, run: () => scrapeMunicipalRss() },
-  { id: "vam", group: "vam", label: "VAM", priority: 1, run: () => scrapeVamEvents() },
-  { id: "vam-conciertos", group: "vam", label: "VAM", priority: 1, culture: true, run: () => scrapeVamConciertos(), category: "Música" },
+  { id: "vam", group: "vam", label: "VAM", priority: 1, tickets: true, run: () => scrapeVamEvents() },
+  { id: "vam-conciertos", group: "vam", label: "VAM", priority: 1, culture: true, tickets: true, run: () => scrapeVamConciertos(), category: "Música" },
   { id: "euskadi", label: "Euskadi", priority: 1, run: () => scrapeEuskadi() },
   { id: "senderismo", group: "cm-gazteiz", label: "CM Gazteiz", priority: 1, run: () => scrapeSenderismo(), category: "Senderismo", kind: "excursiones", tags: ["senderismo"] },
   { id: "fiestas-blanca", label: "La Blanca", priority: 1, run: () => scrapeFiestasBlanca(), category: "Fiestas", tags: ["la-blanca"] },
-  { id: "jimmyjazz", label: "Jimmy Jazz", priority: 2, culture: true, run: () => scrapeJimmyJazz(), category: "Música" },
-  { id: "helldorado", label: "HellDorado", priority: 2, run: () => scrapeHelldorado(), category: "Música" },
-  { id: "musikaze", label: "Musikaze", priority: 2, run: () => scrapeMusikaze(), category: "Música" },
-  { id: "fever", label: "Fever", priority: 3, culture: true, run: () => scrapeFever() },
+  { id: "jimmyjazz", label: "Jimmy Jazz", priority: 2, culture: true, tickets: true, run: () => scrapeJimmyJazz(), category: "Música" },
+  { id: "helldorado", label: "HellDorado", priority: 2, tickets: true, run: () => scrapeHelldorado(), category: "Música" },
+  { id: "musikaze", label: "Musikaze", priority: 2, tickets: true, run: () => scrapeMusikaze(), category: "Música" },
+  { id: "fever", label: "Fever", priority: 3, culture: true, tickets: true, run: () => scrapeFever() },
   { id: "rula", label: "La Genterula", priority: 3, culture: true, run: () => scrapeRula() },
   { id: "gasteizhoy", label: "Gasteiz Hoy", priority: 3, culture: true, run: () => scrapeGasteizHoy() },
-  { id: "eventbrite", label: "Eventbrite", priority: 4, run: () => scrapeEventbrite() },
-  { id: "entradium", label: "Entradium", priority: 4, run: () => scrapeEntradium() },
+  { id: "eventbrite", label: "Eventbrite", priority: 4, tickets: true, run: () => scrapeEventbrite() },
+  { id: "entradium", label: "Entradium", priority: 4, tickets: true, run: () => scrapeEntradium() },
   { id: "vital", label: "Fundación Vital", priority: 4, run: () => scrapeVital() },
   { id: "arkabia", label: "Arkabia", priority: 4, run: () => scrapeArkabia() },
   { id: "miniature", label: "Miniature", priority: 4, run: () => scrapeMiniature(), category: "Gastronomía" },

@@ -7,6 +7,7 @@ import {
   dayBadgeLabel,
   shortTime,
 } from "@/lib/utils";
+import { SOURCE_LABELS } from "@/lib/source-registry";
 import { mockFetchWith, EMPTY_HTML } from "./helpers";
 
 describe("fetchOgImage", () => {
@@ -86,17 +87,31 @@ describe("localDateStr", () => {
 });
 
 describe("sourceLabel", () => {
-  it("maps known sources to friendly labels", () => {
-    expect(sourceLabel("rula")).toBe("La Genterula");
-    expect(sourceLabel("gasteizhoy")).toBe("Gasteiz Hoy");
-    expect(sourceLabel("fever")).toBe("Fever");
-    expect(sourceLabel("vitoria-gasteiz")).toBe("Ayuntamiento");
-    expect(sourceLabel("jimmy-jazz-gasteiz")).toBe("Jimmy Jazz");
+  it("etiqueta todas las fuentes del registro", () => {
+    for (const [id, label] of Object.entries(SOURCE_LABELS)) {
+      expect(sourceLabel(id)).toBe(label);
+    }
   });
 
-  it("returns the raw source for unknown sources", () => {
-    expect(sourceLabel("custom")).toBe("custom");
+  it("devuelve el slug crudo si la fuente no existe", () => {
+    expect(sourceLabel("fuente-inventada")).toBe("fuente-inventada");
     expect(sourceLabel(undefined)).toBe("");
+  });
+
+  it("traduce los ids que solo emite la agregación antigua", () => {
+    // Mientras `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts` sigan vivos, la
+    // home los pinta con estos ids en vez de con los del registro. Sin traducción,
+    // cada tarjeta del Ayuntamiento enseñaría "vitoria-gasteiz" en crudo.
+    expect(sourceLabel("vitoria-gasteiz")).toBe(SOURCE_LABELS["municipal-agenda"]);
+    expect(sourceLabel("vitoria-gasteiz-rss")).toBe(SOURCE_LABELS["municipal-rss"]);
+  });
+
+  it("no revive jimmy-jazz-gasteiz", () => {
+    // Nadie lo emite ya. Si `sourceLabel` volviera a traducirlo, el bug de
+    // etiquetas reaparecería con él en el momento en que alguien reusara el
+    // nombre viejo.
+    expect(SOURCE_LABELS["jimmy-jazz-gasteiz"]).toBeUndefined();
+    expect(sourceLabel("jimmy-jazz-gasteiz")).toBe("jimmy-jazz-gasteiz");
   });
 });
 

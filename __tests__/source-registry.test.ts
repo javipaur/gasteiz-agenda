@@ -122,4 +122,17 @@ describe("SOURCE_REGISTRY", () => {
       expect({ kind: e?.kind, tags: e?.tags }).toEqual(want);
     }
   });
+
+  it("ninguna fuente municipal declara venta de entradas", () => {
+    // El Ayuntamiento no vende entradas: si una variante municipal marcara
+    // `tickets`, sus eventos rotularían el botón como "Comprar entradas".
+    for (const e of SOURCE_REGISTRY) {
+      if (SOURCE_GROUPS[e.id] === "municipal") {
+        expect({ id: e.id, tickets: e.tickets }).toEqual({
+          id: e.id,
+          tickets: undefined,
+        });
+      }
+    }
+  });
 });

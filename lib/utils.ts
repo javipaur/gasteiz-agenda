@@ -1,4 +1,13 @@
 import * as cheerio from "cheerio";
+// AVISO: este import mete los 19 scrapers en el grafo de cliente, porque
+// `lib/shared.tsx` es "use client" y llama a `sourceLabel`. Medido en `next
+// build`: el chunk compartido de la home pasa de 146 KB a 403 KB, +257 KB de
+// parsing con cheerio que el navegador nunca usa. La solución es mover los datos
+// del registro (id, label, group, priority, kind, tags, culture, tickets) a un
+// módulo hoja sin scrapers y dejar aquí solo los `run`, conservando los mismos
+// exports. No se ha hecho en esta tarea porque reordena
+// `lib/source-registry.ts`, que ya está cerrado y revisado.
+import { SOURCE_LABELS } from "./source-registry";
 
 const ogImageCache = new Map<string, string | undefined>();
 
@@ -88,19 +97,33 @@ export function localDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Ids que emitían los módulos anteriores al agregador único y que todavía se
+ * pintan: `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts` siguen poniendo
+ * `vitoria-gasteiz` en `evento.source`, y la home los sigue pintando con
+ * `showSource`. Cada valor apunta a su id del registro, de modo que la etiqueta
+ * sale de ahí y no hay dos verdades sobre cómo se llama el Ayuntamiento.
+ *
+ * Es un shim de compatibilidad con fecha de caducidad: cuando esos módulos se
+ * retiren, esta tabla se queda vacía y `sourceLabel` vuelve a ser una sola
+ * línea.
+ */
+const LEGACY_SOURCE_IDS: Record<string, string> = {
+  "vitoria-gasteiz": "municipal-agenda",
+  "vitoria-gasteiz-rss": "municipal-rss",
+};
+
 export function sourceLabel(source?: string): string {
-  switch (source) {
-    case "rula": return "La Genterula";
-    case "gasteizhoy": return "Gasteiz Hoy";
-    case "fever": return "Fever";
-    case "vam": return "VAM";
-    case "euskadi": return "Euskadi";
-    case "vitoria-gasteiz": return "Ayuntamiento";
-    case "jimmy-jazz-gasteiz": return "Jimmy Jazz";
-    case "helldorado": return "HellDorado";
-    case "musikaze": return "Musikaze";
-    default: return source || "";
-  }
+  if (!source) return "";
+  // El mapeo se resuelve en la llamada y no al cargar el módulo a propósito:
+  // `lib/sources/gasteizhoy.ts` importa `fetchOgImage` de este fichero, así que
+  // importar el registro desde aquí cierra un ciclo, y leer `SOURCE_LABELS`
+  // durante la inicialización daría `undefined` según el orden de carga.
+  return (
+    SOURCE_LABELS[source] ??
+    (LEGACY_SOURCE_IDS[source] ? SOURCE_LABELS[LEGACY_SOURCE_IDS[source]] : undefined) ??
+    source
+  );
 }
 
 export function dayBadgeLabel(dateStr: string): string | null {
