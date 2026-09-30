@@ -26,7 +26,7 @@ describe("aggregate", () => {
     expect(ev.id).toBe(eventSlug({ title: BASE.title, date: BASE.date, link: BASE.link }));
   });
 
-  it("es estable entre dos llamadas: no usa UUID", async () => {
+  it("es estable entre dos llamadas: el id no se regenera", async () => {
     const e = [entry({ run: async () => [BASE] })];
     const a = await aggregate(e);
     const b = await aggregate(e);
@@ -44,17 +44,39 @@ describe("aggregate", () => {
 
   it("la clave de dedupe usa el día local, no el prefijo ISO", async () => {
     // `scrapeSenderismo` emite `new Date(y, m, d).toISOString()`, o sea la
-    // medianoche local pasada por UTC. En Europe/Madrid eso es
+    // medianoche local pasada por UTC. Al este de UTC eso es
     // `...T23:00:00.000Z` del día anterior, así que el prefijo ISO marcaría el día
     // 14 en un evento que el usuario ve el día 15 y no colisionaría con la otra
     // fuente: la misma pareja deduplicaría en Dokploy y no en local.
     //
-    // Solo muerde al este de UTC. En UTC el prefijo ISO ya es el día local, el
-    // bug no se manifiesta y el test pasa con las dos implementaciones, que es
-    // lo correcto: no puede ser verde en un huso y falso en otro, y donde no hay
-    // bug no hay nada que proteger.
+    // Solo muerde al este de UTC, y eso no se puede arreglar desde aquí. Se
+    // intentó fijar la zona con `process.env.TZ = "Europe/Madrid"` en un
+    // `beforeAll` y **no hace nada**: dentro de un test de Jest la asignación se
+    // lee de vuelta correcta pero V8 ignora el cambio, porque fija la zona por
+    // isolate al arrancar el worker de test. Medido, no supuesto: con la máquina
+    // en UTC, `process.env.TZ` valía "Europe/Madrid", `Intl` seguía resolviendo
+    // "UTC" y `new Date(2027, 0, 15).toISOString()` seguía dando
+    // `2027-01-15T00:00:00.000Z`. Tampoco vale fijarla en el cuerpo del fichero,
+    // que es aún más temprano. Fijarla de verdad exige que nazca el worker con la
+    // variable puesta, o sea tocar `jest.config.ts`, que es global y lo necesita
+    // la T9.
+    //
+    // Y en UTC el test no es solo débil: es imposible que muerda, porque allí
+    // `localDateKey(d)` y `d.slice(0, 10)` son la misma función para toda fecha.
+    // Ningún test en negro puede distinguirlas. Por eso el caso avisa por consola
+    // cuando corre en una zona donde no protege, en vez de dejar un verde que
+    // alguien se lea como protección.
     const medianoche = new Date(2027, 0, 15, 0, 0, 0).toISOString();
     const mediodia = new Date(2027, 0, 15, 12, 0, 0).toISOString();
+
+    if (medianoche.slice(0, 10) === mediodia.slice(0, 10)) {
+      console.warn(
+        "[agenda] AVISO: el runner está en UTC o al oeste, así que el caso del " +
+          "huso horario no puede detectar una regresión a `date.slice(0, 10)`. " +
+          "Zona: " + Intl.DateTimeFormat().resolvedOptions().timeZone
+      );
+    }
+
     const evs = await aggregate([
       entry({ id: "senderismo", priority: 0, run: async () => [{ ...BASE, date: medianoche }] }),
       entry({ id: "municipal", priority: 4, run: async () => [{ ...BASE, date: mediodia, link: "https://e/b" }] }),

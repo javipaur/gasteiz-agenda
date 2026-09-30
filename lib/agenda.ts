@@ -1,4 +1,4 @@
-﻿import { getCachedOrFetch } from "./cache";
+import { getCachedOrFetch } from "./cache";
 import { eventSlug, localDateKey } from "./slug";
 import { normalizeCategory } from "./categories";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
