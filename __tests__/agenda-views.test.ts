@@ -176,3 +176,93 @@ describe("vista infantil", () => {
     ]);
   });
 });
+
+describe("vista de conciertos", () => {
+  beforeEach(() => {
+    mockAgenda.mockResolvedValue([]);
+  });
+
+  it("acepta solo las cuatro fuentes que la página ha tenido siempre", async () => {
+    // `CONCIERTO_SOURCE_IDS` está escrita a mano porque "todas las fuentes con
+    // `category: "Música"`" metería también a `vam-conciertos`, y los conciertos de
+    // VAM nunca han estado en esta página. Ampliar el alcance de la agenda
+    // unificada no es lo mismo que cambiar el alcance de una página.
+    const { getConciertosEventos, CONCIERTO_SOURCE_IDS } = await import("@/lib/conciertos");
+    const ids = CONCIERTO_SOURCE_IDS as readonly string[];
+
+    expect(ids).toEqual(["municipal-conciertos", "jimmyjazz", "helldorado", "musikaze"]);
+
+    mockAgenda.mockResolvedValue(
+      [
+        "municipal-conciertos",
+        "jimmyjazz",
+        "helldorado",
+        "musikaze",
+        "vam-conciertos",
+        "municipal-agenda",
+      ].map((source) =>
+        evento({ id: `id-${source}`, slug: `${source}-2027-03-15-a1`, source, category: "Música" })
+      )
+    );
+
+    const evs = await getConciertosEventos();
+    expect(evs.map((e) => e.source)).toEqual([
+      "municipal-conciertos",
+      "jimmyjazz",
+      "helldorado",
+      "musikaze",
+    ]);
+  });
+
+  it("ningún id de la lista está fuera del registro", async () => {
+    // Un id mal escrito no revienta nada: la página sale vacía sin un error. El
+    // registro es la autoridad sobre qué ids existen, así que la lista se contrasta
+    // contra él.
+    const { CONCIERTO_SOURCE_IDS } = await import("@/lib/conciertos");
+    const { SOURCE_DATA } = await import("@/lib/source-data");
+    const registrados = new Set(SOURCE_DATA.map((e) => e.id));
+
+    expect((CONCIERTO_SOURCE_IDS as readonly string[]).filter((id) => !registrados.has(id))).toEqual([]);
+  });
+
+  it("cada fuente conserva su etiqueta legible en la pill", async () => {
+    // Lo que la página deriva hoy de `venue.toLowerCase()` —"Jimmy Jazz Gasteiz",
+    // "HellDorado", "Musikaze"— no puede volver a caer en crudo. `ConciertosPageClient`
+    // pinta la etiqueta con `SOURCE_LABELS[source]`, así que lo que ata es que
+    // `source` sea un id del registro y que ese id tenga nombre.
+    const { getConciertosEventos } = await import("@/lib/conciertos");
+    const { SOURCE_LABELS } = await import("@/lib/source-data");
+
+    mockAgenda.mockResolvedValue([
+      evento({ id: "id-a", slug: "concierto-a-2027-03-15-a1", source: "jimmyjazz" }),
+      evento({ id: "id-b", slug: "concierto-b-2027-03-16-b2", source: "helldorado" }),
+      evento({ id: "id-c", slug: "concierto-c-2027-03-17-c3", source: "musikaze" }),
+      evento({ id: "id-d", slug: "concierto-d-2027-03-18-d4", source: "municipal-conciertos" }),
+    ]);
+
+    const evs = await getConciertosEventos();
+    const etiquetas = evs.map((e) => SOURCE_LABELS[e.source] ?? e.source);
+
+    expect(etiquetas).toEqual(["Jimmy Jazz", "HellDorado", "Musikaze", "Ayuntamiento"]);
+  });
+
+  it("reproduce id y slug del agregado, en el mismo orden y sin cambiar nada", async () => {
+    // El invariante que cerró el 404 de `/evento/[slug]`, aplicado a la última
+    // página que quedaba: antes esta vista generaba un `crypto.randomUUID()` por
+    // visita, así que el corazón se apagaba solo y `/evento/[slug]` no resolría
+    // nada de aquí.
+    const { getConciertosEventos } = await import("@/lib/conciertos");
+
+    mockAgenda.mockResolvedValue([
+      evento({ id: "id-jj", slug: "the-frankie-fays-2027-03-15-aa11", source: "jimmyjazz" }),
+      evento({ id: "id-hd", slug: "ruido-matinal-2027-03-20-bb22", source: "helldorado" }),
+      evento({ id: "id-fuera", slug: "teatro-2027-03-15-cc33", source: "municipal-teatro" }),
+    ]);
+
+    const evs = await getConciertosEventos();
+    expect(evs.map((e) => [e.id, e.slug])).toEqual([
+      ["id-jj", "the-frankie-fays-2027-03-15-aa11"],
+      ["id-hd", "ruido-matinal-2027-03-20-bb22"],
+    ]);
+  });
+});

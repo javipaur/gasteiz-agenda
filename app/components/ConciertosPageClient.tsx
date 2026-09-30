@@ -6,12 +6,12 @@ import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { isTicketSource } from "@/lib/tickets";
-import { SOURCE_LABELS, sourceGroup } from "@/lib/source-data";
-import { eventSlug } from "@/lib/slug";
+import { SOURCE_LABELS } from "@/lib/source-data";
 import FavoriteButton from "./FavoriteButton";
 
 type Evento = {
   id: string;
+  slug: string;
   title: string;
   date: string;
   image?: string;
@@ -19,29 +19,33 @@ type Evento = {
   link: string;
   category: string;
   source: string;
-  venue: string;
 };
 
 /**
- * Clave con la que se agrupan y se filtran los conciertos.
+ * Clave con la que se agrupan y se filtran los conciertos: el id de la fuente.
  *
- * `/conciertos` sigue sacando `source` del nombre del recinto
- * (`app/conciertos/page.tsx`: `venue.toLowerCase().replace(/\s+/g, "-")`), así que
- * lo que llega aquí es un slug de recinto ("jimmy-jazz-gasteiz") y no un id del
- * registro. `sourceGroup` no cambia nada mientras siga siendo así, y deja el mismo
- * código preparado para cuando la página emita ids del registro.
+ * Antes esta página derivaba un slug del nombre del recinto
+ * (`venue.toLowerCase().replace(/\s+/g, "-")`, o sea "jimmy-jazz-gasteiz") y por eso
+ * agrupaba por `sourceGroup`, que no encontraba esos nombres en el registro y
+ * devolvía el mismo slug sin tocar. Al salir del agregado, `source` ya es el id del
+ * registro, así que la clave es el id y la etiqueta sale de `SOURCE_LABELS`.
+ *
+ * El id y no el `group` a propósito: `sourceGroup("municipal-conciertos")` da
+ * `"municipal"`, que no es un recinto sino el grupo de las ocho entradas
+ * municipales, y su etiqueta no existe en `SOURCE_LABELS` —la pill se leería
+ * "municipal" en crudo.
  */
 function recintoKey(e: Evento): string {
-  return sourceGroup({ id: e.source });
+  return e.source;
 }
 
 /**
- * Etiqueta de un recinto. `SOURCE_LABELS` cubre el día que `source` sea un id del
- * registro; mientras siga siendo un slug de recinto, el nombre del recinto es la
- * etiqueta verdadera, y el slug a secas se vería en crudo.
+ * Etiqueta de un recinto. El `??` no es decorativo: `SOURCE_LABELS` es `Partial`
+ * para que quien busque una clave que no exista tenga que poner el fallback, y
+ * un id crudo en la pill es mejor que un recinto sin nombre.
  */
 function recintoLabel(e: Evento): string {
-  return SOURCE_LABELS[recintoKey(e)] ?? e.venue ?? recintoKey(e);
+  return SOURCE_LABELS[recintoKey(e)] ?? recintoKey(e);
 }
 
 /**
@@ -51,7 +55,7 @@ function recintoLabel(e: Evento): string {
  * cualquier id que nadie emitiera dejaba la página vacía al pulsarlo.
  */
 const VENUE_DESCRIPTIONS: Record<string, string> = {
-  "jimmy-jazz-gasteiz": "Sala de conciertos. Indie, rock, pop, jazz.",
+  jimmyjazz: "Sala de conciertos. Indie, rock, pop, jazz.",
   helldorado: "Rock, punk, metal. Cerveza fría y música fuerte.",
   musikaze: "Entradas para conciertos en Vitoria-Gasteiz.",
 };
@@ -147,7 +151,7 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
       ) : venueFilter !== "all" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((evento, index) => (
-            <EventCard key={evento.id || index} evento={evento} index={index} />
+            <EventCard key={evento.id} evento={evento} index={index} />
           ))}
         </div>
       ) : (
@@ -168,7 +172,7 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {events.slice(0, 6).map((evento, index) => (
-                  <EventCard key={evento.id || index} evento={evento} index={index} />
+                  <EventCard key={evento.id} evento={evento} index={index} />
                 ))}
               </div>
             </section>
@@ -196,7 +200,7 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
       <div className="group double-bezel-outer rounded-[1.25rem] p-1.5 block">
         <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
           <Link
-            href={`/evento/${eventSlug(evento)}`}
+            href={`/evento/${evento.slug}`}
             className="block focus-visible:outline-2 focus-visible:outline-accent"
           >
           <div className="aspect-[4/3] relative">
@@ -238,15 +242,7 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
               <FavoriteButton
                 event={{
                   id: evento.id,
-                  // `/conciertos` todavía scrapea por su cuenta y su id sigue
-                  // siendo un `crypto.randomUUID()`, así que aquí no hay slug
-                  // resuelto que copiar. Se usa el mismo que ya calcula la
-                  // tarjeta de este mismo fichero para no cambiar la URL que ve
-                  // quien guarda un concierto desde aquí. Deuda pendiente: está
-                  // enumerada en `__tests__/favoritos-migracion.test.ts`;
-                  // arreglarlo es alimentar `/conciertos` desde el agregador, no
-                  // añadir un slug aquí.
-                  slug: eventSlug(evento),
+                  slug: evento.slug,
                   title: evento.title,
                   date: evento.date,
                   image: evento.image,

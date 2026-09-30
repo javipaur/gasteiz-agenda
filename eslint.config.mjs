@@ -27,48 +27,35 @@ const MENSAJE_EVENT_SLUG =
   'esta regla previene.)';
 
 /**
- * Todo lo que exporta `lib/slug.ts`. En los ficheros con permiso sale la lista
- * explícita en vez de "cualquiera": si mañana se añade una sexta función, hay
- * que decidir aquí si se permite en vez de que se colen todas por sorpresa.
- */
-const EXPORTACIONES_SLUG = [
-  "slugify",
-  "localDateKey",
-  "eventSlug",
-  "agendaLink",
-  "agendaSlug",
-];
-
-/**
- * La regla, en sus dos formas.
- *
- * Se construye por función porque las dos necesitan exactamente el mismo
- * `paths`/`patterns` y sólo cambia qué nombres se literacycitan: si las dos
- * copias se escribieran a mano, la excepción acabaría aplicando a menos de lo que
- * dice su comentario. Y `importNames` y `allowImportNames` no pueden convivir en
- * la misma entrada —el schema lo prohíbe—, así que la forma con permiso usa la
- * variante "todo menos estos nombres", que es la que trae `allowImportNames`.
+ * La regla.
  *
  * `@/lib/slug` va en `paths` y los relativos en `patterns`, porque son dos
  * mechanisms distintos: `lib/agenda.ts` importa de `"./slug"`, así que una regla
  * que sólo mirara el alias dejaría un camino abierto. El `regex` de `patterns` se
  * ancla a los relativos a propósito: con un glob que también casara con el alias
  * cada importación recibiría dos avisos del mismo.
+ *
+ * Solo se prohíbe `eventSlug`, no el resto de `lib/slug.ts`. `agendaSlug` es la
+ * puerta de entrada para un evento crudo, y el resto son primitivas que no
+ * calculan el slug de un evento: forbidding el módulo entero apuntaría a la gente
+ * a `agendaSlug` para cosas que no son un evento.
+ *
+ * La regla tuvo una excepción para `app/conciertos/page.tsx` y
+ * `app/components/ConciertosPageClient.tsx`, los dos últimos ficheros que
+ * scrapeaban por su cuenta y tenían que recalcular el slug. Ya no existe: ambas
+ * páginas leen el agregado, donde el slug viene resuelto. Si vuelve a hacer falta
+ * una excepción, la respuesta es que esa página debería ser una vista del
+ * agregado, no un permiso de lint.
  */
-function reglaEventSlug(permitidos = false) {
-  const nombres = permitidos
-    ? { allowImportNames: EXPORTACIONES_SLUG }
-    : { importNames: ["eventSlug"] };
-  return [
-    "error",
-    {
-      paths: [{ name: "@/lib/slug", ...nombres, message: MENSAJE_EVENT_SLUG }],
-      patterns: [
-        { regex: "^\\.{1,2}/.*slug(\\.ts)?$", ...nombres, message: MENSAJE_EVENT_SLUG },
-      ],
-    },
-  ];
-}
+const reglaEventSlug = () => [
+  "error",
+  {
+    paths: [{ name: "@/lib/slug", importNames: ["eventSlug"], message: MENSAJE_EVENT_SLUG }],
+    patterns: [
+      { regex: "^\\.{1,2}/.*slug(\\.ts)?$", importNames: ["eventSlug"], message: MENSAJE_EVENT_SLUG },
+    ],
+  },
+];
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -97,18 +84,6 @@ const eslintConfig = defineConfig([
     files: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "scripts/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": reglaEventSlug(),
-    },
-  },
-  {
-    // Las dos únicas excepciones, y son deuda con fecha: `/conciertos` todavía
-    // scrapea por su cuenta con `scrapeAllConciertos()` y pone ids con
-    // `crypto.randomUUID()`, así que sus eventos no salen del agregador y no hay
-    // slug resuelto que copiar. Se borran juntas cuando `/conciertos` filtre el
-    // agregado; el diagnóstico está en
-    // `.superpowers/sdd/2026-09-30-agenda-unificada/briefs/task-8-report.md`.
-    files: ["app/conciertos/page.tsx", "app/components/ConciertosPageClient.tsx"],
-    rules: {
-      "no-restricted-imports": reglaEventSlug(true),
     },
   },
 ]);

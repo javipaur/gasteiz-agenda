@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { migrateFavorites, readFavorites } from "@/app/context/favorites-migration";
@@ -347,13 +348,48 @@ describe("la regla de ESLint que prohíbe recalcular el slug", () => {
     expect(mensajes).toEqual([]);
   });
 
-  it("las excepciones de /conciertos siguen permitidas", () => {
-    // `/conciertos` todavía scrapea por su cuenta, así que sus dos ficheros son
-    // los únicos con permiso, y el permiso está en el bloque de
-    // `eslint.config.mjs` que los nombra uno a uno. Si se le añade un tercero sin
-    // tocar la regla, este test no lo ve, pero `npx eslint` sí.
-    for (const file of ["app/conciertos/page.tsx", "app/components/ConciertosPageClient.tsx"]) {
-      expect(lintarFicheroReal(file)).toEqual([]);
+  it("los dos ficheros de /conciertos ya no están exentos", () => {
+    // Este test fallaba antes de la migración: los dos ficheros de `/conciertos`
+    // eran las únicas excepciones de `eslint.config.mjs`, porque scrapeaban por su
+    // cuenta y tenían que recalcular el slug. Con la página alimentada por el
+    // agregador, el bloque de excepciones se borró y la regla los alcanza como
+    // alcanza a cualquier otro. Es la comprobación que ata las dos mitades: si
+    // alguien vuelve a poner la excepción, aquí se ve, y si la quita sin migrar la
+    // página, el lint se lo dice.
+    const codigo = 'import { eventSlug } from "@/lib/slug";\nexport const x = eventSlug;\n';
+    for (const file of [
+      "app/conciertos/page.tsx",
+      "app/components/ConciertosPageClient.tsx",
+    ]) {
+      expect({ file, mensajes: lintar(codigo, file) }).not.toEqual({
+        file,
+        mensajes: [],
+      });
+    }
+  });
+
+  it("la configuración no conserva ninguna forma de excepción", () => {
+    // La excepción usaba `allowImportNames`, que es la variante "todo menos estos
+    // nombres" del schema: `importNames` y `allowImportNames` no pueden convivir en
+    // la misma entrada. Si no aparece la palabra, no hay ninguna lista de permisos
+    // escondida en la configuración.
+    const config = readFileSync(join(ROOT, "eslint.config.mjs"), "utf8");
+    expect(config).not.toContain("allowImportNames");
+  });
+
+  it("los dos ficheros de /conciertos no recalculan el slug", () => {
+    // El otro lado del test de arriba, sobre el contenido real y no sobre un
+    // fragmento: los dos ficheros que hasta ahora tenían permiso para importar
+    // `eventSlug` a pelo no lo hacen, y no tienen ningún error de lint. El `slug`
+    // que pintan es el que les da el agregado.
+    for (const file of [
+      "app/conciertos/page.tsx",
+      "app/components/ConciertosPageClient.tsx",
+    ]) {
+      expect({ file, mensajes: lintarFicheroReal(file) }).toEqual({
+        file,
+        mensajes: [],
+      });
     }
   });
 });
