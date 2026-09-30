@@ -76,12 +76,58 @@ function ensureFichero(): string {
 
 function readSubscribers(): Subscriber[] {
   const destino = ensureFichero();
+  let filas: unknown;
   try {
-    const raw = fs.readFileSync(destino, "utf-8");
-    return JSON.parse(raw);
+    filas = JSON.parse(fs.readFileSync(destino, "utf-8"));
   } catch {
     return [];
   }
+  // Un `subscribers.json` que contiene JSON válido pero no una lista —un `{}`
+  // que dejó una escritura a medias, por ejemplo— devolvía el valor tal cual y el
+  // `.find` de quien llamara reventaba con un TypeError que no dice de dónde
+  // viene. Con la migración de abajo hay que recorrerlo, así que el
+  // `Array.isArray` pasa a ser necesario de verdad.
+  if (!Array.isArray(filas)) return [];
+  return migrarConfirmedAt(destino, filas as Subscriber[]);
+}
+
+/**
+ * Rellena `confirmedAt` en las filas que no lo tienen.
+ *
+ * El campo se añadió con la doble confirmación. Las filas escritas antes de eso
+ * no lo tienen, y como `undefined` es falsy el guard de `confirmSubscriber` —
+ * `if (found.confirmedAt && !found.active)`— no se disparaba con ellas: una
+ * suscripción que se había dado de baja antes de esa fase volvía a la lista de
+ * envío con el enlace de confirmación, que puede seguir años en una bandeja de
+ * entrada. Reproducido contra el código real: `confirmSubscriber` devolvía
+ * `true` y la persona volvía a recibir la agenda sin haberlo pedido.
+ *
+ * El valor que se pone es `subscribedAt`, y es la única lectura fiel: con el
+ * alta automática de antes, subscriptarse *era* confirmar, así que la fecha del
+ * alta es la de la confirmación que no se escribió.
+ *
+ * Solo rellena lo que falta. Los `null` de las filas nuevas se quedan en `null`:
+ * un `null` es «pendiente de confirmar» y rellenar ese hueco convertiría una
+ * suscripción recién creada en una que el guard rechaza, que es justo el bug del
+ * commit anterior.
+ *
+ * Es idempotente y converge: después de la primera lectura ya no queda nada que
+ * rellenar, así que no vuelve a escribir. Importa, porque `readSubscribers` se
+ * llama en cada alta, cada confirmación y cada envío, y un despliegue con la
+ * lista montada no puede estar reescribiendo el fichero en cada petición.
+ */
+function migrarConfirmedAt(destino: string, filas: Subscriber[]): Subscriber[] {
+  let cambio = false;
+  for (const fila of filas) {
+    if (fila.confirmedAt === undefined) {
+      fila.confirmedAt = fila.subscribedAt;
+      cambio = true;
+    }
+  }
+  if (cambio) {
+    fs.writeFileSync(destino, JSON.stringify(filas, null, 2), "utf-8");
+  }
+  return filas;
 }
 
 function writeSubscribers(subscribers: Subscriber[]) {

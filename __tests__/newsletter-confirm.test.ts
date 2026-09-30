@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -360,5 +360,124 @@ describe("GET /api/newsletter/confirm", () => {
     // coherente con «el alta sola no basta».
     expect(db().confirmSubscriber(token)).toBe(false);
     expect(db().getActiveSubscribers()).toEqual([]);
+  });
+});
+
+/**
+ * Las filas escritas antes de que existiera `confirmedAt`.
+ *
+ * `confirmedAt` es opcional y `undefined` es falsy, así que el guard de
+ * `confirmSubscriber` —`if (found.confirmedAt && !found.active)`— no se disparaba
+ * con una fila antigua. Una suscripción que se había dado de baja antes de esta
+ * fase volvía a la lista de envío con su enlace de confirmación, que puede
+ * seguir en una bandeja de entrada.
+ *
+ * El informe de la fase pasada lo llamó tolerable «porque no quedan filas», y
+ * eso era cierto del fichero del repo —que quedó vacío— pero no del de
+ * producción: si Dokploy tiene volumen persistente, ahí siguen las filas de la
+ * fase anterior al doble opt-in, escritas con el formato de entonces.
+ */
+describe("las filas que no tienen `confirmedAt`", () => {
+  /** Escribe el fichero a mano, saltándose `addSubscriber`, como estaba antes. */
+  function sembrarLegacy(filas: unknown[]) {
+    writeFileSync(destino, JSON.stringify(filas, null, 2), "utf-8");
+  }
+
+  const ALTA_VIEJA = "2026-01-02T00:00:00.000Z";
+
+  it("una fila dada de baja antes de la fase no revive con un enlace viejo", () => {
+    sembrarLegacy([
+      {
+        email: "vieja@ejemplo.test",
+        subscribedAt: ALTA_VIEJA,
+        active: false,
+        token: "tok-baja",
+      },
+    ]);
+
+    // Antes de la migración: `true`, y la persona volvía a recibir la agenda
+    // sin haberlo pedido. Reproducido contra el código real.
+    expect(db().confirmSubscriber("tok-baja")).toBe(false);
+    expect(db().getActiveSubscribers()).toEqual([]);
+  });
+
+  it("la migración les da `confirmedAt` = `subscribedAt`, que era lo que significaban", () => {
+    // Con el alta automática de antes, subscriptarse ya era confirmar. Poner
+    // `subscribedAt` es la única lectura fiel de lo que pasó, y es lo que hace
+    // que el guard de `confirmSubscriber` pueda decidir.
+    sembrarLegacy([
+      { email: "baja@ejemplo.test", subscribedAt: ALTA_VIEJA, active: false, token: "tok-baja" },
+      { email: "alta@ejemplo.test", subscribedAt: ALTA_VIEJA, active: true, token: "tok-alta" },
+    ]);
+
+    db().getAllSubscribers();
+
+    const guardada = JSON.parse(readFileSync(destino, "utf-8")) as { confirmedAt: string }[];
+    expect(guardada.map((f) => f.confirmedAt)).toEqual([ALTA_VIEJA, ALTA_VIEJA]);
+  });
+
+  it("migrar es idempotente: leerlo todo otra vez no vuelve a escribir", () => {
+    sembrarLegacy([
+      { email: "baja@ejemplo.test", subscribedAt: ALTA_VIEJA, active: false, token: "tok-baja" },
+    ]);
+
+    db().getAllSubscribers();
+    const primera = readFileSync(destino, "utf-8");
+    const mtimePrimera = statSync(destino).mtimeMs;
+
+    db().getAllSubscribers();
+    db().getAllSubscribers();
+
+    // Si la migración escribiera en cada lectura, un despliegue con lista de
+    // suscriptores escribiría el fichero en cada request que lo leyera.
+    expect(readFileSync(destino, "utf-8")).toBe(primera);
+    expect(statSync(destino).mtimeMs).toBe(mtimePrimera);
+  });
+
+  it("una fila antigua que sigue activa se puede confirmar, y de paso queda sellada", () => {
+    // El caso normal: está activa, o sea que la migración le da `confirmedAt` y
+    // el guard ya no la molesta. Confirmarla es idempotente, como siempre.
+    sembrarLegacy([
+      { email: "alta@ejemplo.test", subscribedAt: ALTA_VIEJA, active: true, token: "tok-alta" },
+    ]);
+
+    expect(db().confirmSubscriber("tok-alta")).toBe(true);
+    expect(db().getActiveSubscribers().map((s) => s.email)).toEqual(["alta@ejemplo.test"]);
+
+    const guardada = JSON.parse(readFileSync(destino, "utf-8")) as {
+      confirmedAt: string;
+      subscribedAt: string;
+    }[];
+    expect(guardada[0].confirmedAt).toBe(guardada[0].subscribedAt);
+  });
+
+  it("un fichero que es JSON válido pero no una lista se lee como vacío", () => {
+    // Una escritura a medias puede dejar un `{}` o un `null` en el fichero. Antes
+    // eso pasaba tal cual al llamante y el `.find` de `addSubscriber` reventaba
+    // con un TypeError que no dice de qué viene. Con la migración hay que
+    // recorrer el valor, así que el `Array.isArray` deja de ser opcional.
+    for (const contenido of ["{}", "null", '"un texto"', "42"]) {
+      writeFileSync(destino, contenido, "utf-8");
+      const { getAllSubscribers, addSubscriber } = db();
+      expect({ contenido, filas: getAllSubscribers() }).toEqual({ contenido, filas: [] });
+      expect(() => addSubscriber("nueva@ejemplo.test")).not.toThrow();
+      expect(getAllSubscribers()).toHaveLength(1);
+    }
+  });
+
+  it("las filas nuevas no se tocan: `confirmedAt: null` sigue siendo `null`", () => {
+    // La migración solo rellena lo que falta. Si rellenara también los `null`,
+    // una suscripción recién creada y pendiente de confirmar pasaría a estar
+    // «ya confirmada» en el fichero, y el guard la rechazaría.
+    const { addSubscriber, getAllSubscribers } = db();
+    addSubscriber("nueva@ejemplo.test");
+
+    getAllSubscribers();
+    getAllSubscribers();
+
+    const guardada = JSON.parse(readFileSync(destino, "utf-8")) as {
+      confirmedAt: string | null;
+    }[];
+    expect(guardada[0].confirmedAt).toBeNull();
   });
 });
