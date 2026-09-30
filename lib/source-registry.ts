@@ -50,15 +50,21 @@ export type SourceEntry = {
   priority: number;
 };
 
-// Prioridad: municipal manda, después las fuentes oficiales, y al final las
-// agregadoras comerciales. En una colisión por título+fecha gana la de menor
-// número, que es la que suele traer la ficha más completa.
+// Prioridad: las variantes tipadas del municipal mandan, despues el municipal
+// sin filtro y las fuentes oficiales, y al final las agregadoras comerciales.
+// En una colision por titulo+fecha gana la de menor numero.
+//
+// `municipal-general` va por detras a proposito: sin filtro devuelve tambien
+// todo lo que ya devuelven las variantes, y si compartiera prioridad se
+// quedaria delante de `municipal-deporte` y `municipal-infantil` en el
+// desempate, se comerian su `kind` y sus `tags`, y `/deporte` y `/kids`
+// saldrian vacios.
 export const SOURCE_REGISTRY: readonly SourceEntry[] = [
   { id: "municipal-agenda", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [6] }), category: "Otros" },
   { id: "municipal-teatro", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [13] }), category: "Teatro" },
   { id: "municipal-conciertos", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [2] }), category: "Música" },
   { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [7] }), category: "Exposiciones" },
-  { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar() },
+  { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 1, run: () => scrapeMunicipalCalendar() },
   { id: "municipal-deporte", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ calendariosID: 168 }), category: "Deporte", kind: "agenda" },
   { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ dest: ["infantil"] }), tags: ["infantil"] },
   { id: "municipal-rss", group: "municipal", label: "Ayuntamiento (RSS)", priority: 1, run: () => scrapeMunicipalRss() },

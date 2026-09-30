@@ -35,9 +35,43 @@ describe("SOURCE_REGISTRY", () => {
     );
   });
 
-  it("cada variante municipal comparte group", () => {
-    const municipales = SOURCE_REGISTRY.filter((e) => e.group === "municipal");
-    expect(municipales.length).toBeGreaterThan(1);
-    for (const m of municipales) expect(m.group).toBe("municipal");
+  it("cada variante tipada del municipal tiene su propia entrada", () => {
+    // No basta con comprobar que group === "municipal": hay que fijar que cada
+    // combinacion distinta de argumentos de scrapeMunicipalCalendar tiene
+    // entrada propia, porque si dos se fusionaran se perderia su taxonomia.
+    const ids = SOURCE_REGISTRY.filter((e) => e.group === "municipal").map((e) => e.id);
+    for (const esperado of [
+      "municipal-agenda",
+      "municipal-teatro",
+      "municipal-conciertos",
+      "municipal-exposiciones",
+      "municipal-general",
+      "municipal-deporte",
+      "municipal-infantil",
+      "municipal-rss",
+    ]) {
+      expect(ids).toContain(esperado);
+    }
+  });
+
+  it("el municipal sin filtro va detras de las variantes que llevan taxonomia", () => {
+    const prio = (id: string) => SOURCE_REGISTRY.find((e) => e.id === id)!.priority;
+    for (const variante of [
+      "municipal-agenda",
+      "municipal-teatro",
+      "municipal-conciertos",
+      "municipal-exposiciones",
+      "municipal-deporte",
+      "municipal-infantil",
+    ]) {
+      expect(prio(variante)).toBeLessThan(prio("municipal-general"));
+    }
+  });
+
+  it("las entradas que aportan kind o tags los tienen de verdad", () => {
+    for (const conTaxonomia of ["municipal-deporte", "municipal-infantil"]) {
+      const e = SOURCE_REGISTRY.find((x) => x.id === conTaxonomia)!;
+      expect(e.kind || e.tags).toBeDefined();
+    }
   });
 });
