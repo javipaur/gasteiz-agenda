@@ -6,6 +6,7 @@ import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { isTicketSource } from "@/lib/tickets";
+import { SOURCE_LABELS, sourceGroup } from "@/lib/source-data";
 import { eventSlug } from "@/lib/slug";
 import FavoriteButton from "./FavoriteButton";
 
@@ -21,20 +22,42 @@ type Evento = {
   venue: string;
 };
 
-const VENUES = [
-  { key: "all", label: "Todos" },
-  { key: "jimmy-jazz-gasteiz", label: "Jimmy Jazz" },
-  { key: "helldorado", label: "HellDorado" },
-  { key: "musikaze", label: "Musikaze" },
-];
+/**
+ * Clave con la que se agrupan y se filtran los conciertos.
+ *
+ * `/conciertos` sigue sacando `source` del nombre del recinto
+ * (`app/conciertos/page.tsx`: `venue.toLowerCase().replace(/\s+/g, "-")`), así que
+ * lo que llega aquí es un slug de recinto ("jimmy-jazz-gasteiz") y no un id del
+ * registro. `sourceGroup` no cambia nada mientras siga siendo así, y deja el mismo
+ * código preparado para cuando la página emita ids del registro.
+ */
+function recintoKey(e: Evento): string {
+  return sourceGroup({ id: e.source });
+}
 
+/**
+ * Etiqueta de un recinto. `SOURCE_LABELS` cubre el día que `source` sea un id del
+ * registro; mientras siga siendo un slug de recinto, el nombre del recinto es la
+ * etiqueta verdadera, y el slug a secas se vería en crudo.
+ */
+function recintoLabel(e: Evento): string {
+  return SOURCE_LABELS[recintoKey(e)] ?? e.venue ?? recintoKey(e);
+}
+
+/**
+ * Textos de presentación, uno por recinto, resueltos por la clave de agrupación.
+ * Si una fuente cambia de id se pierde la descripción —que es texto— pero nunca el
+ * filtro, que es lo que estaba roto: las claves estaban escritas a mano, así que
+ * cualquier id que nadie emitiera dejaba la página vacía al pulsarlo.
+ */
 const VENUE_DESCRIPTIONS: Record<string, string> = {
   "jimmy-jazz-gasteiz": "Sala de conciertos. Indie, rock, pop, jazz.",
-  "helldorado": "Rock, punk, metal. Cerveza fría y música fuerte.",
-  "musikaze": "Entradas para conciertos en Vitoria-Gasteiz.",
+  helldorado: "Rock, punk, metal. Cerveza fría y música fuerte.",
+  musikaze: "Entradas para conciertos en Vitoria-Gasteiz.",
 };
 
 function formatEventDate(dateStr: string): string {
+
   if (!dateStr) return "";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
@@ -47,16 +70,30 @@ function formatEventDate(dateStr: string): string {
 export default function ConciertosPageClient({ eventos }: { eventos: Evento[] }) {
   const [venueFilter, setVenueFilter] = useState<string>("all");
 
+  /**
+   * Los filtros salen de los eventos que hay, no de una lista escrita a mano. Es
+   * la diferencia entre una pill que no coincide con nada y una página vacía al
+   * pulsarla: aquí una clave solo existe si alguna fuente la emite.
+   */
+  const recintos = useMemo(() => {
+    const porClave = new Map<string, { key: string; label: string }>();
+    for (const e of eventos) {
+      const key = recintoKey(e);
+      if (!porClave.has(key)) porClave.set(key, { key, label: recintoLabel(e) });
+    }
+    return [{ key: "all", label: "Todos" }, ...porClave.values()];
+  }, [eventos]);
+
   const filtered = useMemo(() => {
     if (venueFilter === "all") return eventos;
-    return eventos.filter((e) => e.source === venueFilter);
+    return eventos.filter((e) => recintoKey(e) === venueFilter);
   }, [eventos, venueFilter]);
 
   const grouped = useMemo(() => {
     if (venueFilter !== "all") return null;
     const groups = new Map<string, Evento[]>();
     for (const e of filtered) {
-      const v = e.source || "otros";
+      const v = recintoKey(e) || "otros";
       if (!groups.has(v)) groups.set(v, []);
       groups.get(v)!.push(e);
     }
@@ -82,7 +119,7 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
 
       <InViewWrapper delay={0.1}>
         <div className="flex gap-2 mb-10 flex-wrap">
-          {VENUES.map((v) => (
+          {recintos.map((v) => (
             <button
               key={v.key}
               onClick={() => setVenueFilter(v.key)}
@@ -119,7 +156,7 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
             <section className="mb-12">
               <div className="flex items-center gap-3 mb-5">
                 <h2 className="font-display text-lg font-semibold text-fg capitalize tracking-[-0.01em]">
-                  {VENUES.find((v) => v.key === venue)?.label || venue}
+                  {recintos.find((v) => v.key === venue)?.label || recintoLabel(events[0])}
                 </h2>
                 <span className="text-xs text-fg-muted">
                   {VENUE_DESCRIPTIONS[venue] || ""}
@@ -212,7 +249,7 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
 
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <span className="font-mono text-[11px] uppercase tracking-wider text-white/60 mb-1.5 inline-block">
-                {VENUES.find((v) => v.key === evento.source)?.label || evento.venue}
+                {recintoLabel(evento)}
               </span>
               <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
                 {evento.title}
