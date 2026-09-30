@@ -126,6 +126,11 @@ export const IMAGE_HOSTS: readonly ImageHost[] = [
     motivo: "VAM: es el `image_url` de una de las trece entradas de Vitoria del agregador",
   },
   {
+    hostname: "www.buscametas.com",
+    motivo:
+      "Buscametas: buscametas.ts:64 antepone la base al `src` de `.card-img-top img` cuando viene relativo, igual que hace municipal.ts:49 con el suyo",
+  },
+  {
     hostname: "miniature.pintxos.eus",
     motivo: "Miniature: es el `source_url` de `_embedded[wp:featuredmedia]` en los doce items del fixture",
   },

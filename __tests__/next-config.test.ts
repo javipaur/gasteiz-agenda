@@ -274,10 +274,78 @@ describe("images.remotePatterns", () => {
     expect(sinUsar).toEqual([]);
   });
 
+  /**
+   * Los hosts que aparecen en `lib/sources/**` y no sirven imágenes, con el
+   * motivo. Es la lista de la derecha: lo que sale del escaneo y no está en
+   * `IMAGE_HOSTS` tiene que aparecer aquí, o en la lista, pero no puede no
+   * aparecer en ninguna de las dos.
+   *
+   * Se escribe a mano a propósito. Es lo que hace que el escaneo de abajo sea
+   * utilizable: sin ella, cualquier URL de API o de página obligaría a
+   * inflarla, y una lista inflada es una lista en la que nadie distingue.
+   */
+  const HOSTS_QUE_NO_SIRVEN_IMAGEN: Record<string, string> = {
+    "api.euskadi.eus": "es el endpoint del API de cultura de Euskadi (euskadi.ts:3); sus imágenes van aparte",
+    "app.vamcultura.es": "es el endpoint del agregador del VAM (vam.ts:3); el `image_url` lo trae cada ficha",
+    "cms.deportivoalaves.com": "el scraper del CMS del Deportivo Alavés no tiene campo de imagen, y no está en el registro de la agenda",
+    "cofalava.org": "el scraper de farmacias no tiene campo de imagen; `/api/farmacias` no la usa",
+    "entradium.com": "es la versión de escritorio de Entradium (entradium.ts:111,125); las imágenes salen de `m.entradium.com`",
+    "feverup.com": "es la base de las páginas de evento de Fever; el JSON-LD apunta a sus CDN de imagen",
+    "koraliving.com": "es la web de Kora; el `data-src` real sale de sus CDN, que están en la lista",
+    "www.eventbrite.es": "es la página de búsqueda de la ciudad; las imágenes llegan de `img.evbuc.com`",
+    "www.fundacionvital.eus": "el scraper de Fundación Vital no extrae imagen en absoluto",
+  };
+
+  it("todo host literal de un scraper está en la lista o justificado aquí", () => {
+    // Este es el que habría pillado el hueco de `www.buscametas.com`. La lista
+    // de abajo enumera dieciocho bases fijas a mano, y a mano las listas se
+    // quedan cortas: `buscametas.ts:64` construye la imagen igual que
+    // `municipal.ts:49` —un literal de host pegado al `src` relativo— y no
+    // estaba. Con la lista cerrada, eso son tarjetas con un 400 del optimizador
+    // en lugar de una foto.
+    //
+    // El escaneo no intenta adivinar qué URL es una imagen: recoge todos los
+    // hosts literales de `lib/sources/**` y exige que cada uno esté en
+    // `IMAGE_HOSTS` o en `HOSTS_QUE_NO_SIRVEN_IMAGEN`. Un scraper nuevo con un
+    // host nuevo rompe el test y obliga a decidir, que es lo único que importa.
+    const literales = new Set<string>();
+    for (const fichero of ficherosDe(join(ROOT, "lib", "sources"))) {
+      if (!fichero.endsWith(".ts")) continue;
+      for (const m of readFileSync(fichero, "utf8").matchAll(
+        /https?:\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g
+      )) {
+        literales.add(m[1].toLowerCase());
+      }
+    }
+
+    const enLaLista = new Set(IMAGE_HOSTS.map((h) => h.hostname.toLowerCase()));
+    const justificados = new Set(
+      Object.keys(HOSTS_QUE_NO_SIRVEN_IMAGEN).map((h) => h.toLowerCase())
+    );
+
+    const sinClasificar = [...literales].filter(
+      (h) => !enLaLista.has(h) && !justificados.has(h)
+    );
+    expect(sinClasificar).toEqual([]);
+  });
+
+  it("nadie clasifica un host que ya está en la lista como si no fuera imagen", () => {
+    // Al revés también: un host en los dos sitios es una contradicción que
+    // escondería el hueco anterior en vez de taparlo.
+    const enLaLista = new Set(IMAGE_HOSTS.map((h) => h.hostname.toLowerCase()));
+    const duplicados = Object.keys(HOSTS_QUE_NO_SIRVEN_IMAGEN)
+      .map((h) => h.toLowerCase())
+      .filter((h) => enLaLista.has(h));
+    expect(duplicados).toEqual([]);
+  });
+
+  it("cada clasificación tiene un motivo, porque un `sin motivo` no se revisa", () => {
+    for (const [host, motivo] of Object.entries(HOSTS_QUE_NO_SIRVEN_IMAGEN)) {
+      expect({ host, motivo: motivo.length > 20 }).toEqual({ host, motivo: true });
+    }
+  });
+
   it("cubre los hosts que los scrapers construyen con una base fija", () => {
-    // La dirección contraria: que la lista no se encoja por accidente y deje
-    // tarjetas sin foto. Estos no dependen de lo que devuelva el sitio hoy: son
-    // literales en el propio scraper.
     for (const hostname of [
       "www.vitoria-gasteiz.org", // municipal.ts:49, fiestas-blanca.ts:41
       "www.gasteizhoy.com", // gasteizhoy.ts:72
@@ -285,6 +353,7 @@ describe("images.remotePatterns", () => {
       "entradas.musikaze.com", // musikaze.ts:64
       "helldorado.net", // helldorado.ts:52
       "www.cm-gazteiz.com", // senderismo.ts:62
+      "www.buscametas.com", // buscametas.ts:64
       "opendata.euskadi.eus", // euskadi images[].imageUrl
       "www.kulturklik.euskadi.eus", // vam.ts:31
       "arkabia.eus", // arkabia.ts
@@ -292,6 +361,7 @@ describe("images.remotePatterns", () => {
       "mercadoabastos.eus", // mercado-abastos
       "www.lagenterula.com", // rula featured_image.large
       "img.evbuc.com", // eventbrite
+      "m.entradium.com", // entradium: la base que usa para resolver el `srcset`
       "www.civitatis.com", // civitatis
       "cdn-kora.koragreencity.com", // kora
       "applications-media.feverup.com", // fever image.contentUrl
