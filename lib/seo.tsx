@@ -1,5 +1,3 @@
-import { AgendaEvento } from "./agenda";
-
 export const SITE_URL = "https://gasteizclick.javierpalacio.es";
 export const SITE_NAME = "Gasteiz Click";
 
@@ -86,7 +84,30 @@ export function graphJsonLd(...nodes: object[]) {
   };
 }
 
-export function eventToJsonLd(evento: AgendaEvento) {
+/**
+ * Lo que un JSON-LD necesita de un evento, y nada más.
+ *
+ * Deliberadamente no es `AgendaEvento`: `/`, `/kids` y `/deporte` alimentan estas
+ * listas desde `lib/eventos.ts`, `lib/kids.ts` y `lib/deporte.ts`, que son tipos
+ * distintos con los mismos campos. Acotar el parámetro a lo que las funciones de
+ * este fichero leen de verdad evita que endurecer el agregado (por ejemplo,
+ * volver `category` y `source` obligatorios) rompa a quien solo quiere
+ * serializar un evento.
+ */
+export type EventoJsonLd = {
+  slug: string;
+  title: string;
+  date: string;
+  dateEnd?: string;
+  time?: string;
+  image?: string;
+  location: string;
+  link: string;
+  description?: string;
+  cancelled?: boolean;
+};
+
+export function eventToJsonLd(evento: EventoJsonLd) {
   const startDate = madridIso(evento.date, evento.time);
   if (!startDate) return null;
 
@@ -131,7 +152,7 @@ export function eventToJsonLd(evento: AgendaEvento) {
 }
 
 export function itemListJsonLd(
-  eventos: AgendaEvento[],
+  eventos: readonly EventoJsonLd[],
   listName: string,
   listUrl: string
 ) {
@@ -166,7 +187,7 @@ export function breadcrumbJsonLd(items: { name: string; url?: string }[]) {
   };
 }
 
-export function eventDisplayDate(evento: AgendaEvento): string {
+export function eventDisplayDate(evento: Pick<EventoJsonLd, "date" | "time">): string {
   const d = new Date(evento.date);
   if (isNaN(d.getTime())) return "";
   let out = d.toLocaleDateString("es-ES", {

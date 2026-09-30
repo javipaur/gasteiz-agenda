@@ -1,15 +1,8 @@
 import { getCachedOrFetch } from "./cache";
 import { eventSlug } from "./slug";
-import { scrapeFever } from "./sources/fever";
-import { scrapeRula } from "./sources/rula";
-import { scrapeGasteizHoy } from "./sources/gasteizhoy";
-import { scrapeVamEvents } from "./sources/vam";
-import { scrapeMunicipalCalendar } from "./sources/municipal";
-import { scrapeEuskadi } from "./sources/euskadi";
-import { scrapeAllConciertos } from "./sources/conciertos";
-import { scrapeSenderismo } from "./sources/senderismo";
-import { scrapeBuscametasCalendario } from "./sources/buscametas";
-import { scrapeFiestasBlanca } from "./sources/fiestas-blanca";
+import { normalizeCategory } from "./categories";
+import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
+import { logger } from "./axiom/server";
 
 export type AgendaEvento = {
   id: string;
@@ -22,143 +15,101 @@ export type AgendaEvento = {
   location: string;
   link: string;
   description?: string;
-  category?: string;
-  source?: string;
+  category: string;
+  source: string;
+  kind?: string;
+  tags?: string[];
   cancelled?: boolean;
   price?: string;
   rating?: number;
+  popularity?: number;
 };
 
-type RawEvento = {
-  title?: string;
-  date?: string;
-  dateEnd?: string;
-  time?: string;
-  image?: string;
-  location?: string;
-  venue?: string;
-  link?: string;
-  description?: string;
-  category?: string;
-  cancelled?: boolean;
-  price?: string;
-  rating?: number;
-};
-
-function normalizeRaw(raw: RawEvento, source: string, fallbackCategory?: string): AgendaEvento | null {
-  const title = (raw?.title || "").trim();
+function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
+  const title = (raw.title || "").trim();
   if (!title || title === "Sin título") return null;
 
   const date = raw.date || "";
   if (!date || isNaN(new Date(date).getTime())) return null;
 
-  const link = raw.link && raw.link !== "#" ? raw.link : "";
+  const link = raw.link && raw.link !== "#" ? raw.link : (raw.url && raw.url !== "#" ? raw.url : "");
+  const slug = eventSlug({ title, date, link });
+  const category = normalizeCategory(entry.category ?? raw.category);
 
   return {
-    id: `${source}-${eventSlug({ title, date, link })}`,
-    slug: eventSlug({ title, date, link }),
+    id: slug,
+    slug,
     title,
     date,
     dateEnd: raw.dateEnd || undefined,
-    time: raw.time || undefined,
+    time: (raw.time || raw.timeStart || "").trim() || undefined,
     image: raw.image?.startsWith("http") ? raw.image : undefined,
     location: (raw.location || raw.venue || "").trim() || "Vitoria-Gasteiz",
     link,
     description: raw.description?.trim() || undefined,
-    category: raw.category || fallbackCategory,
-    source,
+    category,
+    source: entry.id,
+    kind: entry.kind,
+    tags: entry.tags && entry.tags.length ? [...entry.tags] : undefined,
     cancelled: raw.cancelled || undefined,
     price: typeof raw.price === "string" ? raw.price : undefined,
     rating: typeof raw.rating === "number" ? raw.rating : undefined,
   };
 }
 
-async function fetchAllAgenda(): Promise<AgendaEvento[]> {
-  const [
-    fever,
-    rula,
-    gasteizhoy,
-    vam,
-    municipal,
-    euskadi,
-    conciertos,
-    senderismo,
-    carreras,
-    fiestasBlanca,
-  ] = await Promise.allSettled([
-    scrapeFever(),
-    scrapeRula(),
-    scrapeGasteizHoy(),
-    scrapeVamEvents(),
-    scrapeMunicipalCalendar(),
-    scrapeEuskadi(),
-    scrapeAllConciertos(),
-    scrapeSenderismo(),
-    scrapeBuscametasCalendario(),
-    scrapeFiestasBlanca(),
-  ]);
+function dedupeKey(ev: AgendaEvento): string {
+  return `${ev.title.toLowerCase().trim()}|${ev.date.slice(0, 10)}`;
+}
 
-  const eventos: AgendaEvento[] = [];
+export async function aggregate(entries: readonly SourceEntry[]): Promise<AgendaEvento[]> {
+  // Regla de desempate, en este orden y sin excepciones:
+  //   1. menor `priority` gana
+  //   2. a igual prioridad, gana el que va antes en SOURCE_REGISTRY
+  // Array.prototype.sort es estable en V8, asi que ordenar por priority basta
+  // para que el orden del array sea el desempate. El array esta ordenado a mano
+  // por grupo: municipal, oficiales, consolidadas, agregadoras.
+  const ordered = [...entries].sort((a, b) => a.priority - b.priority);
 
-  const push = (list: RawEvento[], source: string, cat?: string) => {
-    for (const raw of list) {
-      const ev = normalizeRaw(raw, source, cat);
-      if (ev) eventos.push(ev);
+  const settled = await Promise.allSettled(ordered.map((e) => e.run()));
+
+  const collected: AgendaEvento[] = [];
+  settled.forEach((result, i) => {
+    const entry = ordered[i];
+    if (result.status === "rejected") {
+      logger.warn("scraping_failed", {
+        source: entry.id,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+      return;
     }
-  };
+    for (const raw of result.value) {
+      const ev = normalizeRaw(raw, entry);
+      if (ev) collected.push(ev);
+    }
+  });
 
-  if (fever.status === "fulfilled") push(fever.value, "fever");
-  if (rula.status === "fulfilled") push(rula.value, "rula");
-  if (gasteizhoy.status === "fulfilled") push(gasteizhoy.value, "gasteizhoy");
-  if (vam.status === "fulfilled") push(vam.value, "vam");
-  if (municipal.status === "fulfilled")
-    push(municipal.value, "vitoria-gasteiz");
-  if (euskadi.status === "fulfilled") push(euskadi.value, "euskadi");
-  if (conciertos.status === "fulfilled") {
-    push(
-      conciertos.value.map((c) => ({
-        ...c,
-        category: "conciertos",
-        location: c.venue || c.location,
-      })),
-      "jimmy-jazz-gasteiz"
-    );
-  }
-  if (senderismo.status === "fulfilled")
-    push(senderismo.value, "euskadi", "senderismo");
-  if (carreras.status === "fulfilled")
-    push(carreras.value, "buscametas", "deporte");
-  if (fiestasBlanca.status === "fulfilled") {
-    push(
-      fiestasBlanca.value
-        .filter((f) => !f.cancelled)
-        .map((f) => ({
-          title: f.title,
-          date: f.date,
-          dateEnd: f.dateEnd,
-          time: f.timeStart,
-          image: f.image,
-          location: f.location,
-          link: f.url,
-          description: "",
-          category: f.category || "La Blanca",
-        })),
-      "fiestas-blanca",
-      "La Blanca"
-    );
+  const byKey = new Map<string, AgendaEvento>();
+  for (const ev of collected) {
+    const key = dedupeKey(ev);
+    const winner = byKey.get(key);
+    if (!winner) {
+      byKey.set(key, ev);
+      continue;
+    }
+    // Las fuentes municipales suelen venir sin imagen y las comerciales con,
+    // asi que se la robamos al perdedor antes de descartarlo.
+    if (!winner.image && ev.image) winner.image = ev.image;
+    if (!winner.description && ev.description) winner.description = ev.description;
+    if (!winner.location && ev.location) winner.location = ev.location;
   }
 
-  const seen = new Set<string>();
-  return eventos
-    .filter((ev) => {
-      const key = `${ev.title}|${ev.slug}`.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+  return [...byKey.values()].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+}
+
+async function fetchAllAgenda(): Promise<AgendaEvento[]> {
+  return aggregate(SOURCE_REGISTRY);
 }
 
 export async function getAgendaEventos(options?: {
@@ -186,30 +137,31 @@ export async function getAgendaEventos(options?: {
   return eventos;
 }
 
+export function findBySlug(
+  eventos: readonly AgendaEvento[],
+  slug: string
+): AgendaEvento | undefined {
+  return eventos.find((ev) => ev.slug === slug);
+}
+
 export async function getEventoBySlug(
   slug: string
 ): Promise<{ evento: AgendaEvento; related: AgendaEvento[] } | null> {
   const eventos = await getAgendaEventos({ includePast: true });
-  const idx = eventos.findIndex((ev) => ev.slug === slug);
-  if (idx === -1) return null;
-  const evento = eventos[idx];
-  const related = eventos
-    .filter(
-      (ev) =>
-        ev.slug !== slug &&
-        ev.category === evento.category &&
-        new Date(ev.date) >= new Date()
-    )
-    .slice(0, 6);
+  const evento = findBySlug(eventos, slug);
+  if (!evento) return null;
 
-  if (related.length < 3) {
+  const related: AgendaEvento[] = eventos.filter(
+    (ev) =>
+      ev.slug !== slug &&
+      ev.category === evento.category &&
+      new Date(ev.date) >= new Date()
+  );
+
+  if (related.length < 6) {
     for (const ev of eventos) {
       if (related.length >= 6) break;
-      if (
-        ev.slug !== slug &&
-        !related.includes(ev) &&
-        new Date(ev.date) >= new Date()
-      ) {
+      if (ev.slug !== slug && !related.includes(ev) && new Date(ev.date) >= new Date()) {
         related.push(ev);
       }
     }
