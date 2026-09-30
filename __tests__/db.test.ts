@@ -94,11 +94,16 @@ describe("la ruta del fichero de suscriptores", () => {
     process.env.SUBSCRIBERS_PATH = destino;
     expect(existsSync(join(dir, "nuevo"))).toBe(false);
 
-    const { addSubscriber, getActiveSubscribers } = cargarDb();
+    const { addSubscriber, getAllSubscribers } = cargarDb();
     addSubscriber("hola@ejemplo.test");
 
     expect(existsSync(destino)).toBe(true);
-    expect(getActiveSubscribers().map((s) => s.email)).toEqual(["hola@ejemplo.test"]);
+    // `getAllSubscribers` y no `getActiveSubscribers`: este test va de dónde se
+    // escribe, no de si la suscripción está activa. Con la doble confirmación un
+    // alta recién hecha está pendiente, así que `getActiveSubscribers` saldría
+    // vacío y el test no distinguiría «no se escribió» de «se escribió
+    // pendiente».
+    expect(getAllSubscribers().map((s) => s.email)).toEqual(["hola@ejemplo.test"]);
   });
 
   it("un fichero corrupto no borra a los que ya había: se queda vacío", () => {
@@ -109,10 +114,10 @@ describe("la ruta del fichero de suscriptores", () => {
     writeFileSync(destino, "{ esto no es json", "utf-8");
     process.env.SUBSCRIBERS_PATH = destino;
 
-    const { addSubscriber, getActiveSubscribers } = cargarDb();
-    expect(getActiveSubscribers()).toEqual([]);
+    const { addSubscriber, getAllSubscribers } = cargarDb();
+    expect(getAllSubscribers()).toEqual([]);
     expect(() => addSubscriber("hola@ejemplo.test")).not.toThrow();
-    expect(getActiveSubscribers()).toHaveLength(1);
+    expect(getAllSubscribers()).toHaveLength(1);
   });
 });
 

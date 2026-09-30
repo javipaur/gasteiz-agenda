@@ -69,15 +69,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const { token, exists } = addSubscriber(email);
+    const { token, exists, active } = addSubscriber(email);
 
     await sendConfirmationEmail(email, token);
 
+    // Tres casos y no dos. Con el alta directa, «ya estás suscrito» era cierto
+    // siempre que el correo estaba en la lista; con la doble confirmación hay un
+    // tercero —se dio de baja y vuelve a suscribirse— y ahí la frase sería
+    // mentira: sigue en la lista, pero inactiva y esperando otro correo.
     return NextResponse.json({
       ok: true,
-      message: exists
-        ? "Ya estás suscrito. Te hemos reenviado el email de confirmación."
-        : "Revisa tu correo para confirmar la suscripción.",
+      message: !exists
+        ? "Revisa tu correo para confirmar la suscripción."
+        : active
+          ? "Ya estás suscrito. Te hemos reenviado el email de confirmación."
+          : "Te hemos reenviado el email de confirmación para volver a suscribirte.",
     });
   } catch (error) {
     console.error("Error subscribing:", error);
