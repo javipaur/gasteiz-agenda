@@ -119,6 +119,101 @@ describe("el alta", () => {
     expect(getActiveSubscribers()).toEqual([]);
     expect(getAllSubscribers().map((s) => s.active)).toEqual([false]);
   });
+
+  /**
+   * El hueco que dejó la suite verde con el flujo roto.
+   *
+   * El test de arriba comprobaba la mitad del asunto —que el alta por sí sola no
+   * reactiva— y se quedaba ahí. Nadie llamaba a `confirmSubscriber` después de
+   * re-suscribirse, que es justo el paso siguiente del flujo y el que fallaba:
+   *
+   *   alta1        -> {token:T, active:false}
+   *   confirmar(T) -> true
+   *   baja         -> true
+   *   alta2        -> {token:T, active:false}
+   *   confirmar(T) -> false   <-- siempre
+   *
+   * La fila guardaba `confirmedAt` escrito, ningún camino lo borraba —`addSubscriber`
+   * devolvía la fila sin escribir, `removeSubscriber` no lo tocaba— y el guard de
+   * `confirmSubscriber` se negaba a entrar. El endpoint le decía a la persona
+   * «te hemos reenviado el email de confirmación», pulsaba el enlace y aterrizaba
+   * en `?newsletter=invalid-token`, que ninguna página lee. Suscriptor bloqueado
+   * para siempre.
+   */
+  it("quien se da de baja y vuelve a suscribirse puede volver a confirmar", () => {
+    const { addSubscriber, confirmSubscriber, removeSubscriber, getActiveSubscribers } = db();
+    const { token } = addSubscriber("vuelve@ejemplo.test");
+    confirmSubscriber(token);
+    removeSubscriber(token);
+    expect(getActiveSubscribers()).toEqual([]);
+
+    const reAlta = addSubscriber("vuelve@ejemplo.test");
+    expect(reAlta).toEqual({ token, exists: true, active: false });
+    // El alta sola no basta: sigue en la lista de envío sin confirmar.
+    expect(getActiveSubscribers()).toEqual([]);
+
+    // Y aquí es donde se quedaba atascado.
+    expect(confirmSubscriber(reAlta.token)).toBe(true);
+    expect(getActiveSubscribers().map((s) => s.email)).toEqual(["vuelve@ejemplo.test"]);
+  });
+
+  it("el enlace que recibe la persona al re-suscribirse confirma de verdad", async () => {
+    // Lo mismo, pero por el endpoint, que es por donde llega el enlace. Antes
+    // esto devolvía `?newsletter=invalid-token` y, como ninguna página lee
+    // `?newsletter=`, el fallo era invisible.
+    const { addSubscriber, confirmSubscriber, removeSubscriber, getActiveSubscribers } = db();
+    const { token } = addSubscriber("vuelve@ejemplo.test");
+    confirmSubscriber(token);
+    removeSubscriber(token);
+    addSubscriber("vuelve@ejemplo.test");
+
+    const res = await ruta()(pedir(`/api/newsletter/confirm?token=${token}`));
+
+    expect(destinoDe(res)).toBe("/?newsletter=confirmed");
+    expect(getActiveSubscribers()).toHaveLength(1);
+  });
+
+  it("reinscribirse no borra la fecha del primer alta", () => {
+    // `subscribedAt` es cuándo se pidió el alta por primera vez. Sobrescribirlo
+    // en cada re-alta perdería el histórico sin ganar nada: nadie lo lee, pero
+    // cuando alguien empiece a leerlo, lo que encuentre tiene que ser cierto.
+    const { addSubscriber, confirmSubscriber, removeSubscriber, getAllSubscribers } = db();
+    const { token } = addSubscriber("vuelve@ejemplo.test");
+    confirmSubscriber(token);
+    const primera = getAllSubscribers()[0].subscribedAt;
+    removeSubscriber(token);
+
+    addSubscriber("vuelve@ejemplo.test");
+
+    expect(getAllSubscribers()[0].subscribedAt).toBe(primera);
+  });
+
+  it("el enlace viejo no revive a quien NO vuelve a suscribirse", () => {
+    // El guard de `confirmedAt` sigue teniendo un trabajo: sin una re-alta que
+    // lo borre, un enlace de confirmación que quede en una bandeja antigua no
+    // puede devolver a la lista a quien pidió salir. Es el caso para el que se
+    // escribió, y el arreglo de arriba no lo toca.
+    const { addSubscriber, confirmSubscriber, removeSubscriber, getActiveSubscribers } = db();
+    const { token } = addSubscriber("se-vale@ejemplo.test");
+    confirmSubscriber(token);
+    removeSubscriber(token);
+
+    expect(confirmSubscriber(token)).toBe(false);
+    expect(getActiveSubscribers()).toEqual([]);
+  });
+
+  it("re-suscribirse dos veces sigue funcionando, y sin dejar filas sueltas", () => {
+    const { addSubscriber, confirmSubscriber, removeSubscriber, getAllSubscribers, getActiveSubscribers } =
+      db();
+    for (let vuelta = 0; vuelta < 3; vuelta++) {
+      const { token } = addSubscriber("varias@ejemplo.test");
+      expect(confirmSubscriber(token)).toBe(true);
+      expect(getActiveSubscribers().map((s) => s.email)).toEqual(["varias@ejemplo.test"]);
+      removeSubscriber(token);
+      expect(getActiveSubscribers()).toEqual([]);
+    }
+    expect(getAllSubscribers()).toHaveLength(1);
+  });
 });
 
 describe("confirmar", () => {

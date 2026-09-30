@@ -92,11 +92,29 @@ function writeSubscribers(subscribers: Subscriber[]) {
  * Da de alta a un correo y devuelve el token del enlace de confirmación.
  *
  * El alta **no** activa a nadie: deja la entrada en `active: false` y es
- * `confirmSubscriber` —o sea, abrir el correo— lo que la activa. Si el correo ya
- * estaba, se reutiliza la fila y su token en vez de duplicar, y no se toca
- * `active`: quien está activo sigue activo y quien se dio de baja tiene que
- * volver a confirmar. Si el alta reactivara, la confirmación no significaría
- * nada, que es justo el problema que había.
+ * `confirmSubscriber` —o sea, abrir el correo— lo que la activa.
+ *
+ * Si el correo ya estaba, se reutiliza la fila y su token en vez de duplicar, y
+ * hay dos casos distintos. Si la fila está activa, no se toca nada. Si está dada
+ * de baja, se devuelve al estado pendiente limpiando `confirmedAt`: el alta sola
+ * no reactiva, pero sin ese borrado la persona quedaba bloqueada para siempre,
+ * porque el guard de `confirmSubscriber` se negaba a entrar y el enlace de
+ * confirmación que recibía la devolvía a `?newsletter=invalid-token`, que ninguna
+ * página lee. Se subscribía a algo que no funcionaba sin enterarse.
+ *
+ * El token **se conserva**, y es deliberado. Rotarlo dejaría muerto el enlace de
+ * baja de la última newsletter que recibió la persona: `removeSubscriber` busca
+ * por token, no encontraría a nadie y devolvería `false`, así que el enlace
+ * dejaría de dar de baja. No puede dar de baja a la fila equivocada —los tokens
+ * son UUID y no colisionan— pero sí fallar en silencio, que es peor para quien
+ * solo quiere dejar de recibir correo. Conservarlo tampoco abre nada que no
+ * estuviera abierto: el enlace de confirmación antiguo solo confirma una
+ * suscripción que esa misma bandeja acaba de pedir con esa misma dirección. La
+ * seguridad de la doble confirmación no está en que el token sea nuevo, está en
+ * que la casilla la controle quien pidió la suscripción.
+ *
+ * `subscribedAt` no se toca: es cuándo se pidió el alta por primera vez, y
+ * sobrescribirlo en cada re-alta perdería el histórico sin ganar nada.
  *
  * `active` vuelve porque el mensaje que se le manda a quien se suscribe depende
  * de los tres casos, y con el alta directa eran dos: antes, «ya estás suscrito»
@@ -113,6 +131,14 @@ export function addSubscriber(email: string): {
   const existing = subscribers.find((s) => s.email === email);
 
   if (existing) {
+    // Re-alta de alguien que se había dado de baja: vuelve a pendiente. Es lo
+    // único que hay que cambiar. `active` sigue en `false`, así que el alta sola
+    // no devuelve a nadie a la lista; lo que hace es devolver la fila al estado
+    // en el que `confirmSubscriber` la acepta.
+    if (!existing.active && existing.confirmedAt) {
+      existing.confirmedAt = null;
+      writeSubscribers(subscribers);
+    }
     return { token: existing.token, exists: true, active: existing.active };
   }
 
