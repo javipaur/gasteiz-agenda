@@ -8,7 +8,7 @@
     "paradas": [
       { "nombre": "Tximitxurri", "direccion": "Correría, 15", "pintxo": "Gilda de autor", "precio": "3,50 €" },
       { "nombre": "Zarra", "direccion": "Herrería, 1", "pintxo": "Txistorra con pimiento", "precio": "3,00 €" },
-      { "nombre": "Gasteiz", "direccion": "Cuchillería, 34", "pintxo": "Huevos rotos con txistorra", "precio": "3,50 €" },
+      { "nombre": "Bar Idoia", "direccion": "Cuchillería, 25", "pintxo": "Croquetas caseras", "precio": "2,50 €" },
       { "nombre": "Portalón", "direccion": "Correría, 163", "pintxo": "Pincho de buen pastor", "precio": "4,00 €" }
     ]
   },
@@ -20,8 +20,8 @@
     "consejo": "Aprovechad el paseo por el parque de La Florida entre pintxo y pintxo.",
     "paradas": [
       { "nombre": "El hermano de Anto", "direccion": "San Antonio, 9", "pintxo": "Gilda verde", "precio": "3,00 €" },
-      { "nombre": "La Reineta", "direccion": "Dato, 7", "pintxo": "Hamburguesa en miniatura", "precio": "3,50 €" },
-      { "nombre": "Alcotán", "direccion": "Gaztelako Atea, 12", "pintxo": "Risotto trufado", "precio": "4,00 €" }
+      { "nombre": "La Bonita", "direccion": "Florida, 49", "pintxo": "Enxebre", "precio": "3,00 €" },
+      { "nombre": "El Rincón de Luis Mari", "direccion": "Rioja, 14", "pintxo": "Serranito y Antxopi", "precio": "2,50 €" }
     ]
   },
   {
@@ -32,8 +32,8 @@
     "consejo": "Bares más amplios y tranquilos; buen plan para terminar el día sin esperas largas.",
     "paradas": [
       { "nombre": "Sagartoki", "direccion": "Herrería, 12", "pintxo": "Croquetas de jamón", "precio": "3,50 €" },
-      { "nombre": "Bliss", "direccion": "San Prudencio, 22", "pintxo": "Torre de huevas de trucha", "precio": "4,00 €" },
-      { "nombre": "Kultur", "direccion": "Postas, 7", "pintxo": "Ensaladilla con queso Idiazábal", "precio": "3,50 €" }
+      { "nombre": "Arkupe", "direccion": "Mateo Benigno de Moraza, 13", "pintxo": "Croquetitas Arkupe", "precio": "3,50 €" },
+      { "nombre": "Zabala", "direccion": "Mateo Benigno de Moraza, 9", "pintxo": "Cazuelita; prueba el goxua después", "precio": "3,50 €" }
     ]
   },
   {
@@ -44,8 +44,8 @@
     "consejo": "Barrio residencial junto a los humedales; los bares son amplios y sin colas. Podéis rematar con un paseo por el humedal o el poteo del jueves.",
     "paradas": [
       { "nombre": "Bar Urria", "direccion": "Bulevar de Salburua, 42", "pintxo": "Pintxo-pote y croquetas caseras", "precio": "2,50 €" },
-      { "nombre": "Cafetería Iliada", "direccion": "Bulevar de Salburua", "pintxo": "Tortilla y raciones de picoteo", "precio": "3,50 €" },
-      { "nombre": "Iceberg Salburua", "direccion": "Av. de Praga, 4", "pintxo": "Cocina tradicional con toque propio", "precio": "4,00 €" }
+      { "nombre": "Cafetería Iliada", "direccion": "Paseo de la Iliada, 17", "pintxo": "Tortilla y raciones de picoteo", "precio": "3,50 €" },
+      { "nombre": "Iceberg Salburua", "direccion": "Av. de Praga, 4", "pintxo": "Pintxos y menú de cochinillo", "precio": "3,00 €" }
     ]
   },
   {
@@ -55,7 +55,7 @@
     "duracion": "2 h",
     "consejo": "El barrio más poblado de Vitoria; buenas terrazas y el mejor pincho-pote de los jueves. El H2O es todo un referente por su tortilla.",
     "paradas": [
-      { "nombre": "H2O", "direccion": "Calle Oyón, 28", "pintxo": "Tortilla de patata (Soléte Repsol)", "precio": "4,00 €" },
+      { "nombre": "H2O", "direccion": "Calle Oyón, 28", "pintxo": "Tortilla de patata (Solete Repsol)", "precio": "4,00 €" },
       { "nombre": "Black & White", "direccion": "Alto de Armentia, 44", "pintxo": "Tortilla jugosa y gildas de caserío", "precio": "3,50 €" },
       { "nombre": "Deep Blue", "direccion": "Av. de la Ilustración, 48", "pintxo": "Smash burger y pintxos de la casa", "precio": "3,50 €" }
     ]
@@ -69,7 +69,7 @@
     "paradas": [
       { "nombre": "El Rincón de Luis Mari", "direccion": "Rioja, 14", "pintxo": "Serranito y Antxopi", "precio": "2,50 €" },
       { "nombre": "Bar Bikoka", "direccion": "Martin Susaeta", "pintxo": "Pintxos calientes y rabas", "precio": "3,00 €" },
-      { "nombre": "¡Waska!", "direccion": "Siervas de Jesús, 17", "pintxo": "Bonito a la brasa y pintxos de poteo", "precio": "3,50 €" }
+      { "nombre": "Berri!", "direccion": "Fundadora de las Siervas de Jesús, 17", "pintxo": "Picoteo de tardeo y desayunos", "precio": "3,00 €" }
     ]
   }
 ]

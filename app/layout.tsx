@@ -79,7 +79,7 @@ export const metadata: Metadata = {
       {
         rel: "mask-icon",
         url: "/icon-maskable.svg",
-        color: "#C94A3D",
+        color: "#BC0202",
       },
     ],
   },
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FF4D7D" },
+    { media: "(prefers-color-scheme: light)", color: "#BC0202" },
     { media: "(prefers-color-scheme: dark)", color: "#0B0E14" },
   ],
   width: "device-width",

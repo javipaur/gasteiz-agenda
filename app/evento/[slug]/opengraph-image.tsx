@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 import { getEventoBySlug } from "@/lib/agenda";
 import { eventDisplayDate } from "@/lib/seo";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export const size = {
   width: 1200,
@@ -23,6 +25,11 @@ export default async function Image({
   const meta = result
     ? `${eventDisplayDate(result.evento)} · ${result.evento.location}`
     : "gasteizclick.javierpalacio.es";
+
+  const markBuffer = await readFile(
+    path.join(process.cwd(), "public", "brand-mark.svg")
+  );
+  const mark = `data:image/svg+xml;base64,${markBuffer.toString("base64")}`;
 
   const words = title.split(" ");
   const lines: string[] = [];
@@ -47,31 +54,18 @@ export default async function Image({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "linear-gradient(135deg, #D4524A 0%, #C94A3D 100%)",
+          background: "#F3EBD4",
           padding: 72,
-          color: "white",
+          color: "#000000",
           fontFamily: "sans-serif",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              backgroundColor: "#FFF8F4",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 34,
-              fontWeight: 800,
-              color: "#C94A3D",
-            }}
-          >
-            G
-          </div>
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 600, opacity: 0.9 }}>
-            Gasteiz Click · Agenda de Vitoria-Gasteiz
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={mark} width={56} height={56} alt="" style={{ display: "block" }} />
+          <div style={{ display: "flex", fontSize: 28, fontWeight: 700, color: "#000000" }}>
+            Gasteiz
+            <span style={{ color: "#BC0202" }}>Click</span>
           </div>
         </div>
 
@@ -91,8 +85,9 @@ export default async function Image({
           style={{
             display: "flex",
             fontSize: 30,
-            opacity: 0.85,
-            borderTop: "1px solid rgba(255,255,255,0.25)",
+            fontWeight: 600,
+            color: "#BC0202",
+            borderTop: "1px solid rgba(0,0,0,0.12)",
             paddingTop: 24,
           }}
         >

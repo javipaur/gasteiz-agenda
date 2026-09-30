@@ -34,8 +34,8 @@ export default function AvisoLegalPage() {
               El sitio web <strong className="text-fg font-medium">Gasteiz Click</strong> es un
               proyecto personal e independiente sobre la agenda cultural de
               Vitoria-Gasteiz. Para cualquier consulta puedes escribir a{" "}
-              <a href="mailto:hola@javierpalacio.es" className="text-accent hover:text-accent-hover underline underline-offset-4 decoration-border">
-                hola@javierpalacio.es
+              <a href="mailto:javipaur@gmail.com" className="text-accent hover:text-accent-hover underline underline-offset-4 decoration-border">
+                javipaur@gmail.com
               </a>.
             </p>
           </section>

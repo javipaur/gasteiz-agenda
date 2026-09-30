@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
+import { InstallButton } from "./InstallButton";
+import { LogoMark } from "./LogoMark";
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
@@ -9,17 +13,9 @@ function PlayStoreIcon({ className }: { className?: string }) {
   );
 }
 
-function DownloadIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 3v10M6 9l4 4 4-4" />
-      <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" />
-    </svg>
-  );
-}
-
 export default function Footer() {
   const now = new Date();
+
   const agendaUrl = `/agenda/${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const exploreLinks = [
@@ -47,7 +43,8 @@ export default function Footer() {
     { label: "Aviso legal", href: "/aviso-legal" },
     { label: "API pública", href: "/docs" },
     { label: "Feed RSS", href: "/feed.xml" },
-    { label: "Contacto", href: "mailto:hola@javierpalacio.es" },
+    { label: "Newsletter", href: "/suscribete" },
+    { label: "Contacto", href: "mailto:javipaur@gmail.com" },
   ];
 
   return (
@@ -55,9 +52,12 @@ export default function Footer() {
       <div className="bg-[#1A1816] text-white">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-20 grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-12 md:gap-10">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-white mb-3 tracking-[-0.02em]">
-              Gasteiz Click
-            </h2>
+            <div className="inline-flex items-center gap-3 bg-brand-bone text-brand-ink rounded-2xl px-4 py-3 mb-3 shadow-lg">
+              <LogoMark className="w-10 h-10 shrink-0" spiral="var(--color-brand-red)" />
+              <span className="font-display text-2xl font-semibold tracking-[-0.02em]">
+                Gasteiz<span className="text-brand-red">Click</span>
+              </span>
+            </div>
             <p className="text-sm text-white/60 leading-relaxed max-w-sm mb-8">
               La agenda cultural de Vitoria-Gasteiz: conciertos, teatro, cine,
               deporte y planes familiares, actualizados a diario.
@@ -75,16 +75,7 @@ export default function Footer() {
                   <span className="font-semibold">Google Play</span>
                 </span>
               </a>
-              <a
-                href="/manifest.json"
-                className="inline-flex items-center gap-3 bg-white/5 hover:bg-white/10 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] px-4 py-3 rounded-xl text-sm text-white/70"
-              >
-                <DownloadIcon className="w-5 h-5 shrink-0" />
-                <span className="flex flex-col leading-tight">
-                  <span className="text-[10px] text-white/40 uppercase tracking-[0.1em]">Desde el navegador</span>
-                  <span className="font-semibold text-white/70">Instalar como app</span>
-                </span>
-              </a>
+              <InstallButton />
             </div>
           </div>
 
@@ -173,7 +164,7 @@ export default function Footer() {
               <a href="/feed.xml" className="hover:text-white/70 transition-colors duration-300">
                 RSS
               </a>
-              <a href="mailto:hola@javierpalacio.es" className="hover:text-white/70 transition-colors duration-300">
+              <a href="mailto:javipaur@gmail.com" className="hover:text-white/70 transition-colors duration-300">
                 Contacto
               </a>
             </div>

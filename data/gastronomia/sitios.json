@@ -63,5 +63,151 @@
     "coords": { "lat": 42.8476, "lng": -2.6736 },
     "descripcion": "Clásico de la Herrería con pintxo de txistorra y propuestas de temporada.",
     "recomendado": true
+  },
+  {
+    "slug": "bar-idoia",
+    "nombre": "Bar Idoia",
+    "barrio": "Casco Viejo",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle Cuchillería, 25",
+    "coords": { "lat": 42.8485, "lng": -2.6709 },
+    "descripcion": "Local de toda la vida en Cuchillería (40+ años) famoso por sus croquetas caseras, los pintxos y los mojitos.",
+    "recomendado": true
+  },
+  {
+    "slug": "el-rincon-de-luis-mari",
+    "nombre": "El Rincón de Luis Mari",
+    "barrio": "San Martín",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle Rioja, 14",
+    "coords": { "lat": 42.8432, "lng": -2.6685 },
+    "descripcion": "Bar familiar desde 1990 donde el Serranito y el Antxopi son leyenda local; fundado por Luis Mari Puelles y hoy regentado por su hijo Íñigo.",
+    "recomendado": true
+  },
+  {
+    "slug": "h2o",
+    "nombre": "H2O",
+    "barrio": "Zabalgana",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle Oyón, 28",
+    "coords": { "lat": 42.839, "lng": -2.7112 },
+    "descripcion": "Solete de la Guía Repsol por su tortilla de patata con cebolla, favorita incluso de Sara Escudero. Referencia del poteo de Zabalgana."
+  },
+  {
+    "slug": "bar-urria",
+    "nombre": "Bar Urria",
+    "barrio": "Salburua",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Bulevar de Salburua, 42",
+    "coords": { "lat": 42.8447, "lng": -2.6498 },
+    "descripcion": "Pintxo-pote los jueves, vermut de fin de semana y croquetas de jamón caseras. Terrazas amplias junto al humedal."
+  },
+  {
+    "slug": "iceberg-salburua",
+    "nombre": "Iceberg Salburua",
+    "barrio": "Salburua",
+    "tipoCocina": "Tradicional",
+    "rangoPrecio": "€€",
+    "direccion": "Avenida de Praga, 4",
+    "coords": { "lat": 42.8468, "lng": -2.6513 },
+    "descripcion": "Bar-restaurante de Salburua con desayunos, pintxos a 1 € entre semana, tortillas por encargo y famoso menú de cochinillo."
+  },
+  {
+    "slug": "bar-bikoka",
+    "nombre": "Bar Bikoka",
+    "barrio": "San Martín",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Calle Martin Susaeta",
+    "coords": { "lat": 42.858, "lng": -2.6961 },
+    "descripcion": "Bar de toda la vida homenajeado por EITB: 'bueno, bonito y barato'. Pintxos calientes y rabas, con Mertxe Pérez de Arenaza en la cocina."
+  },
+  {
+    "slug": "deep-blue",
+    "nombre": "Deep Blue",
+    "barrio": "Zabalgana",
+    "tipoCocina": "Hamburguesas",
+    "rangoPrecio": "€€",
+    "direccion": "Avenida de la Ilustración, 48",
+    "coords": { "lat": 42.8429, "lng": -2.6995 },
+    "descripcion": "Bar de hamburguesas y pintxopote en Zabalgana: smash burgers, empanadilla con el pote y desayunos de barrio."
+  },
+  {
+    "slug": "black-white",
+    "nombre": "Black & White",
+    "barrio": "Zabalgana",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€",
+    "direccion": "Alto de Armentia, 44",
+    "coords": { "lat": 42.835, "lng": -2.7076 },
+    "descripcion": "Bar de barrio junto a Júndiz con tortilla jugosa, gildas y buen ambiente de txikiteo."
+  },
+  {
+    "slug": "la-bonita",
+    "nombre": "La Bonita",
+    "barrio": "Centro",
+    "tipoCocina": "Pintxos",
+    "rangoPrecio": "€€",
+    "direccion": "Calle Florida, 49",
+    "coords": { "lat": 42.8426, "lng": -2.6685 },
+    "imagen": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Vitoria_-_Bar_Restaurante_La_Bonita_%28Calle_Florida%29.jpg",
+    "descripcion": "Sobre la avenida de la Florida, con el pintxo Enxebre como especialidad declarada y buena carta de raciones para el poteo."
+  },
+  {
+    "slug": "arkupe",
+    "nombre": "Arkupe",
+    "barrio": "Ensanche",
+    "tipoCocina": "Picoteo",
+    "rangoPrecio": "€€",
+    "direccion": "Calle Mateo Benigno de Moraza, 13",
+    "coords": { "lat": 42.847, "lng": -2.6723 },
+    "imagen": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Vitoria_-_Calle_Mateo_Benigno_de_Moraza%2C_Restaurante_Arkupe_1.jpg",
+    "descripcion": "Gastrobar abierto en 1973: barra de pinchos, croquetitas Arkupe, vermut y zona de picoteo con producto de la tierra."
+  },
+  {
+    "slug": "zabala",
+    "nombre": "Zabala",
+    "barrio": "Ensanche",
+    "tipoCocina": "Asador",
+    "rangoPrecio": "€€",
+    "direccion": "Calle Mateo Benigno de Moraza, 9",
+    "coords": { "lat": 42.847, "lng": -2.6725 },
+    "imagen": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Vitoria_-_Calle_Mateo_Benigno_de_Moraza%2C_restaurante_Zabala_1.jpg",
+    "descripcion": "Casa de comidas desde 1962, cuna del goxua y asador de eco-producto; Solete de la Guía Repsol en pleno centro."
+  },
+  {
+    "slug": "cafeteria-iliada",
+    "nombre": "Cafetería Iliada",
+    "barrio": "Salburua",
+    "tipoCocina": "Cafetería",
+    "rangoPrecio": "€",
+    "direccion": "Paseo de la Iliada, 17",
+    "coords": { "lat": 42.8456, "lng": -2.6419 },
+    "descripcion": "Cafetería de barrio con opciones veganas: ensaladas, sandwich, burrito y burger; abierta de 08:00 a 23:00."
+  },
+  {
+    "slug": "berri",
+    "nombre": "Berri!",
+    "barrio": "San Martín",
+    "tipoCocina": "Bar-restaurante",
+    "rangoPrecio": "€€",
+    "direccion": "Calle de la Fundadora de las Siervas de Jesús, 17",
+    "coords": { "lat": 42.8486, "lng": -2.6754 },
+    "descripcion": "Reabrió en marzo de 2026 el local de ¡Waska! con desayunos, menú del día, carta de noche y tardeo; firma el chef Carlos Dávalos."
+  },
+  {
+    "slug": "comes-gamarra",
+    "nombre": "Comes Gamarra",
+    "barrio": "Gamarra",
+    "tipoCocina": "Tradicional",
+    "rangoPrecio": "€€",
+    "direccion": "Barratxi, 39 (Parque de Gamarra)",
+    "coords": { "lat": 42.8758, "lng": -2.6511 },
+    "imagen": "https://upload.wikimedia.org/wikipedia/commons/2/22/Vitoria_-_Parque_de_Gamarra_-_Bar-Restaurante_Comes_Gamarra_1.jpg",
+    "descripcion": "Bar-restaurante en pleno Parque de Gamarra, con terraza junto al río Zadorra y cocina tradicional para rematar el paseo."
   }
 ]

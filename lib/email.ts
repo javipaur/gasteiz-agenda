@@ -1,5 +1,5 @@
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || "newsletter@gasteizagenda.com";
+import { sendMail } from "./mail";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type Evento = {
@@ -92,33 +92,7 @@ function buildWeeklyHtml(eventos: Evento[], unsubscribeUrl: string): string {
 }
 
 export async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_API_KEY) {
-    console.log("[email] No RESEND_API_KEY set. Would send email to", to);
-    console.log("[email] Subject:", subject);
-    return { ok: true, mock: true };
-  }
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: FROM_EMAIL,
-      to,
-      subject,
-      html,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    console.error("[email] Failed to send:", err);
-    return { ok: false, error: err };
-  }
-
-  return { ok: true };
+  return sendMail({ to, subject, html });
 }
 
 export async function sendWeeklyNewsletter(

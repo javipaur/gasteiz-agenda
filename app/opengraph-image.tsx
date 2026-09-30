@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export const size = {
   width: 1200,
@@ -9,7 +11,12 @@ export const contentType = "image/png";
 
 export const alt = "Gasteiz Click · Agenda cultural de Vitoria-Gasteiz";
 
-export default function Image() {
+export default async function Image() {
+  const markBuffer = await readFile(
+    path.join(process.cwd(), "public", "brand-mark.svg")
+  );
+  const mark = `data:image/svg+xml;base64,${markBuffer.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -19,51 +26,41 @@ export default function Image() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: "linear-gradient(135deg, #D4524A 0%, #C94A3D 100%)",
+          background: "#F3EBD4",
           padding: 80,
-          color: "white",
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 18,
-              backgroundColor: "#FFF8F4",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 44,
-              fontWeight: 800,
-              color: "#C94A3D",
-            }}
-          >
-            G
-          </div>
-          <div style={{ display: "flex", fontSize: 34, fontWeight: 700 }}>
-            Gasteiz Click
+        <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={mark} width={86} height={86} alt="" style={{ display: "block" }} />
+          <div style={{ display: "flex", fontSize: 38, fontWeight: 700, color: "#000000" }}>
+            Gasteiz
+            <span style={{ color: "#BC0202" }}>Click</span>
           </div>
         </div>
 
         <div
           style={{
             display: "flex",
-            fontSize: 88,
+            fontSize: 92,
             fontWeight: 800,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
             letterSpacing: -3,
+            color: "#000000",
           }}
         >
-          Qué hacer en Vitoria-Gasteiz
+          Qué hacer en
+          <br />
+          Vitoria-Gasteiz
         </div>
 
         <div
           style={{
             display: "flex",
             fontSize: 32,
-            opacity: 0.85,
+            fontWeight: 600,
+            color: "#BC0202",
           }}
         >
           Conciertos · Teatro · Exposiciones · Cine · Deporte · Planes en familia

@@ -102,10 +102,10 @@ export default function SobrePage() {
               error? Escríbenos y lo revisamos.
             </p>
             <a
-              href="mailto:hola@javierpalacio.es"
+              href="mailto:javipaur@gmail.com"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300"
             >
-              hola@javierpalacio.es
+              javipaur@gmail.com
             </a>
           </section>
 

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  --brand-red: #BC0202;
+  --brand-bone: #F3EBD4;
+  --brand-ink: #000000;
   --bg: #0B0E14;
   --bg-muted: #141821;
   --bg-elevated: #1B2130;
@@ -9,14 +12,14 @@
   --fg-subtle: #7C8794;
   --border: #2A3345;
   --border-hover: #3B4458;
-  --accent: #FF4D7D;
-  --accent-hover: #FF7A9E;
-  --accent-ink: #FFD2DE;
-  --accent-subtle: #3A1626;
-  --accent-soft: rgba(255, 77, 125, 0.16);
+  --accent: #E23B45;
+  --accent-hover: #FF5A63;
+  --accent-ink: #FF7A80;
+  --accent-subtle: #3A0F13;
+  --accent-soft: rgba(226, 59, 69, 0.16);
   --surface: #1B2130;
   --surface-hover: #222A3B;
-  --hot: #FF4D7D;
+  --hot: #E23B45;
   --violet: #7B4DFF;
   --teal: #00D2C8;
   --amber: #FFB300;
@@ -29,20 +32,20 @@
   --bezel-highlight: rgba(255, 255, 255, 0.05);
   --bezel-shadow: rgba(0, 0, 0, 0.4);
   --bezel-hover: rgba(0, 0, 0, 0.6);
-  --accent-wash: rgba(255, 77, 125, 0.12);
+  --accent-wash: rgba(188, 2, 2, 0.14);
   --teal-wash: rgba(0, 210, 200, 0.10);
   --violet-wash: rgba(123, 77, 255, 0.12);
   --amber-wash: rgba(255, 179, 0, 0.10);
   --lime-wash: rgba(155, 255, 87, 0.10);
   --sec-accent: var(--accent-ink);
-  --sec-hot: #FF9DB4;
+  --sec-hot: #FF8B90;
   --sec-violet: #B9A1FF;
   --sec-teal: #4FE6DC;
   --sec-amber: #FFCB4D;
   --sec-lime: #B6FF8A;
   --sec-green: var(--sec-lime);
   --sec-blue: #8FA9FF;
-  --sec-hot-fill: #E83662;
+  --sec-hot-fill: #C21017;
   --sec-violet-fill: #6B32DA;
   --sec-teal-fill: #00B8AE;
   --sec-amber-fill: #E8A32E;
@@ -60,14 +63,14 @@
   --fg-subtle: #7C8794;
   --border: #E2E4E8;
   --border-hover: #C8CDD4;
-  --accent: #FF4D7D;
-  --accent-hover: #E53363;
-  --accent-ink: #E53363;
-  --accent-subtle: #FFE4EC;
-  --accent-soft: rgba(255, 77, 125, 0.10);
+  --accent: #BC0202;
+  --accent-hover: #A70202;
+  --accent-ink: #BC0202;
+  --accent-subtle: #FBE9E7;
+  --accent-soft: rgba(188, 2, 2, 0.10);
   --surface: #FFFFFF;
   --surface-hover: #F1F1EF;
-  --hot: #FF4D7D;
+  --hot: #BC0202;
   --violet: #6B32FF;
   --teal: #009E96;
   --amber: #B87F00;
@@ -80,20 +83,20 @@
   --bezel-highlight: rgba(255, 255, 255, 0.7);
   --bezel-shadow: rgba(12, 16, 22, 0.06);
   --bezel-hover: rgba(12, 16, 22, 0.18);
-  --accent-wash: rgba(255, 77, 125, 0.08);
+  --accent-wash: rgba(188, 2, 2, 0.08);
   --teal-wash: rgba(0, 158, 150, 0.08);
   --violet-wash: rgba(107, 50, 255, 0.08);
   --amber-wash: rgba(184, 127, 0, 0.08);
   --lime-wash: rgba(104, 184, 46, 0.10);
-  --sec-accent: #E53363;
-  --sec-hot: #FF4D7D;
+  --sec-accent: #BC0202;
+  --sec-hot: #BC0202;
   --sec-violet: #6B32FF;
   --sec-teal: #009E96;
   --sec-amber: #B87F00;
   --sec-lime: #68B82E;
   --sec-green: var(--sec-lime);
   --sec-blue: #3357D6;
-  --sec-hot-fill: #FF4D7D;
+  --sec-hot-fill: #BC0202;
   --sec-violet-fill: #6B32FF;
   --sec-teal-fill: #009E96;
   --sec-amber-fill: #B87F00;
@@ -112,14 +115,14 @@
     --fg-subtle: #7C8794;
     --border: #E2E4E8;
     --border-hover: #C8CDD4;
-    --accent: #FF4D7D;
-    --accent-hover: #E53363;
-    --accent-ink: #E53363;
-    --accent-subtle: #FFE4EC;
-    --accent-soft: rgba(255, 77, 125, 0.10);
+    --accent: #BC0202;
+    --accent-hover: #A70202;
+    --accent-ink: #BC0202;
+    --accent-subtle: #FBE9E7;
+    --accent-soft: rgba(188, 2, 2, 0.10);
     --surface: #FFFFFF;
     --surface-hover: #F1F1EF;
-    --hot: #FF4D7D;
+    --hot: #BC0202;
     --violet: #6B32FF;
     --teal: #009E96;
     --amber: #B87F00;
@@ -132,20 +135,20 @@
     --bezel-highlight: rgba(255, 255, 255, 0.7);
     --bezel-shadow: rgba(12, 16, 22, 0.06);
     --bezel-hover: rgba(12, 16, 22, 0.18);
-    --accent-wash: rgba(255, 77, 125, 0.08);
+    --accent-wash: rgba(188, 2, 2, 0.08);
     --teal-wash: rgba(0, 158, 150, 0.08);
     --violet-wash: rgba(107, 50, 255, 0.08);
     --amber-wash: rgba(184, 127, 0, 0.08);
     --lime-wash: rgba(104, 184, 46, 0.10);
-    --sec-accent: #E53363;
-    --sec-hot: #FF4D7D;
+    --sec-accent: #BC0202;
+    --sec-hot: #BC0202;
     --sec-violet: #6B32FF;
     --sec-teal: #009E96;
     --sec-amber: #B87F00;
     --sec-lime: #68B82E;
     --sec-green: var(--sec-lime);
     --sec-blue: #3357D6;
-    --sec-hot-fill: #FF4D7D;
+    --sec-hot-fill: #BC0202;
     --sec-violet-fill: #6B32FF;
     --sec-teal-fill: #009E96;
     --sec-amber-fill: #B87F00;
@@ -307,6 +310,9 @@
   --color-fg: var(--fg);
   --color-fg-muted: var(--fg-muted);
   --color-fg-subtle: var(--fg-subtle);
+  --color-brand-red: var(--brand-red);
+  --color-brand-bone: var(--brand-bone);
+  --color-brand-ink: var(--brand-ink);
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
   --color-accent: var(--accent);
@@ -456,8 +462,8 @@
 
   .accent-glow {
     box-shadow:
-      0 0 20px rgba(201, 74, 61, 0.10),
-      0 0 48px rgba(201, 74, 61, 0.05);
+      0 0 20px rgba(188, 2, 2, 0.12),
+      0 0 48px rgba(188, 2, 2, 0.06);
   }
 }
 

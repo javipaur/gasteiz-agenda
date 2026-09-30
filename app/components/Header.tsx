@@ -8,6 +8,7 @@ import { Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
+import { LogoMark } from "./LogoMark";
 
 type SearchHit = {
   slug: string;
@@ -300,9 +301,13 @@ export default function Header() {
           <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-2">
             <Link
               href="/"
-              className="font-display text-lg md:text-xl font-semibold tracking-tight text-accent hover:text-accent-hover transition-colors duration-300 shrink-0"
+              aria-label="Gasteiz Click — Inicio"
+              className="flex items-center gap-2 shrink-0 text-fg transition-colors duration-300"
             >
-              Gasteiz Click
+              <LogoMark className="w-6 h-6 md:w-7 md:h-7 shrink-0" spiral="var(--color-accent)" />
+              <span className="font-display text-lg md:text-xl font-semibold tracking-tight leading-none">
+                Gasteiz<span className="text-accent">Click</span>
+              </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-0.5 mx-2" aria-label="Navegación principal">

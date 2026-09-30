@@ -192,7 +192,6 @@ export async function getEventoBySlug(
   const eventos = await getAgendaEventos({ includePast: true });
   const idx = eventos.findIndex((ev) => ev.slug === slug);
   if (idx === -1) return null;
-
   const evento = eventos[idx];
   const related = eventos
     .filter(

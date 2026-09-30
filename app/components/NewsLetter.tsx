@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, FormEvent, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import Link from "next/link";
+import { useNewsletterSubscribe } from "@/lib/useNewsletterSubscribe";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -19,17 +21,10 @@ function CheckIcon({ className }: { className?: string }) {
 }
 
 export default function Newsletter() {
-  const [email, setEmail] = useState("");
-  const [website, setWebsite] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const { email, setEmail, website, setWebsite, status, message, submit } =
+    useNewsletterSubscribe();
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const startedAtRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    startedAtRef.current = Date.now();
-  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -42,37 +37,6 @@ export default function Newsletter() {
     return () => obs.disconnect();
   }, []);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/newsletter/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          website,
-          startedAt: startedAtRef.current,
-        }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setStatus("success");
-        setMessage(data.message);
-        setEmail("");
-      } else {
-        setStatus("error");
-        setMessage(data.error || "Error al suscribir");
-      }
-    } catch {
-      setStatus("error");
-      setMessage("Error de conexión");
-    }
-  }
-
   return (
     <section className="px-5 sm:px-6 py-16 md:py-20 max-w-7xl mx-auto">
       <div
@@ -80,7 +44,7 @@ export default function Newsletter() {
         className="relative overflow-hidden rounded-[1.5rem] p-8 md:p-12"
         style={{
           background:
-            "linear-gradient(135deg, var(--violet) 0%, var(--hot) 55%, var(--amber) 120%)",
+            "linear-gradient(135deg, var(--accent-subtle) 0%, var(--accent) 45%, var(--hot) 100%)",
           opacity: visible ? 1 : 0,
           transform: visible ? "translateY(0)" : "translateY(16px)",
           transition: "all 0.6s cubic-bezier(0.32, 0.72, 0, 1)",
@@ -89,7 +53,7 @@ export default function Newsletter() {
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
-          style={{ background: "radial-gradient(640px 320px at 12% -20%, rgba(255,255,255,0.14), transparent 60%)" }}
+          style={{ background: "radial-gradient(640px 320px at 12% -20%, rgba(255,255,255,0.16), transparent 60%)" }}
         />
 
         <div className="relative flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
@@ -98,7 +62,14 @@ export default function Newsletter() {
               No te pierdas <span className="italic text-white/90">nada</span>
             </h3>
             <p className="text-white/80 text-sm md:text-base leading-relaxed">
-              Un email a la semana con los mejores planes de Vitoria-Gasteiz.
+              Un email a la semana con los mejores planes de Vitoria-Gasteiz.{" "}
+              <Link
+                href="/suscribete"
+                className="inline-flex items-center gap-1 underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors duration-300"
+              >
+                Ver qué incluye
+                <ArrowIcon className="w-3 h-3" />
+              </Link>
             </p>
           </div>
 
@@ -114,7 +85,7 @@ export default function Newsletter() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <form onSubmit={submit} className="flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="email"
@@ -145,7 +116,7 @@ export default function Newsletter() {
                     <ArrowIcon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </button>
                 </div>
-                {message && (
+                {message && status === "error" && (
                   <p className="flex items-center gap-1.5 text-xs text-white/90">
                     {message}
                   </p>
