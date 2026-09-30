@@ -22,7 +22,6 @@ import { getDeporteEventos } from "@/lib/deporte";
 import { getPopularEvents } from "@/lib/popularity";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
-import { eventSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 import { CATEGORY_COLORS } from "@/lib/categories";
 
@@ -43,10 +42,11 @@ async function AgendaJsonLd() {
   return (
     <JsonLd
       data={itemListJsonLd(
-        eventos
-          .filter((e) => e.link)
-          .slice(0, 30)
-          .map((e) => ({ ...e, slug: eventSlug(e) })),
+        // Sin `.map`: `getProximosEventos` ya devuelve `AgendaEvento`, que trae
+        // `slug` resuelto por el agregador. Aquí se reconstruía con `eventSlug`
+        // sobre los mismos campos, y por lo tanto podía apuntar a un slug
+        // distinto del que resuelve `/evento/[slug]`.
+        eventos.filter((e) => e.link).slice(0, 30),
         "Próximos eventos en Vitoria-Gasteiz",
         "/"
       )}

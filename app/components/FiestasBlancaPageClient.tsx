@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { CATEGORY_COLORS } from "@/lib/categories";
+import { eventSlug } from "@/lib/slug";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 
 const BLANCA_COLORS: Record<string, string> = {
@@ -49,9 +50,20 @@ function formatDateLong(dateStr: string): string {
   return `${DAY_NAMES[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
 }
 
+/**
+ * Mismo criterio que en `FiestasBlancaSection`: laprops son `FiestaBlanca` del
+ * scraper y no `AgendaEvento`, así que el slug se resuelve aquí replicando la
+ * normalización de `normalizeRaw` (`lib/agenda.ts`) en lugar de copiar un slug
+ * ya resuelto. Es una de las excepciones enumeradas en
+ * `__tests__/favoritos-migracion.test.ts`; las dos copias tienen que seguir a
+ * `normalizeRaw` paso a paso, y las dos desaparecen cuando La Blanca venga del
+ * agregador.
+ */
 function mapFiestaToCard(f: FiestaBlanca) {
+  const link = f.url && f.url !== "#" ? f.url : "";
   return {
     id: f.id,
+    slug: eventSlug({ title: f.title.trim(), date: f.date, link }),
     title: f.title,
     date: f.date,
     image: f.image || undefined,

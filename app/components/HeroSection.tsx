@@ -6,7 +6,6 @@ import { InViewWrapper } from "@/lib/shared";
 import HeroSearch from "./HeroSearch";
 import { getPopularEvents } from "@/lib/popularity";
 import { formatDate, shortTime } from "@/lib/utils";
-import { eventSlug } from "@/lib/slug";
 import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
 import type { Evento } from "@/lib/eventos";
 
@@ -57,7 +56,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
         {destacado && (
           <InViewWrapper eager delay={0.1} className="hidden lg:block">
             <Link
-              href={`/evento/${eventSlug(destacado)}`}
+              href={`/evento/${destacado.slug}`}
               aria-label="Plan destacado"
               className="group double-bezel rounded-2xl p-4 flex items-center gap-4 card-hover"
             >

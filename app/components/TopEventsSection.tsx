@@ -4,7 +4,6 @@ import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { InViewWrapper } from "@/lib/shared";
-import { eventSlug } from "@/lib/slug";
 import { formatDate, shortTime } from "@/lib/utils";
 import type { Evento } from "@/lib/eventos";
 import SectionHead from "./SectionHead";
@@ -73,7 +72,7 @@ export default function TopEventsSection({
               return (
                 <Link
                   key={evento.id}
-                  href={`/evento/${eventSlug(evento)}`}
+                  href={`/evento/${evento.slug}`}
                   className="group relative shrink-0 snap-start w-36 sm:w-44 bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/5 active:scale-[0.97]"
                 >
                   <div className="relative aspect-[3/4] bg-bg-muted">

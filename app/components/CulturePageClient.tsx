@@ -265,6 +265,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
                         <FavoriteButton
                           event={{
                             id: evento.id,
+                            slug: evento.slug,
                             title: evento.title,
                             date: evento.date,
                             image: evento.image,

@@ -5,8 +5,14 @@ import { CATEGORY_COLORS } from "@/lib/categories";
 import SectionHead from "./SectionHead";
 import EmptyState from "./EmptyState";
 
+/**
+ * `AgendaEvento` menos lo que esta sección no usa. `slug` es obligatorio porque
+ * `EventCard` lo exige: la tarjeta enlaza con `evento.slug` y el detalle resuelve
+ * contra `AgendaEvento.slug`.
+ */
 type Evento = {
   id: string;
+  slug: string;
   title: string;
   date: string;
   image?: string;

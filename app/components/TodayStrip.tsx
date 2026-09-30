@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
 import { localDateStr } from "@/lib/utils";
-import { eventSlug } from "@/lib/slug";
 import SectionHead from "./SectionHead";
 
 export default function TodayStrip({ eventos }: { eventos: Evento[] }) {
@@ -19,7 +18,7 @@ export default function TodayStrip({ eventos }: { eventos: Evento[] }) {
         {deHoy.map((e, i) => (
           <Link
             key={e.id}
-            href={`/evento/${eventSlug(e)}`}
+            href={`/evento/${e.slug}`}
             className="chip-in group shrink-0 w-[16rem] flex flex-col gap-1.5 rounded-2xl border border-border bg-surface p-4 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-accent/40 hover:-translate-y-0.5"
             style={{ animationDelay: `${i * 60}ms` }}
           >

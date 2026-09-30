@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { eventSlug } from "@/lib/slug";
 import { formatDate, sourceLabel, dayBadgeLabel, shortTime } from "@/lib/utils";
 import FavoriteButton from "@/app/components/FavoriteButton";
 
@@ -19,6 +18,14 @@ function ShareIcon({ className }: { className?: string }) {
 
 export type EventCardEvento = {
   id: string;
+  /**
+   * Obligatorio a propósito. La tarjeta enlaza con `/evento/${evento.slug}` y el
+   * detalle resuelve contra `AgendaEvento.slug`; si la tarjeta recalculara el slug
+   * con `eventSlug(...)` serían dos funciones que un día divergen y el enlace
+   * daría 404 sin que nada se quejara. Obligar a que el slug llegue resuelto hace
+   * que el typechecker señale cada vista que aún no lo trae.
+   */
+  slug: string;
   title: string;
   date: string;
   image?: string;
@@ -99,7 +106,7 @@ export function EventCard({
   const relDay = dayBadgeLabel(evento.date);
   const time = shortTime(evento.time);
   const catColor = categoryColors?.[evento.category || "Otros"] || "#9C9996";
-  const detailHref = `/evento/${eventSlug(evento)}`;
+  const detailHref = `/evento/${evento.slug}`;
 
   const aspectClass = size === "large" ? "aspect-[16/10]" : size === "compact" ? "aspect-[3/2]" : "aspect-[4/3]";
 
@@ -109,7 +116,7 @@ export function EventCard({
     const shareData = {
       title: evento.title,
       text: `${evento.title}${evento.location ? ` en ${evento.location}` : ""}`,
-      url: `${window.location.origin}/evento/${eventSlug(evento)}`,
+      url: `${window.location.origin}${detailHref}`,
     };
     if (navigator.share) {
       try { await navigator.share(shareData); } catch {}
@@ -117,7 +124,7 @@ export function EventCard({
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareData.text)}&url=${encodeURIComponent(shareData.url)}`;
       window.open(twitterUrl, "_blank", "noopener,noreferrer,width=600,height=400");
     }
-  }, [evento]);
+  }, [evento, detailHref]);
 
   return (
     <Link

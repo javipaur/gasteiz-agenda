@@ -238,6 +238,15 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
               <FavoriteButton
                 event={{
                   id: evento.id,
+                  // `/conciertos` todavía scrapea por su cuenta y su id sigue
+                  // siendo un `crypto.randomUUID()`, así que aquí no hay slug
+                  // resuelto que copiar. Se usa el mismo que ya calcula la
+                  // tarjeta de este mismo fichero para no cambiar la URL que ve
+                  // quien guarda un concierto desde aquí. Deuda pendiente: está
+                  // enumerada en `__tests__/favoritos-migracion.test.ts`;
+                  // arreglarlo es alimentar `/conciertos` desde el agregador, no
+                  // añadir un slug aquí.
+                  slug: eventSlug(evento),
                   title: evento.title,
                   date: evento.date,
                   image: evento.image,

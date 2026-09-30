@@ -6,12 +6,18 @@ import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { localDateStr } from "@/lib/utils";
 import { normalizeCategory, CATEGORY_COLORS, CATEGORY_FILLS } from "@/lib/categories";
-import { eventSlug } from "@/lib/slug";
 import EmptyState from "./EmptyState";
 import SectionHead from "./SectionHead";
 
+/**
+ * `AgendaEvento` menos lo que esta sección no usa. `slug` es obligatorio y no por
+ * cortesía: la tarjeta de abajo enlaza con `evento.slug` y el detalle resuelve
+ * contra `AgendaEvento.slug`, así que si el tipo lo admitiera sin slug el enlace
+ * se construiría con un `undefined` en lugar de romperse aquí.
+ */
 type Evento = {
   id: string;
+  slug: string;
   title: string;
   date: string;
   image?: string;
@@ -243,7 +249,7 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
 
             {featured && (
               <Link
-                href={`/evento/${eventSlug(featured)}`}
+                href={`/evento/${featured.slug}`}
                 className="group relative block overflow-hidden rounded-2xl bg-bg-muted mb-5 cursor-pointer active:scale-[0.99]"
               >
                 <div className="relative aspect-[16/7] md:aspect-[2.4/1]">

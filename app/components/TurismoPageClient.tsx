@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
-import { eventSlug } from "@/lib/slug";
 import { formatDate } from "@/lib/utils";
 import EmptyState from "./EmptyState";
 import type { FichaCurada, Ruta, InfoPractica } from "@/lib/turismo";
@@ -207,7 +206,7 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
               return (
                 <li key={ev.id || `${ev.title}-${ev.date}`}>
                   <Link
-                    href={`/evento/${eventSlug(ev)}`}
+                    href={`/evento/${ev.slug}`}
                     className="flex items-center gap-4 double-bezel rounded-xl p-4 hover:border-accent/40 transition-all duration-300"
                   >
                     <span className="grid w-14 shrink-0 place-items-center rounded-lg bg-teal-soft text-center leading-tight py-1.5">
