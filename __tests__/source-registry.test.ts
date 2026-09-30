@@ -1,5 +1,38 @@
-import { SOURCE_REGISTRY, CULTURE_SOURCE_IDS, SOURCE_LABELS } from "@/lib/source-registry";
+import {
+  SOURCE_REGISTRY,
+  CULTURE_SOURCE_IDS,
+  SOURCE_LABELS,
+  SOURCE_GROUPS,
+} from "@/lib/source-registry";
 import { CATEGORY_COLORS } from "@/lib/categories";
+
+// Los ids del municipal se declaran aquí una sola vez para no repetirlos en
+// varios tests. El orden importa: el test de inventario compara contra el
+// orden del registro.
+const IDS_MUNICIPALES = [
+  "municipal-agenda",
+  "municipal-teatro",
+  "municipal-conciertos",
+  "municipal-exposiciones",
+  "municipal-visitas",
+  "municipal-general",
+  "municipal-deporte",
+  "municipal-infantil",
+  "municipal-rss",
+] as const;
+
+// Las variantes tipadas: cada una llama a scrapeMunicipalCalendar con una
+// combinación de argumentos distinta. Ninguna puede ir por detrás del municipal
+// sin filtro, que es un superconjunto de todas ellas.
+const MUNICIPALES_CON_TAXONOMIA = [
+  "municipal-agenda",
+  "municipal-teatro",
+  "municipal-conciertos",
+  "municipal-exposiciones",
+  "municipal-visitas",
+  "municipal-deporte",
+  "municipal-infantil",
+] as const;
 
 describe("SOURCE_REGISTRY", () => {
   it("tiene identificadores únicos", () => {
@@ -15,9 +48,15 @@ describe("SOURCE_REGISTRY", () => {
     }
   });
 
-  it("cada id tiene su label en SOURCE_LABELS", () => {
+  it("ninguna fuente se etiqueta con su propio slug crudo", () => {
+    // El bug original era justo este: la etiqueta era el slug de la fuente, así
+    // que la pill pintaba "eventbrite" en lugar de un nombre legible. Compara
+    // sin normalizar mayúsculas a propósito: "VAM" frente a "vam" es una
+    // etiqueta hecha a mano y legítima.
     for (const e of SOURCE_REGISTRY) {
       expect(SOURCE_LABELS[e.id]).toBe(e.label);
+      expect(e.label.length).toBeGreaterThan(0);
+      expect(e.label).not.toBe(e.id);
     }
   });
 
@@ -30,48 +69,54 @@ describe("SOURCE_REGISTRY", () => {
   });
 
   it("declara exactamente las fuentes de la vista /culture", () => {
-    expect([...CULTURE_SOURCE_IDS].sort()).toEqual(
-      SOURCE_REGISTRY.filter((e) => e.culture).map((e) => e.id).sort()
-    );
+    // Escritas a mano, no derivadas con filter: si CULTURE_SOURCE_IDS se
+    // definiera a sí mismo, este test no podría fallar nunca.
+    expect([...CULTURE_SOURCE_IDS].sort()).toEqual([
+      "fever",
+      "gasteizhoy",
+      "jimmyjazz",
+      "municipal-agenda",
+      "municipal-conciertos",
+      "municipal-exposiciones",
+      "municipal-teatro",
+      "rula",
+      "vam-conciertos",
+    ]);
   });
 
   it("cada variante tipada del municipal tiene su propia entrada", () => {
-    // No basta con comprobar que group === "municipal": hay que fijar que cada
-    // combinacion distinta de argumentos de scrapeMunicipalCalendar tiene
-    // entrada propia, porque si dos se fusionaran se perderia su taxonomia.
-    const ids = SOURCE_REGISTRY.filter((e) => e.group === "municipal").map((e) => e.id);
-    for (const esperado of [
-      "municipal-agenda",
-      "municipal-teatro",
-      "municipal-conciertos",
-      "municipal-exposiciones",
-      "municipal-general",
-      "municipal-deporte",
-      "municipal-infantil",
-      "municipal-rss",
-    ]) {
-      expect(ids).toContain(esperado);
+    // El conjunto exacto, no una inclusión: si una combinación de argumentos
+    // desaparece o se fusiona con otra, este test tiene que notarlo. Sin este
+    // test, las visitas guiadas desaparecerían de la agenda sin error ni aviso.
+    const ids = SOURCE_REGISTRY.filter(
+      (e) => SOURCE_GROUPS[e.id] === "municipal"
+    ).map((e) => e.id);
+    expect(ids).toEqual(IDS_MUNICIPALES);
+  });
+
+  it("el municipal sin filtro va detrás de las variantes que llevan taxonomía", () => {
+    // `?? NaN` en lugar de `!`: si un id desaparece, la aserción falla diciendo
+    // NaN en vez de reventar con un TypeError fuera de ella.
+    const prioridad = (id: string) =>
+      SOURCE_REGISTRY.find((e) => e.id === id)?.priority ?? NaN;
+    for (const variante of MUNICIPALES_CON_TAXONOMIA) {
+      expect(prioridad(variante)).toBeLessThan(prioridad("municipal-general"));
     }
   });
 
-  it("el municipal sin filtro va detras de las variantes que llevan taxonomia", () => {
-    const prio = (id: string) => SOURCE_REGISTRY.find((e) => e.id === id)!.priority;
-    for (const variante of [
-      "municipal-agenda",
-      "municipal-teatro",
-      "municipal-conciertos",
-      "municipal-exposiciones",
-      "municipal-deporte",
-      "municipal-infantil",
-    ]) {
-      expect(prio(variante)).toBeLessThan(prio("municipal-general"));
-    }
-  });
-
-  it("las entradas que aportan kind o tags los tienen de verdad", () => {
-    for (const conTaxonomia of ["municipal-deporte", "municipal-infantil"]) {
-      const e = SOURCE_REGISTRY.find((x) => x.id === conTaxonomia)!;
-      expect(e.kind || e.tags).toBeDefined();
+  it("cada entrada que aporta kind o tags los declara con su valor exacto", () => {
+    const esperado: Record<string, { kind?: string; tags?: string[] }> = {
+      "municipal-deporte": { kind: "agenda" },
+      "municipal-infantil": { tags: ["infantil"] },
+      senderismo: { kind: "excursiones", tags: ["senderismo"] },
+      "fiestas-blanca": { tags: ["la-blanca"] },
+      "buscametas-calendario": { kind: "calendario" },
+      "buscametas-inscripciones": { kind: "inscripciones" },
+    };
+    for (const [id, want] of Object.entries(esperado)) {
+      const e = SOURCE_REGISTRY.find((x) => x.id === id);
+      expect(e).toBeDefined();
+      expect({ kind: e?.kind, tags: e?.tags }).toEqual(want);
     }
   });
 });
