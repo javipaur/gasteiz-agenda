@@ -57,6 +57,20 @@ export type SourceEntry = {
    * número. A igualdad de prioridad gana el orden del array.
    */
   priority: number;
+  /**
+   * TTL propio, en milisegundos, para el `run` de esta fuente. Opcional a
+   * propósito: ausente, la fuente se cubre con el `agenda-all` de 5 min y no
+   * hay nada que declarar. Presente, `aggregate` envuelve su `run` con una
+   * caché bajo la clave `source:${id}` y este TTL.
+   *
+   * Existe para las fuentes cuyo coste no lo justifica la frecuencia con la que
+   * se repiten: cada hit es una descarga grande, y con el TTL de 5 min del
+   * agregado se repite cada cinco minutos aunque nadie haya abierto la web. Solo
+   * se declara donde está medido, porque un TTL aquí es una decisión sobre la
+   *_sdk_ de cada fuente —una cartelera cultural aguanta dos horas, un resultado
+   * de búsqueda no— y ponerlo por simetría en las 28 sería adivinar.
+   */
+  cacheTtlMs?: number;
 };
 
 /** Una entrada del registro antes de que se le añada su función de scraping. */
@@ -103,7 +117,7 @@ export const SOURCE_DATA: readonly SourceData[] = [
   { id: "helldorado", label: "HellDorado", category: "Música", tickets: true, priority: 2 },
   { id: "musikaze", label: "Musikaze", category: "Música", tickets: true, priority: 2 },
   { id: "fever", label: "Fever", culture: true, tickets: true, priority: 3 },
-  { id: "rula", label: "La Genterula", culture: true, priority: 3 },
+  { id: "rula", label: "La Genterula", culture: true, cacheTtlMs: 2 * 60 * 60 * 1000, priority: 3 },
   { id: "gasteizhoy", label: "Gasteiz Hoy", culture: true, priority: 3 },
   { id: "eventbrite", label: "Eventbrite", tickets: true, priority: 4 },
   { id: "entradium", label: "Entradium", tickets: true, priority: 4 },

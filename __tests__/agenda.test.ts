@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { aggregate, findBySlug } from "@/lib/agenda";
 import { SOURCE_REGISTRY, type SourceEntry } from "@/lib/source-registry";
 import { eventSlug } from "@/lib/slug";
@@ -258,6 +259,88 @@ describe("aggregate", () => {
       entry({ id: "pobre", priority: 4, run: async () => [{ ...BASE, link: "https://e/b" }] }),
     ]);
     expect(evs).toHaveLength(0);
+  });
+});
+
+describe("caché por fuente", () => {
+  const TTL = 2 * 60 * 60 * 1000;
+
+  // La clave de la caché es `source:${id}` y los ids de test llevan un uuid, así
+  // que una ejecución anterior no puede dejar una entrada válida que falsee el
+  // recuento de llamadas. Si el id fuera fijo, el fichero de `tmpdir` de una
+  // corrida anterior serviría de respuesta y estos tests pasarían sin código.
+  function conTtl(id: string, cacheTtlMs: number | undefined, run: () => Promise<typeof BASE[]>) {
+    return entry({ id, cacheTtlMs, run });
+  }
+
+  it("una fuente con cacheTtlMs no vuelve a llamar a su run dentro del TTL", async () => {
+    const run = jest.fn().mockResolvedValue([BASE]);
+    const fuentes = [conTtl(`con-ttl-${crypto.randomUUID()}`, TTL, run)];
+
+    const a = await aggregate(fuentes);
+    const b = await aggregate(fuentes);
+
+    expect(run).toHaveBeenCalledTimes(1);
+    // La segunda llamada sale del disco, así que sigue siendo la misma agenda y
+    // no una lista vacía: la caché no puede "quedarse sin nada" y apparentemente
+    // cumplir el test de arriba.
+    expect(b).toHaveLength(1);
+    expect(b[0].id).toBe(a[0].id);
+  });
+
+  it("una fuente con cacheTtlMs vuelve a llamar cuando el TTL expira", async () => {
+    // El reloj se fija como en `__tests__/cache.test.ts`: la primera escritura va
+    // con el reloj de verdad, para que el `mtime` del fichero sea real, y luego
+    // salta el reloj un minuto más allá del TTL. Nada de TTL negativo ni cero,
+    // que es lo que hizo intermitente el test anterior: aquí el margen es de un
+    // minuto entero y el desfase de milisegundos entre `mtime` y `Date.now()` no
+    // lo cruza en ninguna dirección.
+    const run = jest.fn().mockResolvedValue([BASE]);
+    const fuentes = [conTtl(`expira-${crypto.randomUUID()}`, TTL, run)];
+    const ahora = Date.now();
+
+    await aggregate(fuentes);
+    expect(run).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(Date, "now").mockReturnValue(ahora + TTL + 60_000);
+    await aggregate(fuentes);
+
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("una fuente sin cacheTtlMs se llama cada vez que se pide el agregado", async () => {
+    // Este es el que protege a las otras 26. Sin él, cambiar la condición de
+    // `aggregate` a "cachea todo" o a "cachea lo que no tenga TTL corto" —que
+    // es lo que pasa por la cabeza cuando se busca simetría— seguiría dejando
+    // verdes los dos tests de arriba.
+    const run = jest.fn().mockResolvedValue([BASE]);
+    const fuentes = [entry({ id: `sin-ttl-${crypto.randomUUID()}`, run })];
+
+    await aggregate(fuentes);
+    await aggregate(fuentes);
+
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * Dónde está puesto el TTL y dónde no.
+ *
+ * La caché de `source:${id}` se crea solo para quien lo declara, así que esto ata
+ * el dato, no la mecánica: si alguien quita el de Rula, o lo pone en otra fuente
+ * por simetría, falla aquí antes de que nadie lo note en producción. Un TTL de
+ * más es un bug de frescura que no se ve; uno de menos es el problema de 6,5 MB
+ * que motivó el cambio, solo que repartido.
+ */
+describe("el TTL propio está solo donde está medido", () => {
+  it("La Genterula declara dos horas", () => {
+    const rula = SOURCE_REGISTRY.find((e) => e.id === "rula");
+    expect(rula?.cacheTtlMs).toBe(2 * 60 * 60 * 1000);
+  });
+
+  it("ninguna otra fuente declara TTL propio", () => {
+    const conTtl = SOURCE_REGISTRY.filter((e) => e.cacheTtlMs !== undefined).map((e) => e.id);
+    expect(conTtl).toEqual(["rula"]);
   });
 });
 

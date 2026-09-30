@@ -87,7 +87,16 @@ export async function aggregate(entries: readonly SourceEntry[]): Promise<Agenda
   // por grupo: municipal, oficiales, consolidadas, agregadoras.
   const ordered = [...entries].sort((a, b) => a.priority - b.priority);
 
-  const settled = await Promise.allSettled(ordered.map((e) => e.run()));
+  const settled = await Promise.allSettled(
+    ordered.map((e) => {
+      // Solo las fuentes que declaran `cacheTtlMs` tienen capa propia. Las demás
+      // las cubre el `agenda-all` de 5 min de abajo, y meterlas aquí sin que lo
+      // pidan sería cambiarle el ritmo de frescura a 27 fuentes por el problema
+      // de una.
+      if (!e.cacheTtlMs) return e.run();
+      return getCachedOrFetch(`source:${e.id}`, e.cacheTtlMs, e.run);
+    })
+  );
 
   const collected: AgendaEvento[] = [];
   settled.forEach((result, i) => {

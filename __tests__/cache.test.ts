@@ -89,3 +89,94 @@ describe("getCachedOrFetch", () => {
     expect(result).toEqual([1]);
   });
 });
+
+/**
+ * `single-flight`: dos llamadas concurrentes a la misma clave ejecutan el
+ * `fetcher` una vez y las dos reciben el mismo valor.
+ *
+ * Sin esto, con la caché fría y tráfico normal, el coste se multiplica por el
+ * número de peticiones simultáneas. Para una fuente de 6,5 MB son descargas
+ * repetidas y en paralelo al servidor de la otra punta, no una.
+ */
+describe("single-flight", () => {
+  it("dos llamadas concurrentes a la misma clave ejecutan el fetcher una vez", async () => {
+    const key = uniqueKey();
+    // El fetcher no resuelve hasta que el test suelta la puerta, así que
+    // mientras dura la llamada no existe ningún fichero en la caché para esta
+    // clave: cualquier lectura que occurra en ese margen tiene que fallar y
+    // acabar en el `fetcher`.
+    let abrir: (valor: { value: string }) => void = () => {};
+    const puerta = new Promise<{ value: string }>((resolve) => {
+      abrir = resolve;
+    });
+    let ejecuciones = 0;
+    const fetcher = jest.fn(async () => {
+      ejecuciones += 1;
+      return puerta;
+    });
+
+    const a = getCachedOrFetch(key, 60_000, fetcher);
+    const b = getCachedOrFetch(key, 60_000, fetcher);
+
+    // Por qué el bucle y no dos `await` seguidos: sin `single-flight`, la segunda
+    // llamada recorre su propio `fs.stat`, que es asíncrono, antes de llegar al
+    // `fetcher`. Con dos `await` seguidos, ese `stat` puede resolverse después de
+    // que la primera escriba, la segunda lee de la caché y el test pasa **sin**
+    // `single-flight`: verde falso. Aquí se mide antes de que la primera pueda
+    // escribir, con lo que el fichero todavía no puede salvar a nadie.
+    const limite = Date.now() + 500;
+    while (ejecuciones < 2 && Date.now() < limite) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    expect(ejecuciones).toBe(1);
+
+    abrir({ value: "primera" });
+    await expect(a).resolves.toEqual({ value: "primera" });
+    await expect(b).resolves.toEqual({ value: "primera" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("el single-flight es por clave, no global", async () => {
+    // Una promesa en vuelo compartida por todas las claves devolvería el dato de
+    // una fuente en la de otra, que es un fallo silencioso: no da error, enseña
+    // la cartelera de un sitio en la de otro.
+    const primera = getCachedOrFetch(uniqueKey(), 60_000, jest.fn().mockResolvedValue([1]));
+    const segunda = getCachedOrFetch(uniqueKey(), 60_000, jest.fn().mockResolvedValue([2]));
+
+    await expect(primera).resolves.toEqual([1]);
+    await expect(segunda).resolves.toEqual([2]);
+  });
+
+  it("tras un fallo una llamada nueva vuelve a intentarlo", async () => {
+    // La entrada en vuelo tiene que desaparecer aunque el `fetcher` reviente. Si
+    // se queda, toda llamada posterior recibe la promesa rechazada de un intento
+    // que ya terminó: no vuelve a Scrapear nunca y el fallo puntual de una fuente
+    // se convierte en un fallo permanente. Aquí el primer intento falla y el
+    // segundo devuelve, lo que además ata que un fallo no se cachea.
+    const key = uniqueKey();
+    const fetcher = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce({ value: "recuperado" });
+
+    await expect(getCachedOrFetch(key, 60_000, fetcher)).rejects.toThrow("boom");
+    await expect(getCachedOrFetch(key, 60_000, fetcher)).resolves.toEqual({
+      value: "recuperado",
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("una llamada que hereda un fallo también propaga el error", async () => {
+    // La que espera a la primera en vuelo recibe la misma promesa rechazada, así
+    // que el fallo se propaga en vez de quedar colgada. Sin el borrado en
+    // `finally` este test pasa también; lo que lo ata es el de arriba.
+    const key = uniqueKey();
+    const fetcher = jest.fn().mockRejectedValue(new Error("boom"));
+
+    const a = getCachedOrFetch(key, 60_000, fetcher);
+    const b = getCachedOrFetch(key, 60_000, fetcher);
+
+    await expect(a).rejects.toThrow("boom");
+    await expect(b).rejects.toThrow("boom");
+  });
+});
