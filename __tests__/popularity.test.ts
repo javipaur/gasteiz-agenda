@@ -6,6 +6,7 @@ const today = new Date("2026-09-16T12:00:00Z");
 function makeEvento(overrides: Partial<Evento> = {}): Evento {
   return {
     id: "e1",
+    slug: "concierto-de-prueba-2026-09-18",
     title: "Concierto de prueba",
     date: "2026-09-18",
     image: "https://example.com/img.jpg",
@@ -60,7 +61,12 @@ describe("getPopularEvents", () => {
 
     expect(result).toHaveLength(2);
     expect(result.find((e) => e.id === "c")).toBeUndefined();
-    const scores = result.map((e) => e.popularity ?? 0);
+    // `AgendaEvento` no lleva `popularity` a propósito: el campo solo existía
+    // mientras `lib/eventos.ts` se lo ponía a mano, y el agregador no lo produce.
+    // `getPopularEvents` lo calcula para ordenar y lo tira al devolver, así que
+    // aquí se recalcula con la misma función en vez de leer un campo que ya no
+    // existe.
+    const scores = result.map((e) => scoreEvento(e, today));
     expect(scores[0]).toBeGreaterThanOrEqual(scores[1]);
   });
 

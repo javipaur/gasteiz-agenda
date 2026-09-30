@@ -58,6 +58,35 @@ jest.mock("@/lib/sources/miniature", () => ({
   scrapeMiniature: jest.fn().mockResolvedValue([]),
 }));
 
+// `getProximosEventos` ya no scrapea: delega en `getAgendaEventos`, que corre las
+// 27 entradas del registro. Las seis de aquí no estaban porque el módulo viejo no
+// las usaba; sin estos mocks el test se iría a la red de verdad —y `rula` se baja
+// 8,7 MB— y el recuento dependería de lo que publicaran las salas.
+jest.mock("@/lib/sources/jimmyjazz", () => ({
+  scrapeJimmyJazz: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/helldorado", () => ({
+  scrapeHelldorado: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/musikaze", () => ({
+  scrapeMusikaze: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/buscametas", () => ({
+  scrapeBuscametasCalendario: jest.fn().mockResolvedValue([]),
+  scrapeBuscametasInscripciones: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/senderismo", () => ({
+  scrapeSenderismo: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/sources/fiestas-blanca", () => ({
+  scrapeFiestasBlanca: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock("@/lib/cache", () => ({
   getCachedOrFetch: jest.fn(
     async (_key: string, _ttlMs: number, fetcher: () => Promise<unknown>) =>
@@ -65,6 +94,7 @@ jest.mock("@/lib/cache", () => ({
   ),
 }));
 
+import { SOURCE_DATA } from "@/lib/source-data";
 import { getProximosEventos } from "@/lib/eventos";
 
 describe("getProximosEventos", () => {
@@ -112,6 +142,22 @@ describe("getProximosEventos", () => {
     const dates = eventos.map((e) => new Date(e.date).getTime());
     for (let i = 1; i < dates.length; i++) {
       expect(dates[i - 1]).toBeLessThanOrEqual(dates[i]);
+    }
+  });
+
+  it("devuelve el agregado sin retocar: id === slug y la fuente es un id del registro", async () => {
+    // Lo que hacía especial al módulo viejo era justo esto: `id` era un
+    // `crypto.randomUUID()` que cambiaba en cada re-scraping, y `source` era una
+    // etiqueta inventada ("vitoria-gasteiz", "vitoria-gasteiz-rss"). Si el
+    // wrapper volviera a renombrar algo, sería para volver a romper los
+    // favoritos guardados, así que se ata aquí.
+    const ids = new Set(SOURCE_DATA.map((e) => e.id));
+    const eventos = await getProximosEventos();
+
+    expect(eventos.length).toBeGreaterThan(0);
+    for (const e of eventos) {
+      expect(e.id).toBe(e.slug);
+      expect(ids.has(e.source)).toBe(true);
     }
   });
 });

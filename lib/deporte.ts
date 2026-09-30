@@ -5,6 +5,7 @@ import {
   scrapeBuscametasInscripciones,
 } from "./sources/buscametas";
 import { scrapeSenderismo } from "./sources/senderismo";
+import { eventSlug } from "./slug";
 import type { Evento } from "./eventos";
 
 type FuenteEvento = {
@@ -19,16 +20,24 @@ type FuenteEvento = {
 
 function toEvento(e: FuenteEvento, category: string, source: string): Evento {
   const date = e.date ?? new Date().toISOString();
+  const title = e.title ?? "Sin título";
+  const link = e.link && e.link !== "#" ? e.link : "";
+  // `Evento` es `AgendaEvento` desde la T4, así que `slug` es obligatorio y `id`
+  // tiene que valer lo mismo: un `crypto.randomUUID()` aquí no compila contra el
+  // detalle y hacía que los favoritos de /deporte no coincidieran con los de la
+  // home. Este módulo entero se borra en la T6.
+  const slug = eventSlug({ title, date, link });
   return {
-    id: e.id ?? crypto.randomUUID(),
-    title: e.title ?? "Sin título",
+    id: slug,
+    slug,
+    title,
     date,
     image:
       typeof e.image === "string" && e.image.startsWith("http")
         ? e.image
         : undefined,
     location: e.location ?? e.poblacion ?? "Vitoria-Gasteiz",
-    link: e.link && e.link !== "#" ? e.link : "",
+    link,
     category,
     source,
   };

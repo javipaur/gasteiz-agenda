@@ -1,224 +1,39 @@
-import { scrapeFever } from "./sources/fever";
-import { scrapeRula } from "./sources/rula";
-import { scrapeGasteizHoy } from "./sources/gasteizhoy";
-import { scrapeVamEvents } from "./sources/vam";
-import { scrapeMunicipalCalendar } from "./sources/municipal";
-import { scrapeEuskadi } from "./sources/euskadi";
-import { scrapeMunicipalRss } from "./sources/municipal-rss";
-import { scrapeEventbrite } from "./sources/eventbrite";
-import { scrapeEntradium } from "./sources/entradium";
-import { scrapeVital } from "./sources/vital";
-import { scrapeArkabia } from "./sources/arkabia";
-import { scrapeMiniature } from "./sources/miniature";
-import { getCachedOrFetch } from "./cache";
-import { logger } from "./axiom/server";
+import { getAgendaEventos, type AgendaEvento } from "./agenda";
 
-const CACHE_TTL = 5 * 60 * 1000;
-const memCache = new Map<string, { data: any[]; timestamp: number }>();
+/**
+ * Alias histórico. `AgendaEvento` es el tipo único desde la unificación; se
+ * mantiene el nombre para no romper los imports de `/api/v1/events`,
+ * `scripts/send-newsletter.ts`, `lib/turismo.ts` y `lib/gastronomia.ts`.
+ */
+export type Evento = AgendaEvento;
 
-export type Evento = {
-  id: string;
-  title: string;
-  date: string;
-  image?: string;
-  location: string;
-  link: string;
-  category?: string;
-  source?: string;
-  time?: string;
-  description?: string;
-  price?: string;
-  rating?: number;
-  popularity?: number;
-};
-
-function normalizeEvento(e: any): Evento {
-  return {
-    id: e.id || crypto.randomUUID(),
-    title: e.title || "Sin título",
-    date: e.date || e.startDate || "",
-    image: e.image?.startsWith("http") ? e.image : undefined,
-    location: e.location || e.place || "Vitoria-Gasteiz",
-    link: e.link || "",
-    category: e.category || "",
-    source: e.source || "desconocido",
-    time: e.time || "",
-    description: e.description || "",
-    price: typeof e.price === "string" ? e.price : undefined,
-    rating: typeof e.rating === "number" ? e.rating : undefined,
-    popularity: typeof e.popularity === "number" ? e.popularity : undefined,
-  };
-}
-
-async function fetchAllSources(): Promise<any[]> {
-  const [
-    fever,
-    rula,
-    gasteizhoy,
-    vam,
-    municipal,
-    euskadi,
-    municipalRss,
-    eventbrite,
-    entradium,
-    vital,
-    arkabia,
-    miniature,
-  ] = await Promise.allSettled([
-    scrapeFever(),
-    scrapeRula(),
-    scrapeGasteizHoy(),
-    scrapeVamEvents(),
-    scrapeMunicipalCalendar(),
-    scrapeEuskadi(),
-    scrapeMunicipalRss(),
-    scrapeEventbrite(),
-    scrapeEntradium(),
-    scrapeVital(),
-    scrapeArkabia(),
-    scrapeMiniature(),
-  ]);
-
-  const sources = [
-    ["fever", fever],
-    ["rula", rula],
-    ["gasteizhoy", gasteizhoy],
-    ["vam", vam],
-    ["vitoria-gasteiz", municipal],
-    ["euskadi", euskadi],
-    ["vitoria-gasteiz-rss", municipalRss],
-    ["eventbrite", eventbrite],
-    ["entradium", entradium],
-    ["vital", vital],
-    ["arkabia", arkabia],
-    ["miniature", miniature],
-  ];
-
-  for (const [name, result] of sources as Array<[string, PromiseSettledResult<unknown>]>) {
-    if (result.status === "rejected") {
-      logger.warn("scraping_failed", {
-        source: name,
-        error:
-          result.reason instanceof Error ? result.reason.message : String(result.reason),
-        stack: result.reason instanceof Error ? result.reason.stack : undefined,
-      });
-    }
-  }
-
-  const allEvents: any[] = [];
-
-  if (fever.status === "fulfilled") {
-    allEvents.push(...fever.value.map((e) => normalizeEvento({ ...e, source: "fever" })));
-  }
-  if (rula.status === "fulfilled") {
-    allEvents.push(...rula.value.map((e) => normalizeEvento({ ...e, source: "rula" })));
-  }
-  if (gasteizhoy.status === "fulfilled") {
-    allEvents.push(...gasteizhoy.value.map((e) => normalizeEvento({ ...e, source: "gasteizhoy" })));
-  }
-  if (vam.status === "fulfilled") {
-    allEvents.push(...vam.value.map((e) => normalizeEvento({ ...e, source: "vam" })));
-  }
-  if (municipal.status === "fulfilled") {
-    allEvents.push(...municipal.value.map((e) => normalizeEvento({ ...e, source: "vitoria-gasteiz" })));
-  }
-  if (euskadi.status === "fulfilled") {
-    allEvents.push(...euskadi.value.map((e) => normalizeEvento({ ...e, source: "euskadi" })));
-  }
-  if (municipalRss.status === "fulfilled") {
-    allEvents.push(
-      ...municipalRss.value.map((e) =>
-        normalizeEvento({ ...e, source: "vitoria-gasteiz-rss" })
-      )
-    );
-  }
-  if (eventbrite.status === "fulfilled") {
-    allEvents.push(
-      ...eventbrite.value.map((e) => normalizeEvento({ ...e, source: "eventbrite" }))
-    );
-  }
-  if (entradium.status === "fulfilled") {
-    allEvents.push(
-      ...entradium.value.map((e) => normalizeEvento({ ...e, source: "entradium" }))
-    );
-  }
-  if (vital.status === "fulfilled") {
-    allEvents.push(...vital.value.map((e) => normalizeEvento({ ...e, source: "vital" })));
-  }
-  if (arkabia.status === "fulfilled") {
-    allEvents.push(
-      ...arkabia.value.map((e) => normalizeEvento({ ...e, source: "arkabia" }))
-    );
-  }
-  if (miniature.status === "fulfilled") {
-    allEvents.push(
-      ...miniature.value.map((e) => normalizeEvento({ ...e, source: "miniature" }))
-    );
-  }
-
-  return allEvents;
-}
-
+/**
+ * Wrapper de una línea sobre el agregador único. La firma se mantiene para no
+ * tocar los consumidores ni `/api/v1/events`.
+ *
+ * Antes esta función scrapeaba doce fuentes por su cuenta y las cacheaba bajo
+ * `eventos-proximos`, aparte de `agenda-all`. Además el `id` lo generaba con
+ * `crypto.randomUUID()`, así que cambiaba en cada re-scraping y los favoritos
+ * guardados no volvían a coincidir. Ahora el id es el slug, que es estable.
+ */
 export async function getProximosEventos(options?: {
   startDate?: string;
   endDate?: string;
 }): Promise<Evento[]> {
-  const cacheKey = "proximos";
-  const now = Date.now();
-  const cached = memCache.get(cacheKey);
-  if (cached && now - cached.timestamp < CACHE_TTL) {
-    let result = cached.data;
-    if (options?.startDate) {
-      const filterStart = new Date(options.startDate);
-      if (!isNaN(filterStart.getTime())) {
-        const filterEnd = options.endDate
-          ? new Date(options.endDate)
-          : new Date(filterStart);
-        filterEnd.setHours(23, 59, 59, 999);
-        result = result.filter((e) => {
-          const d = new Date(e.date);
-          return d >= filterStart && d <= filterEnd;
-        });
-      }
-    }
-    return result;
-  }
+  const eventos = await getAgendaEventos();
 
-  const allEvents = await getCachedOrFetch("eventos-proximos", CACHE_TTL, fetchAllSources);
+  if (!options?.startDate) return eventos;
 
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+  const filterStart = new Date(options.startDate);
+  if (isNaN(filterStart.getTime())) return eventos;
 
-  const seen = new Set<string>();
-  const deduped = allEvents
-    .filter((e) => {
-      const fecha = new Date(e.date);
-      return !isNaN(fecha.getTime()) && fecha >= hoy;
-    })
-    .filter((e) => {
-      const key = `${e.title}|${e.date}`.toLowerCase().trim();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const filterEnd = options.endDate
+    ? new Date(options.endDate)
+    : new Date(filterStart);
+  filterEnd.setHours(23, 59, 59, 999);
 
-  memCache.set(cacheKey, { data: deduped, timestamp: now });
-
-  let result = deduped;
-  if (options?.startDate) {
-    const filterStart = new Date(options.startDate);
-    if (!isNaN(filterStart.getTime())) {
-      const filterEnd = options.endDate
-        ? new Date(options.endDate)
-        : new Date(filterStart);
-      filterEnd.setHours(23, 59, 59, 999);
-      result = result.filter((e) => {
-        const d = new Date(e.date);
-        return d >= filterStart && d <= filterEnd;
-      });
-    }
-  }
-
-  return result;
+  return eventos.filter((e) => {
+    const d = new Date(e.date);
+    return d >= filterStart && d <= filterEnd;
+  });
 }
