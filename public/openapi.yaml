@@ -147,6 +147,8 @@ paths:
                   hasMore: true
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -181,6 +183,8 @@ paths:
                       $ref: "#/components/schemas/Evento"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -194,6 +198,8 @@ paths:
           description: Lista de actividades municipales
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -224,6 +230,8 @@ paths:
                       $ref: "#/components/schemas/ActividadSenderismo"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -254,6 +262,8 @@ paths:
                       $ref: "#/components/schemas/ArkabiaEvento"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -284,6 +294,8 @@ paths:
                       $ref: "#/components/schemas/EventoAgenda"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -321,6 +333,8 @@ paths:
                       $ref: "#/components/schemas/TourCivitatis"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -356,6 +370,8 @@ paths:
                       $ref: "#/components/schemas/ExperienciaKora"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -386,6 +402,8 @@ paths:
                       $ref: "#/components/schemas/EventoAgenda"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -416,6 +434,8 @@ paths:
                       $ref: "#/components/schemas/EventoAgenda"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -429,6 +449,8 @@ paths:
           description: Lista de eventos navideños
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/conciertos:
     get:
@@ -446,6 +468,8 @@ paths:
                   $ref: "#/components/schemas/Concierto"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/conciertos/vam:
     get:
@@ -457,6 +481,8 @@ paths:
           description: Lista de conciertos VAM
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda:
     get:
@@ -468,6 +494,8 @@ paths:
           description: Agenda municipal
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/eventos:
     get:
@@ -479,6 +507,8 @@ paths:
           description: Lista de eventos
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/infantil:
     get:
@@ -490,6 +520,8 @@ paths:
           description: Lista de eventos infantiles
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/exposiciones:
     get:
@@ -501,6 +533,8 @@ paths:
           description: Lista de exposiciones
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/concierto:
     get:
@@ -512,6 +546,8 @@ paths:
           description: Lista de conciertos municipales
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/teatro:
     get:
@@ -523,6 +559,8 @@ paths:
           description: Lista de obras de teatro
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/visitas:
     get:
@@ -534,6 +572,8 @@ paths:
           description: Lista de visitas guiadas
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/carreras/agenda:
     get:
@@ -545,6 +585,8 @@ paths:
           description: Lista de carreras
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/carreras/calendario:
     get:
@@ -565,6 +607,8 @@ paths:
                       $ref: "#/components/schemas/Carrera"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
     post:
       tags: [sports]
       summary: Carreras con filtros personalizados
@@ -591,6 +635,8 @@ paths:
           description: Lista de carreras filtrada
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/carreras/inscripciones:
     get:
@@ -602,6 +648,8 @@ paths:
           description: Carreras con inscripciones abiertas
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/fever:
     get:
@@ -626,6 +674,8 @@ paths:
                       $ref: "#/components/schemas/FeverEvent"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/rula:
     get:
@@ -650,6 +700,8 @@ paths:
                       $ref: "#/components/schemas/RulaEvent"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/gasteizhoy:
     get:
@@ -674,6 +726,8 @@ paths:
                       $ref: "#/components/schemas/GasteizHoyEvent"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/vam:
     get:
@@ -698,6 +752,8 @@ paths:
                       $ref: "#/components/schemas/VamEvent"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/cines:
     get:
@@ -835,10 +891,17 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: Suscripción confirmada
-        "400":
-          description: Token inválido
+        "307":
+          description: >-
+            Redirección a la portada. El destino dice si el enlace valió:
+            `?newsletter=confirmed` con un token correcto, `?newsletter=invalid-token`
+            con uno que no corresponde a nadie o con una suscripción que se dio
+            de baja, y `?newsletter=error` si no vino token.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: "/?newsletter=confirmed"
 
   /api/newsletter/unsubscribe:
     get:
@@ -853,10 +916,17 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: Suscripción cancelada
+        "307":
+          description: >-
+            Redirección a la portada. `?newsletter=unsubscribed` si la baja se
+            aplicó, `?newsletter=error` si el token no corresponde a nadie.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: "/?newsletter=unsubscribed"
         "400":
-          description: Token inválido
+          description: No venía el parámetro `token` en la query
 
 components:
   securitySchemes:
@@ -865,7 +935,7 @@ components:
       in: header
       name: x-api-key
       description: |
-        API key para autenticación. También se puede enviar como query param `?api_key=`.
+        API key para autenticar las rutas protegidas. También se puede enviar como query param `?api_key=`.
 
   schemas:
     Evento:
@@ -1212,6 +1282,21 @@ components:
           type: string
 
   responses:
+    ServiceMisconfigured:
+      description: >-
+        El servidor no tiene `API_KEY` en el entorno, así que el middleware
+        cierra las rutas protegidas en vez de abrirlas. No es un problema de
+        quien llama: reintentar con otra clave no va a cambiar nada, hay que
+        configurar el despliegue. Un 401 significaría que la clave no es válida; este 503 significa que aquí no hay ninguna.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Service misconfigured - API_KEY is not set on the server, so protected endpoints are closed"
+
     Unauthorized:
       description: API key no proporcionada o inválida
       content:

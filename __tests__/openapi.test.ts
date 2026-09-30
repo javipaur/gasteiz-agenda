@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 import { SOURCE_DATA } from "@/lib/source-data";
 import { CATEGORY_COLORS } from "@/lib/categories";
-import { PUBLIC_API_ROUTES } from "@/lib/api-public-routes";
+import { PUBLIC_API_ROUTES, isPublicApiRoute } from "@/lib/api-public-routes";
 
 /**
  * El contrato público de `/api/v1/events` contra lo que la ruta devuelve de
@@ -26,7 +26,8 @@ import { PUBLIC_API_ROUTES } from "@/lib/api-public-routes";
  * style (`enum: [a, b, c]`), así que basta con localisation por sangría.
  */
 
-const RAIZ = resolve(__dirname, "..");
+const ROOT = resolve(__dirname, "..");
+const RAIZ = ROOT;
 const LINEAS = readFileSync(join(RAIZ, "public", "openapi.yaml"), "utf8").split(/\r?\n/);
 
 function sangriaDe(linea: string): number {
@@ -380,13 +381,12 @@ describe("la autenticación que promete el documento", () => {
     }
   });
 
-  it("el documento cubre las seis públicas que promete, de las diez del código", () => {
-    // Las cuatro que faltan —`/api/search`, `/api/vgbus`,
-    // `/api/push/subscribe` y `/api/farmacias`— no se documentan hoy. Este test
-    // no las exige: documentarlas es otra decisión, y tomarla aquí sería
-    // inventarse cuatro esquemas. Lo que fija es que la diferencia siga siendo
-    // cuatro y no seis, para que si alguien añade una quinta ruta pública sin
-    // documentarla, la deuda se vea en el número en vez de pasar desapercibida.
+  it("el documento cubre siete de las diez públicas del código, y se sabe cuáles tres no", () => {
+    // Las que faltan —`/api/search`, `/api/vgbus` y `/api/push/subscribe`— no se
+    // documentan hoy. Este test no las exige: documentarlas significa inventar
+    // tres esquemas, que es otra decisión. Lo que fija es que la lista siga
+    // siendo esa, para que si alguien añade una cuarta ruta pública sin
+    // documentarla, la deuda se vea en el nombre en vez de pasar desapercibida.
     expect(PUBLICAS_DOCUMENTADAS.sort()).toEqual([
       "/api/cines",
       "/api/cines/boulevard",
@@ -396,5 +396,185 @@ describe("la autenticación que promete el documento", () => {
       "/api/newsletter/subscribe",
       "/api/newsletter/unsubscribe",
     ]);
+  });
+});
+
+/**
+ * Lo que el middleware responde de verdad, contrastado con lo que el documento
+ * promete.
+ *
+ * El fail-closed de la fase 2 añadió un **503** que el middleware devuelve a las
+ * treinta rutas protegidas cuando `API_KEY` no está en el entorno. El documento
+ * no lo mencionaba: `components.responses` solo tenía `Unauthorized` y
+ * `RateLimited`, así que un despliegue mal configurado —el caso para el que
+ * existe el 503— salía en el contrato como un 401 más, y quien integrara contra
+ * él no tenía forma de distinguir «tu clave está mal» de «este servidor está
+ * roto». Son dosQUEUE错的 que se resuelven distinto.
+ *
+ * Y en el otro extremo, `/api/newsletter/confirm` documentaba un `200` y un
+ * `400` que el código no puede producir: `NextResponse.redirect` devuelve 307
+ * siempre, con token válido o sin él. El `400` no existe en esa ruta —sí en
+ * `unsubscribe`, que responde 400 cuando no viene token— y el `200` era la
+ * respuesta que el endpoint daba antes de que se validara el token, o sea, la
+ * que el endpoint daba *siempre*, para cualquier cadena.
+ */
+const RUTAS_EN_DISCO = (() => {
+  const base = join(ROOT, "app", "api");
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name === "route.ts" || e.name === "route.tsx") {
+        out.push(("/api/" + relative(base, dirname(p))).split(sep).join("/"));
+      }
+    }
+  };
+  if (existsSync(base)) walk(base);
+  return out.sort();
+})();
+
+const PROTEGIDAS_EN_DISCO = RUTAS_EN_DISCO.filter((r) => !isPublicApiRoute(r));
+
+/** Los códigos de respuesta declarados en una operación, en el orden del fichero. */
+function codigosDeRespuesta(ruta: string, operacion: string): string[] {
+  const salida: string[] = [];
+  for (const linea of bloqueDeOperacion(ruta, operacion)) {
+    const m = linea.trim().match(/^"(\d{3})":$/);
+    if (m) salida.push(m[1]);
+  }
+  return salida;
+}
+
+/** Los pares `operación -> códigos` de todas las rutas documentadas y protegidas. */
+function operacionesProtegidas(): { ruta: string; operacion: string }[] {
+  const salida: { ruta: string; operacion: string }[] = [];
+  for (const ruta of rutasDocumentadas().filter((r) => !isPublicApiRoute(r))) {
+    for (const operacion of operacionesDe(ruta)) salida.push({ ruta, operacion });
+  }
+  return salida;
+}
+
+describe("las respuestas que el middleware produce de verdad", () => {
+  it("toda operación protegida documentada declara 401 y 503", () => {
+    // Veintiocho operaciones, todas contra el mismo `security` de la raíz. Que
+    // falte el 503 en una sola es un despliegue entero mal configurado que el
+    // contrato no cubre.
+    const incompletas: string[] = [];
+    for (const { ruta, operacion } of operacionesProtegidas()) {
+      const codigos = codigosDeRespuesta(ruta, operacion);
+      if (!codigos.includes("401") || !codigos.includes("503")) {
+        incompletas.push(`${ruta} ${operacion} -> ${codigos.join(",") || "(ninguna)"}`);
+      }
+    }
+    expect(incompletas).toEqual([]);
+  });
+
+  it("el 503 está en `components.responses` y no reescrito en cada operación", () => {
+    const i = LINEAS.findIndex(
+      (l) => l.trimStart().startsWith("responses:") && sangriaDe(l) === 2
+    );
+    expect(i).toBeGreaterThanOrEqual(0);
+    const nombres = bloqueDesde(i, 4)
+      .filter((l) => sangriaDe(l) === 4)
+      .map((l) => l.trim().replace(/:$/, ""));
+    expect(nombres).toContain("ServiceMisconfigured");
+
+    // Y que las veintiocho lo referencien, no que lo repitan. Veintiocho copias
+    // de la misma respuesta es Veintiocho sitios donde puede quedar una vieja.
+    for (const { ruta, operacion } of operacionesProtegidas()) {
+      expect({
+        ref: `${ruta} ${operacion}`,
+        usaElComponente: bloqueDeOperacion(ruta, operacion).some((l) =>
+          l.includes("responses/ServiceMisconfigured")
+        ),
+      }).toEqual({ ref: `${ruta} ${operacion}`, usaElComponente: true });
+    }
+  });
+
+  it("ninguna operación pública declara 401 ni 503", () => {
+    // Al revés: una ruta que no pide clave no puede recibir un 401, y el 503
+    // tampoco, porque el middleware devuelve antes de mirar el entorno. Se
+    // comprueba en las diez, no en tres.
+    const conEstadoDeAuth: string[] = [];
+    for (const ruta of rutasDocumentadas().filter(isPublicApiRoute)) {
+      for (const operacion of operacionesDe(ruta)) {
+        const codigos = codigosDeRespuesta(ruta, operacion);
+        if (codigos.includes("401") || codigos.includes("503")) {
+          conEstadoDeAuth.push(`${ruta} ${operacion} -> ${codigos.join(",")}`);
+        }
+      }
+    }
+    expect(conEstadoDeAuth).toEqual([]);
+  });
+
+  it("las dos rutas del newsletter que redireccionan documentan 307, no 200", () => {
+    // `NextResponse.redirect` devuelve 307 siempre. El `200` que tenían
+    // documentado era la respuesta anterior a validar el token, o sea, la que
+    // salía para cualquier cadena.
+    for (const ruta of ["/api/newsletter/confirm", "/api/newsletter/unsubscribe"]) {
+      const codigos = codigosDeRespuesta(ruta, "get");
+      expect({ ruta, codigos }).toEqual({ ruta, codigos: expect.arrayContaining(["307"]) });
+      expect({ ruta, tiene200: codigos.includes("200") }).toEqual({ ruta, tiene200: false });
+    }
+  });
+
+  it("confirmar no documenta un 400 que el código no puede devolver", () => {
+    // La ruta devuelve 307 con token válido, 307 con token inválido y 307 sin
+    // token. No hay ningún camino a un 400.
+    const codigos = codigosDeRespuesta("/api/newsletter/confirm", "get");
+    expect(codigos).not.toContain("400");
+  });
+
+  it("darse de baja sí documenta el 400, que en esa ruta sí existe", () => {
+    // El hermano de arriba devuelve 400 cuando no viene token, así que aquí el
+    // `400` es cierto. La asimetría es real y por eso cada ruta se comprueba por
+    // separado en vez de con una regla común.
+    const codigos = codigosDeRespuesta("/api/newsletter/unsubscribe", "get");
+    expect(codigos).toContain("400");
+  });
+
+  it("las dos redirecciones del newsletter declaran a dónde llevan", () => {
+    // `?newsletter=invalid-token` no estaba en ningún sitio del documento y es
+    // el desenlace que ve la persona cuando el enlace no vale. Como ahora
+    // ninguna página lee el parámetro, al menos queda escrito aquí.
+    for (const ruta of ["/api/newsletter/confirm", "/api/newsletter/unsubscribe"]) {
+      expect({
+        ruta,
+        mencionaLosDesenlaces: bloqueDeOperacion(ruta, "get").join("\n").includes("newsletter="),
+      }).toEqual({ ruta, mencionaLosDesenlaces: true });
+    }
+  });
+});
+
+describe("la cobertura del documento", () => {
+  it("cubre las treinta rutas protegidas salvo las tres que se listan aquí", () => {
+    // La lista es explícita a propósito. Las tres de abajo existen en
+    // `app/api/**` y no están en el YAML; si alguien añade una cuarta sin
+    // documentarla, este test lo dice por el nombre en vez de dejar que la deuda
+    // crezca en silencio. Y si las documenta, tiene que quitar la de aquí.
+    const sinDocumentar = PROTEGIDAS_EN_DISCO.filter((r) => !rutasDocumentadas().includes(r));
+    expect(sinDocumentar.sort()).toEqual([
+      "/api/fiestas-blanca",
+      "/api/log",
+      "/api/push/send",
+    ]);
+  });
+
+  it("no documenta ninguna ruta que no exista", () => {
+    // Al revés: un path en el documento que ya no tiene route handler es un 404
+    // que el contrato promete como si funcionara.
+    const fantasma = rutasDocumentadas().filter((r) => !RUTAS_EN_DISCO.includes(r));
+    expect(fantasma).toEqual([]);
+  });
+
+  it("la política entera son 40 rutas: 10 públicas y 30 protegidas", () => {
+    // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
+    // quitado una ruta y tiene que decidir dónde encaja.
+    expect({
+      total: RUTAS_EN_DISCO.length,
+      publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
+      protegidas: PROTEGIDAS_EN_DISCO.length,
+    }).toEqual({ total: 40, publicas: 10, protegidas: 30 });
   });
 });
