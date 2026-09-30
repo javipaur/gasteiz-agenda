@@ -141,3 +141,78 @@ describe("composición del registro", () => {
     }
   });
 });
+
+/**
+ * Lo que `sourceLabel` necesita para no enseñar un id en crudo.
+ *
+ * `lib/utils.ts` tuvo una tabla `LEGACY_SOURCE_IDS` que traducía los cuatro ids que
+ * emitían `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts` antes de que fueran
+ * vistas del agregado. Su comentario decía que se quedaría vacía cuando esos
+ * módulos se retiraran. Ya no hay shim: lo sustituyen estas dos comprobaciones,
+ * que no dependen de que nadie se acuerde de la próxima vez.
+ *
+ * El fallo que cubren es silencioso por naturaleza: un id que no está en
+ * `SOURCE_LABELS` no da error, se enseña en mayúsculas tal cual en la pill de cada
+ * tarjeta. Son dos y no una porque el literal escrito a mano y la lista escrita a
+ * mano son las dos formas de colar un id nuevo, y el barrido incluye los
+ * componentes, que es donde se pinta.
+ *
+ * Quedan `source:` escritos a mano en `app/api/**` y en `lib/sources/**`, y quedan
+ * a propósito: son la superficie de la Fase 2 de seguridad y la forma que cada
+ * scraper da a su evento, que `RawLike` descarta antes de construir el agregado.
+ * Ninguno de los dos caminos pasa por `sourceLabel` hoy.
+ */
+describe("ninguna vista escribe el id de la fuente a mano", () => {
+  /** `app/` y `lib/` sin las rutas de API, sin los scrapers y sin los tests. */
+  function codigoDeVista(): { file: string; source: string }[] {
+    return [...walk(join(ROOT, "app")), ...walk(join(ROOT, "lib"))]
+      .filter((file) => {
+        const rel = relative(ROOT, file).replace(/\\/g, "/");
+        return !rel.startsWith("app/api/") && !rel.startsWith("lib/sources/");
+      })
+      .filter((file) => !/(__tests__|e2e)[\\/]/.test(file))
+      .map((file) => ({
+        file: relative(ROOT, file).replace(/\\/g, "/"),
+        source: readFileSync(file, "utf8"),
+      }));
+  }
+
+  it("ningún `source:` del sitio apunta a un id que no existe en el registro", () => {
+    // El patrón se limita a minúsculas y guiones, que es la forma de un id del
+    // registro —las 27 entradas son `municipal-agenda`, `buscametas-calendario`,
+    // `rula`—, porque `source` es una palabra común y hay campos que no son un id
+    // de fuente: el tema de `FiestasBlancaPageClient` es `source: "La Blanca
+    // 2026"` y el marcador de Next en `app/error.tsx` es
+    // `source: "app/error.tsx"`. El recorte no tapa el fallo que importa: los ids
+    // viejos que motivaron el shim (`vitoria-gasteiz`, `cm-gazteiz`) son kebab-case
+    // y se siguen viendo, y una lista de ids con espacios la pilla el test de abajo.
+    const registrados = new Set(SOURCE_DATA.map((e) => e.id));
+    const culpables: string[] = [];
+    for (const { file, source } of codigoDeVista()) {
+      for (const match of source.matchAll(
+        /\bsource:\s*["']([a-z0-9]+(?:-[a-z0-9]+)*)["']/g
+      )) {
+        if (!registrados.has(match[1])) culpables.push(`${file}: ${match[1]}`);
+      }
+    }
+    expect(culpables).toEqual([]);
+  });
+
+  it("ninguna lista de ids de fuente se sale del registro", () => {
+    // `CONCIERTO_SOURCE_IDS` es la única lista escrita a mano que queda: la de
+    // cultura se deduce con `filter` sobre `SOURCE_DATA` y no puede
+    // desincronizarse. El patrón se lee del código y no de un import, para que el
+    // barrido siga cubriendo la lista que se añada mañana sin tocar nada aquí.
+    const registrados = new Set(SOURCE_DATA.map((e) => e.id));
+    const DECL_LISTA = /export const (\w*SOURCE_IDS\w*)[^=]*=\s*\[([^\]]*)\]/g;
+    const culpables: string[] = [];
+    for (const { file, source } of codigoDeVista()) {
+      for (const match of source.matchAll(DECL_LISTA)) {
+        for (const id of [...match[2].matchAll(/["']([^"']+)["']/g)].map((m) => m[1])) {
+          if (!registrados.has(id)) culpables.push(`${file}: ${match[1]} -> ${id}`);
+        }
+      }
+    }
+    expect(culpables).toEqual([]);
+  });
+});
