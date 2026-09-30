@@ -74,12 +74,19 @@ export const SOURCE_REGISTRY: readonly SourceEntry[] = [
   { id: "municipal-teatro", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [13] }), category: "Teatro" },
   { id: "municipal-conciertos", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [2] }), category: "Música" },
   { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", priority: 0, culture: true, run: () => scrapeMunicipalCalendar({ tipo: [7] }), category: "Exposiciones" },
-  // La cadena va sin tilde a propósito: es lo que espera el sitio municipal, y
-  // la ruta que lo consume en producción es /api/actividades/eventos/agenda/visitas.
-  { id: "municipal-visitas", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ tipo: ["visitias guiadas"] }), category: "Visitas" },
   { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 1, run: () => scrapeMunicipalCalendar() },
   { id: "municipal-deporte", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ calendariosID: 168 }), category: "Deporte", kind: "agenda" },
   { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ dest: ["infantil"] }), tags: ["infantil"] },
+  // Va la última de las de priority 0 por el mismo motivo que `municipal-general`
+  // va por detrás de todas: si el sitio municipal ignorara el `tipo` desconocido
+  // y devolviera el calendario entero, esta llamada se comería el `kind` de
+  // `municipal-deporte` y los `tags` de `municipal-infantil`. Al ir última solo
+  // gana eventos que ninguna otra variante reclama, y frente a `municipal-general`
+  // (priority 1) sigue ganando, que es lo que queremos: lo que solo está en
+  // visitas guiadas conserva `category: "Visitas"`.
+  // La cadena va sin tilde a propósito: es lo que espera el sitio municipal, y
+  // la ruta que lo consume en producción es /api/actividades/eventos/agenda/visitas.
+  { id: "municipal-visitas", group: "municipal", label: "Ayuntamiento", priority: 0, run: () => scrapeMunicipalCalendar({ tipo: ["visitias guiadas"] }), category: "Visitas" },
   { id: "municipal-rss", group: "municipal", label: "Ayuntamiento (RSS)", priority: 1, run: () => scrapeMunicipalRss() },
   { id: "vam", group: "vam", label: "VAM", priority: 1, run: () => scrapeVamEvents() },
   { id: "vam-conciertos", group: "vam", label: "VAM", priority: 1, culture: true, run: () => scrapeVamConciertos(), category: "Música" },

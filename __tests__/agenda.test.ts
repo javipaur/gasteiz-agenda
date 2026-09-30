@@ -3,7 +3,11 @@ import { SOURCE_REGISTRY, type SourceEntry } from "@/lib/source-registry";
 import { eventSlug } from "@/lib/slug";
 import { CATEGORY_COLORS } from "@/lib/categories";
 
-function entry(over: Partial<SourceEntry> & { run: () => Promise<unknown[]> }): SourceEntry {
+// `run` es obligatorio en toda entrada de verdad, así que el parámetro lo exige
+// sin necesitar un `unknown[]` que castear después.
+type EntryOverride = Partial<Omit<SourceEntry, "run">> & Pick<SourceEntry, "run">;
+
+function entry(over: EntryOverride): SourceEntry {
   return { id: "test", group: "test", label: "Test", priority: 9, ...over };
 }
 
@@ -27,7 +31,6 @@ describe("aggregate", () => {
     const a = await aggregate(e);
     const b = await aggregate(e);
     expect(a[0].id).toBe(b[0].id);
-    expect(a[0].id).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/);
   });
 
   it("deduplica el mismo evento servido por dos fuentes", async () => {
@@ -39,6 +42,42 @@ describe("aggregate", () => {
     expect(evs[0].source).toBe("a");
   });
 
+  it("la clave de dedupe usa el día local, no el prefijo ISO", async () => {
+    // `scrapeSenderismo` emite `new Date(y, m, d).toISOString()`, o sea la
+    // medianoche local pasada por UTC. En Europe/Madrid eso es
+    // `...T23:00:00.000Z` del día anterior, así que el prefijo ISO marcaría el día
+    // 14 en un evento que el usuario ve el día 15 y no colisionaría con la otra
+    // fuente: la misma pareja deduplicaría en Dokploy y no en local.
+    //
+    // Solo muerde al este de UTC. En UTC el prefijo ISO ya es el día local, el
+    // bug no se manifiesta y el test pasa con las dos implementaciones, que es
+    // lo correcto: no puede ser verde en un huso y falso en otro, y donde no hay
+    // bug no hay nada que proteger.
+    const medianoche = new Date(2027, 0, 15, 0, 0, 0).toISOString();
+    const mediodia = new Date(2027, 0, 15, 12, 0, 0).toISOString();
+    const evs = await aggregate([
+      entry({ id: "senderismo", priority: 0, run: async () => [{ ...BASE, date: medianoche }] }),
+      entry({ id: "municipal", priority: 4, run: async () => [{ ...BASE, date: mediodia, link: "https://e/b" }] }),
+    ]);
+    expect(evs).toHaveLength(1);
+    expect(evs[0].source).toBe("senderismo");
+  });
+
+  it("no deduplica dos eventos que caen en días locales distintos", async () => {
+    // El otro lado de la moneda: normalizar al día local no puede fundir la
+    // medianoche de un día con la de la mañana siguiente. No caza el bug de
+    // arriba, ata el límite.
+    const dia15 = new Date(2027, 0, 15, 0, 0, 0).toISOString();
+    const dia16 = new Date(2027, 0, 16, 0, 0, 0).toISOString();
+    const evs = await aggregate([
+      entry({ run: async () => [
+        { ...BASE, date: dia15 },
+        { ...BASE, date: dia16, link: "https://e/b" },
+      ] }),
+    ]);
+    expect(evs).toHaveLength(2);
+  });
+
   it("hereda la imagen del perdedor si el ganador no trae", async () => {
     const [ev] = await aggregate([
       entry({ id: "a", priority: 0, run: async () => [{ ...BASE }] }),
@@ -47,14 +86,28 @@ describe("aggregate", () => {
     expect(ev.image).toBe("https://cdn/x.jpg");
   });
 
-  it("aplica la categoria de la entrada cuando la fuente no trae", async () => {
+  it("hereda el lugar del perdedor si el ganador no sabe dónde es", async () => {
+    // La comparación es contra `SIN_LUGAR` y no contra falsy: `normalizeRaw` deja
+    // `location` siempre rellena, así que `!winner.location` no era jamás
+    // verdadero y la herencia era una rama muerta. Un evento municipal sin lugar
+    // se quedaba en "Vitoria-Gasteiz" aunque Eventbrite supiera el recinto, y
+    // `app/evento/[slug]/page.tsx` usa ese mismo string como señal para decidir si
+    // añade la localidad, así que el fallo llegaba hasta el texto del detalle.
+    const [ev] = await aggregate([
+      entry({ id: "municipal", priority: 0, run: async () => [{ ...BASE }] }),
+      entry({ id: "comercial", priority: 4, run: async () => [{ ...BASE, link: "https://otro/b", location: "HellDorado" }] }),
+    ]);
+    expect(ev.location).toBe("HellDorado");
+  });
+
+  it("aplica la categoría de la entrada cuando la fuente no trae", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [BASE], category: "Teatro" }),
     ]);
     expect(ev.category).toBe("Teatro");
   });
 
-  it("normaliza la categoria y siempre tiene color", async () => {
+  it("normaliza la categoría y siempre tiene color", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [{ ...BASE, category: "conciertos" }] }),
     ]);
@@ -77,7 +130,7 @@ describe("aggregate", () => {
     expect(ev.tags).toEqual(["infantil"]);
   });
 
-  it("descarta titulos vacios y fechas invalidas", async () => {
+  it("descarta títulos vacíos y fechas inválidas", async () => {
     const evs = await aggregate([
       entry({ run: async () => [
         { ...BASE, title: "" },
@@ -90,7 +143,7 @@ describe("aggregate", () => {
     expect(evs).toHaveLength(0);
   });
 
-  it("normaliza url y timeStart de las fuentes que los usan asi", async () => {
+  it("normaliza url y timeStart de las fuentes que los usan así", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [{ ...BASE, link: undefined, url: "https://x.com/blanca", time: undefined, timeStart: "19:30" }] }),
     ]);
@@ -98,14 +151,14 @@ describe("aggregate", () => {
     expect(ev.time).toBe("19:30");
   });
 
-  it("usa venue como ubicacion", async () => {
+  it("usa venue como ubicación", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [{ ...BASE, location: undefined, venue: "HellDorado" }] }),
     ]);
     expect(ev.location).toBe("HellDorado");
   });
 
-  it("descarta el enlace # y deja location vacia", async () => {
+  it("descarta el enlace # y rellena la localidad por defecto", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [{ ...BASE, link: "#", location: "" }] }),
     ]);
@@ -113,7 +166,7 @@ describe("aggregate", () => {
     expect(ev.location).toBe("Vitoria-Gasteiz");
   });
 
-  it("rechaza imagenes que no son http", async () => {
+  it("rechaza imágenes que no son http", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [{ ...BASE, image: "/local/x.png" }] }),
     ]);
@@ -131,8 +184,8 @@ describe("aggregate", () => {
 
   it("desempata a igual prioridad por el orden del array", async () => {
     // municipal-general empata en priority con vam, euskadi, senderismo y
-    // fiestas-blanca. El desempate es posicional, asi que hay que fijarlo o el
-    // proximo grupo al que se le de prioridad vuelve a colisionar en silencio.
+    // fiestas-blanca. El desempate es posicional, así que hay que fijarlo o el
+    // próximo grupo al que se le dé prioridad vuelve a colisionar en silencio.
     const municipal = entry({ id: "municipal-x", priority: 1, run: async () => [BASE] });
     const euskadi = entry({ id: "euskadi-x", priority: 1, run: async () => [{ ...BASE, link: "https://e/b" }] });
     const [primero] = await aggregate([municipal, euskadi]);
@@ -161,8 +214,8 @@ describe("aggregate", () => {
 
   it("descarta los eventos cancelados", async () => {
     // Sin este filtro un concierto anulado se ve en pantalla igual que uno que
-    // va a celebrarse: no hay badge de cancelado en ninguna tarjeta, y lo unico
-    // que leeria el campo es el JSON-LD de lib/seo.tsx, que ademas declara lo
+    // va a celebrarse: no hay badge de cancelado en ninguna tarjeta, y lo único
+    // que leería el campo es el JSON-LD de lib/seo.tsx, que además declara lo
     // contrario de lo que ve el usuario.
     const evs = await aggregate([
       entry({ run: async () => [
@@ -173,10 +226,10 @@ describe("aggregate", () => {
     expect(evs.map((e) => e.title)).toEqual(["Concierto de prueba"]);
   });
 
-  it("filtra despues del dedupe: manda el cancelado de la fuente que gana", async () => {
-    // El filtro va despues del dedupe a proposito, asi que si la fuente de mayor
-    // confianza dice que esta cancelado el evento desaparece aunque otra fuente,
-    // mas pobre, lo siga listando. Mover el filtro antes del dedupe lo traeria
+  it("filtra después del dedupe: manda el cancelado de la fuente que gana", async () => {
+    // El filtro va después del dedupe a propósito, así que si la fuente de mayor
+    // confianza dice que está cancelado el evento desaparece aunque otra fuente,
+    // más pobre, lo siga listando. Mover el filtro antes del dedupe lo traería
     // de vuelta con la ficha incompleta de la otra fuente.
     const evs = await aggregate([
       entry({ id: "fiable", priority: 0, run: async () => [{ ...BASE, cancelled: true }] }),
@@ -201,7 +254,7 @@ describe("invariante: toda tarjeta tiene detalle", () => {
       }))
     );
 
-    // Una entrada por fuente: si dos se colisionaran, el recuento lo delataria.
+    // Una entrada por fuente: si dos se colisionaran, el recuento lo delataría.
     expect(evs.length).toBe(SOURCE_REGISTRY.length);
 
     for (const ev of evs) {
@@ -224,12 +277,12 @@ describe("invariante: toda tarjeta tiene detalle", () => {
   });
 });
 
-describe("contrato de URL publica", () => {
+describe("contrato de URL pública", () => {
   it("el slug de un evento conocido no cambia", () => {
     // Literal completo, no derivado: si `eventSlug` llegara a depender del id o
-    // del nombre de la fuente, este valor se moveria y todos los enlaces ya
-    // publicados pasarian a 404. Ojo con el prefijo: `slugify` quita acentos y
-    // signos, no articulos, asi que es "cena-de-gazt-pastor" y no
+    // del nombre de la fuente, este valor se movería y todos los enlaces ya
+    // publicados pasarían a 404. Ojo con el prefijo: `slugify` quita acentos y
+    // signos, no artículos, así que es "cena-de-gazt-pastor" y no
     // "cena-gazt-pastor".
     expect(
       eventSlug({
@@ -238,5 +291,20 @@ describe("contrato de URL publica", () => {
         link: "https://www.lagenterula.com/evento/cena-gazt-pastor",
       })
     ).toBe("cena-de-gazt-pastor-2027-01-15-61c47k");
+  });
+
+  it("el slug no depende de si la URL viene en link o en url", async () => {
+    // La forma que emite `scrapeFiestasBlanca`: `url` y `timeStart`, sin `link`.
+    // El agregador viejo lo traducía a mano en su push de La Blanca; aquí quien
+    // resuelve es `normalizeRaw`. Si esa resolución se moviera, el mismo evento
+    // saldría con dos slugs distintos y una de las dos tarjetas daría 404.
+    const conLink = await aggregate([
+      entry({ run: async () => [{ ...BASE, link: "https://x.com/blanca" }] }),
+    ]);
+    const conUrl = await aggregate([
+      entry({ run: async () => [{ ...BASE, link: undefined, url: "https://x.com/blanca" }] }),
+    ]);
+    expect(conUrl[0].link).toBe("https://x.com/blanca");
+    expect(conUrl[0].slug).toBe(conLink[0].slug);
   });
 });

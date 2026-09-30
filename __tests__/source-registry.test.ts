@@ -14,24 +14,27 @@ const IDS_MUNICIPALES = [
   "municipal-teatro",
   "municipal-conciertos",
   "municipal-exposiciones",
-  "municipal-visitas",
   "municipal-general",
   "municipal-deporte",
   "municipal-infantil",
+  "municipal-visitas",
   "municipal-rss",
 ] as const;
 
 // Las variantes tipadas: cada una llama a scrapeMunicipalCalendar con una
 // combinación de argumentos distinta. Ninguna puede ir por detrás del municipal
-// sin filtro, que es un superconjunto de todas ellas.
+// sin filtro, que es un superconjunto de todas ellas. `municipal-visitas` está
+// además la última de las de priority 0 por el mismo motivo: si el sitio
+// ignorara su `tipo` y devolviera el calendario entero, se comería el `kind` de
+// `municipal-deporte` y los `tags` de `municipal-infantil`.
 const MUNICIPALES_CON_TAXONOMIA = [
   "municipal-agenda",
   "municipal-teatro",
   "municipal-conciertos",
   "municipal-exposiciones",
-  "municipal-visitas",
   "municipal-deporte",
   "municipal-infantil",
+  "municipal-visitas",
 ] as const;
 
 describe("SOURCE_REGISTRY", () => {
