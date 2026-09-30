@@ -41,10 +41,15 @@ Configurar en Dokploy o en `.env.local`:
 | `EMAIL_USER` | Cuenta SMTP Gmail que envía el newsletter. **Obligatoria en producción** |
 | `EMAIL_PASS` | Contraseña de aplicación de Gmail. **Obligatoria en producción** |
 | `NEXT_PUBLIC_SITE_URL` | URL base del sitio (newsletter, RSS, enlaces) |
+| `MEC_TOKEN` | Token del API de La Genterula. **Sin ella la fuente no se consulta** y sus eventos no salen en la agenda |
 
 Sin `EMAIL_USER`/`EMAIL_PASS` el envío de correo **falla de forma explícita** en
 producción (`scripts/send-newsletter.ts` sale con código 1). Fuera de producción
 se registra en consola y no se envía nada, para poder desarrollar sin credenciales.
+
+Sin `MEC_TOKEN` pasa lo mismo con La Genterula: `scrapeRula` avisa por consola y
+devuelve lista vacía, y el resto de la agenda sigue saliendo. Es deliberado, para
+que rotar el token sea cambiar una variable y no editar código.
 
 ## API: qué es público y qué no
 

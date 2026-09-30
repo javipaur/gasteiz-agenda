@@ -1,5 +1,20 @@
 const MEC_API = "https://www.lagenterula.com/wp-json/mec/v1.0/events";
-const MEC_TOKEN = "XiNUzsBFQJPQibGRODQ675Fz2qCpvWDATofFV0hr";
+
+/**
+ * El token del API MEC de La Genterula viene de `MEC_TOKEN`, no del código.
+ *
+ * Medido en esta sesión:
+ * - sin token, o con uno inventado, el API responde 500: es obligatorio.
+ * - no hay ruta pública equivalente. `wp-json/wp/v2/mec-events` responde sin
+ *   token, pero su `content` es solo la descripción: no trae la fecha, la hora
+ *   ni el lugar del evento, que es justo lo que necesita una agenda.
+ * - el token no es un secreto: kioskokultura.org lo publica en su bundle JS.
+ *
+ * Sacarlo del código no lo revoca ni lo quita del historial de git. Lo que sí
+ * compra es que a partir de ahora no viaja en cada despliegue ni en cada diff, y
+ * rotarlo pasa a ser cambiar una variable en Dokploy en vez de editar código y
+ *pushear.
+ */
 
 export interface RulaEvent {
   title: string;
@@ -39,8 +54,21 @@ function inferCategory(title: string, description: string, url: string): string 
 }
 
 export async function scrapeRula(): Promise<RulaEvent[]> {
+  // Se lee aqui y no al cargar el modulo para que un test pueda cambiarlo, y para
+  // que rotar la variable no exija reiniciar nada.
+  const token = process.env.MEC_TOKEN;
+
+  // Sin token el API responde 500, asi que mejor no gastar la descarga: se avisa
+  // y la fuente se queda vacia. El resto de la agenda sigue saliendo.
+  if (!token) {
+    console.warn(
+      "[rula] MEC_TOKEN no esta definido: La Genterula no se consulta. Define la variable para incluirla."
+    );
+    return [];
+  }
+
   const res = await fetch(`${MEC_API}?limit=500`, {
-    headers: { "mec-token": MEC_TOKEN, "User-Agent": "Mozilla/5.0" },
+    headers: { "mec-token": token, "User-Agent": "Mozilla/5.0" },
     next: { revalidate: 3600 },
     signal: AbortSignal.timeout(30000),
   });
