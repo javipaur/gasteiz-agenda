@@ -1,5 +1,5 @@
 import { getCachedOrFetch } from "./cache";
-import { eventSlug, localDateKey } from "./slug";
+import { agendaLink, agendaSlug, localDateKey } from "./slug";
 import { normalizeCategory } from "./categories";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
 import { logger } from "./axiom/server";
@@ -38,8 +38,13 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
   const date = raw.date || "";
   if (!date || isNaN(new Date(date).getTime())) return null;
 
-  const link = raw.link && raw.link !== "#" ? raw.link : (raw.url && raw.url !== "#" ? raw.url : "");
-  const slug = eventSlug({ title, date, link });
+  const link = agendaLink(raw);
+  // El slug lo resuelve `agendaSlug`, no `eventSlug` a pelo: la normalización
+  // (trim del título, `#` como enlace vacío) tiene que ser la misma en todos los
+  // sitios que lo calculan —la migración de favoritos, las tarjetas de La Blanca,
+  // su JSON-LD— y por eso vive en `lib/slug.ts` y no aquí. Aquí se decide el
+  // `id`; en ningún otro sitio se vuelve a decidir.
+  const slug = agendaSlug(raw);
   const category = normalizeCategory(entry.category ?? raw.category);
 
   return {

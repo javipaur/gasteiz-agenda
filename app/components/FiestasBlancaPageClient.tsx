@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { CATEGORY_COLORS } from "@/lib/categories";
-import { eventSlug } from "@/lib/slug";
+import { agendaSlug } from "@/lib/slug";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 
 const BLANCA_COLORS: Record<string, string> = {
@@ -51,19 +51,17 @@ function formatDateLong(dateStr: string): string {
 }
 
 /**
- * Mismo criterio que en `FiestasBlancaSection`: laprops son `FiestaBlanca` del
- * scraper y no `AgendaEvento`, así que el slug se resuelve aquí replicando la
- * normalización de `normalizeRaw` (`lib/agenda.ts`) en lugar de copiar un slug
- * ya resuelto. Es una de las excepciones enumeradas en
- * `__tests__/favoritos-migracion.test.ts`; las dos copias tienen que seguir a
- * `normalizeRaw` paso a paso, y las dos desaparecen cuando La Blanca venga del
- * agregador.
+ * Mismo criterio que en `FiestasBlancaSection`: las props son `FiestaBlanca` del
+ * scraper y no `AgendaEvento`, así que el slug sale de `agendaSlug`, la misma
+ * normalización que aplica `normalizeRaw` (`lib/agenda.ts`) y que usa el JSON-LD
+ * de `app/fiestas-blanca/page.tsx`. Es una de las dos excepciones a la regla de
+ * ESLint que prohíbe importar `eventSlug`; las dos copias de `mapFiestaToCard` y
+ * ese JSON-LD se borran cuando La Blanca venga del agregador.
  */
 function mapFiestaToCard(f: FiestaBlanca) {
-  const link = f.url && f.url !== "#" ? f.url : "";
   return {
     id: f.id,
-    slug: eventSlug({ title: f.title.trim(), date: f.date, link }),
+    slug: agendaSlug(f),
     title: f.title,
     date: f.date,
     image: f.image || undefined,

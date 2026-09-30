@@ -3,7 +3,7 @@ export const revalidate = 300;
 import Link from "next/link";
 import FiestasBlancaPageClient from "../components/FiestasBlancaPageClient";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
-import { eventSlug } from "@/lib/slug";
+import { agendaSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 import { isBlancaSeason, blancaNextEditionYear } from "@/lib/blanca";
 
@@ -119,7 +119,12 @@ export default async function FiestasBlancaPage() {
             .filter((f) => !f.cancelled && f.url && f.date)
             .map((f) => ({
               id: f.id,
-              slug: eventSlug({ title: f.title, date: f.date, link: f.url }),
+              // `agendaSlug` y no `eventSlug`: esta página emitía el slug sin la
+              // normalización de `normalizeRaw`, sin `trim` y sin descartar el
+              // `"#"`, así que el JSON-LD y las tarjetas de `FiestasBlancaPageClient`
+              // —que sí lo hacen— podían anunciar slugs distintos para el mismo
+              // evento. Las dos ramas pasan ahora por la misma función.
+              slug: agendaSlug(f),
               title: f.title,
               date: f.date,
               dateEnd: f.dateEnd || undefined,

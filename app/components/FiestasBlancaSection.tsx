@@ -2,7 +2,7 @@
 
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { CATEGORY_COLORS } from "@/lib/categories";
-import { eventSlug } from "@/lib/slug";
+import { agendaSlug } from "@/lib/slug";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 import SectionHead from "./SectionHead";
 
@@ -17,21 +17,20 @@ const BLANCA_COLORS: Record<string, string> = {
 
 /**
  * La Blanca todavía no pasa por el agregado: estas props son `FiestaBlanca` tal
- * como las devuelve el scraper, no `AgendaEvento`. Es una de las excepciones
- * enumeradas en `__tests__/favoritos-migracion.test.ts`.
+ * como las devuelve el scraper, no `AgendaEvento`. Es una de las dos excepciones
+ * a la regla de ESLint que prohíbe importar `eventSlug`.
  *
- * El slug se calcula aquí, en el productor, con la misma normalización que
- * aplica `normalizeRaw` en `lib/agenda.ts` —incluido el `trim` del título y el
- * descarte del `"#"`— porque `/evento/[slug]` resuelve contra `AgendaEvento.slug`
- * y este bloque no tiene otro slug que copiar. Esa expresión tiene que seguir a
- * `normalizeRaw` paso a paso; el día que La Blanca venga del agregador, esta
- * función desaparece.
+ * El slug sale de `agendaSlug`, que es la misma normalización que aplica
+ * `normalizeRaw` en `lib/agenda.ts` —incluido el `trim` del título y el descarte
+ * del `"#"`—, y también la que usa `app/fiestas-blanca/page.tsx` para su
+ * JSON-LD. La tarjeta y el JSON-LD de la misma página no pueden salir con slugs
+ * distintos porque ya no normalizan por su cuenta. El día que La Blanca venga del
+ * agregador, `mapFiestaToCard` desaparece entero.
  */
 function mapFiestaToCard(f: FiestaBlanca) {
-  const link = f.url && f.url !== "#" ? f.url : "";
   return {
     id: f.id,
-    slug: eventSlug({ title: f.title.trim(), date: f.date, link }),
+    slug: agendaSlug(f),
     title: f.title,
     date: f.date,
     image: f.image || undefined,

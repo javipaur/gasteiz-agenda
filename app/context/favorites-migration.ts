@@ -1,4 +1,4 @@
-import { eventSlug } from "@/lib/slug";
+import { agendaSlug } from "@/lib/slug";
 // `import type` y no `import`: TypeScript lo borra al compilar, y este módulo lo
 // importan los tests sin DOM. El tipo vive en el contexto porque es el tipo
 // público del store, pero lo que se persiste es lo que este fichero define.
@@ -23,17 +23,21 @@ export function migrateFavorites(stored: unknown): FavoriteEvent[] {
 
     const title = typeof f.title === "string" ? f.title : "";
     const date = typeof f.date === "string" ? f.date : "";
-    // Sin título o sin fecha no hay slug que rehacer. Se descartan en vez de
-    // inventarles uno: un id falso daría un favorito que cuenta en la cabecera y
-    // ocupa sitio en `/favoritos`, pero cuyo corazón no puede encenderse ni
-    // apagarse nunca.
+    // Sin título, sin fecha, o con una fecha que no es una fecha, no hay slug que
+    // rehacer: es el mismo criterio que `normalizeRaw` aplica en el otro lado, y
+    // por el mismo motivo. Un id inventado daría un favorito que cuenta en la
+    // cabecera y ocupa sitio en `/favoritos`, con un corazón que no puede
+    // encenderse ni apagarse nunca. Con `date: "roto"` el slug sería
+    // `...-sin-fecha-a1b2c3`: un fantasma con forma de evento.
     if (!title || !date) continue;
+    if (isNaN(new Date(date).getTime())) continue;
 
-    // El `"#"` lo emiten algunas fuentes y `normalizeRaw` del agregador lo
-    // descarta. Si la migración no hiciera lo mismo, un favorito guardado con
-    // `"#"` y el mismo evento ya scraped con su URL real darían dos ids.
-    const link = typeof f.link === "string" && f.link !== "#" ? f.link : "";
-    const slug = eventSlug({ title, date, link });
+    // `agendaSlug` y no `eventSlug`: es la misma normalización que aplica
+    // `normalizeRaw` en el agregador —trim del título y `#` como enlace vacío— y
+    // por eso la calculan los dos a la vez. `link: "#"` es la forma que
+    // emiten algunas fuentes; sin descartarlo, un favorito guardado con `"#"` y
+    // el mismo evento ya scraped con su URL real darían dos ids distintos.
+    const slug = agendaSlug({ title, date, link: typeof f.link === "string" ? f.link : "" });
 
     out.push({ ...(f as unknown as FavoriteEvent), id: slug, slug });
   }

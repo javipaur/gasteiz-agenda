@@ -42,3 +42,44 @@ export function eventSlug(e: {
     `${e.title}|${e.date}|${e.link || ""}`
   )}`;
 }
+
+/**
+ * El enlace de un evento tal y como lo ve la agenda, sin duplicar sus reglas.
+ *
+ * Sale separada de `agendaSlug` porque `normalizeRaw` necesita el enlace para el
+ * campo `link` del evento, y si calculara el slug con una expresión y el
+ * enlace con otra, un cambio en una dejaría al otra diciendo una cosa y el slug
+ * otra. Compartiendo esta función, las dos cosas no pueden separarse.
+ */
+export function agendaLink(raw: { link?: string; url?: string }): string {
+  return raw.link && raw.link !== "#"
+    ? raw.link
+    : raw.url && raw.url !== "#"
+      ? raw.url
+      : "";
+}
+
+/**
+ * El slug de un evento tal y como lo ve la agenda, sin duplicar sus reglas.
+ *
+ * `normalizeRaw` hace trim del título y trata `#` como enlace vacío. Cualquier
+ * otro sitio que necesite el slug de un evento crudo —la migración de
+ * favoritos, las tarjetas de La Blanca, su JSON-LD— debe pasar por aquí. Si cada
+ * uno normalizara por su cuenta, un mismo evento resolvería en un sitio y no en
+ * otro según un espacio de más, y el síntoma sería un 404 sin explicación.
+ *
+ * El recorte no es cosmético y no se nota en la URL: `eventSlug` hashea el
+ * título **crudo**, así que la parte legible del slug sale idéntica con y sin
+ * `trim` y lo único que se mueve son los 6 caracteres del hash. Por eso
+ * precisamente hacía falta centralizarlo: un fallo aquí no se ve en un `diff` de
+ * enlaces, se ve en un 404.
+ */
+export function agendaSlug(raw: {
+  title?: string;
+  date?: string;
+  link?: string;
+  url?: string;
+}): string {
+  const title = (raw.title || "").trim();
+  return eventSlug({ title, date: raw.date || "", link: agendaLink(raw) });
+}
