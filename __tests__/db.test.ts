@@ -153,4 +153,42 @@ describe("data/subscribers.json y git", () => {
     const r = git(["check-ignore", "-q", ".data/push.db"]);
     expect({ ignorado: r.codigo === 0 }).toEqual({ ignorado: true });
   });
+
+  it("el resto de `data/` no está ignorado, porque ahí viven datos del proyecto", () => {
+    // `data/` lleva siete ficheros versionados —las rutas de turismo, la
+    // gastronomía, los partidos, el fixture de curados— y añadir `data/` al
+    // `.gitignore` los dejaba tapados. No rompía nada ese día, porque git no
+    // reporta como ignorado un fichero que ya está trackeado; lo que hacía era
+    // dejar la bomba armada para el siguiente fichero de datos que alguien
+    // quisiera meter ahí: `git add` lo rechazaba en silencio y hacía falta
+    // `git add -f` para saber por qué.
+    //
+    // Se comprueba con un fichero nuevo, no con los ya trackeados, porque es
+    // justo el caso nuevo el que fallaba.
+    const versionados = git(["ls-files", "data/"]).salida
+      .split(/\r?\n/)
+      .filter(Boolean);
+    expect(versionados.length).toBeGreaterThan(0);
+
+    const laIgnored: string[] = [];
+    for (const relativo of versionados) {
+      // `git check-ignore` solo responde sobre ficheros no trackeados, así que
+      // se pregunta por el patrón directamente con `check-ignore --no-index`.
+      const r = git(["check-ignore", "--no-index", "-q", relativo]);
+      if (r.codigo === 0) laIgnored.push(relativo);
+    }
+    expect(laIgnored).toEqual([]);
+  });
+
+  it("un fichero nuevo dentro de `data/` se puede añadir sin `--force`", () => {
+    // La forma de mirar lo mismo desde el otro lado: se pide a git si ignoraría
+    // un fichero que todavía no existe, que es exactamente la pregunta que se
+    // hace uno al añadir un dato nuevo.
+    const nuevo = "data/turismo/rutas-nuevas.json";
+    const r = git(["check-ignore", "--no-index", "-q", nuevo]);
+    expect({ fichero: nuevo, ignorado: r.codigo === 0 }).toEqual({
+      fichero: nuevo,
+      ignorado: false,
+    });
+  });
 });

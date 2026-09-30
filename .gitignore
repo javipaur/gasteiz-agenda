@@ -43,8 +43,11 @@ next-env.d.ts
 # suscriptores del newsletter: datos personales y tokens de baja. Nunca en git.
 # El repo público lleva el historial, así que sacar el fichero no basta: la
 # reescritura la hace quien mantenga el repo, aparte.
+#
+# Solo este fichero, nunca `data/`: ahí viven los datos del proyecto —turismo,
+# gastronomía, partidos, el fixture de curados— y añadir el directorio entero
+# dejaba el siguiente fichero nuevo ahí sin poder añadirse sin `--force`.
 data/subscribers.json
-data/
 
 # logs y artefactos de test
 dev-server.log
