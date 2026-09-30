@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { fetchOgImage } from "@/lib/utils";
+import { fetchOgImage } from "@/lib/og-image";
 
 const BASE_URL = "https://www.gasteizhoy.com/ociogasteiz/";
 

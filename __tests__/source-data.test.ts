@@ -38,10 +38,34 @@ function importSpecifiers(file: string): string[] {
   return specs;
 }
 
-/** Ficheros de `lib/sources/` alcanzables desde `roots` por imports estáticos. */
-function scrapersReachableFrom(roots: string[]): string[] {
+/**
+ * Módulos que no pueden quedar en el grafo de cliente, y por qué.
+ *
+ * La lista es explícita y corta a propósito: son los dos caminos por los que un
+ * componente cliente puede arrastrar trabajo de servidor al navegador. Cada
+ * entrada dice lo que cuesta, porque "es de servidor" no es un argumento que se
+ * pueda comprobar leyendo el nombre del fichero.
+ */
+const SOLO_SERVIDOR: readonly { prefijo: string; razon: string }[] = [
+  {
+    prefijo: "lib/sources/",
+    razon: "los scrapers, y con ellos el token de la API MEC de La Genterula",
+  },
+  {
+    prefijo: "lib/og-image.ts",
+    // No es un scraper, es un scraper en potencia: `cheerio` son 148,2 KB de chunk
+    // de cliente que el navegador no ejecuta nunca, porque su único consumidor es
+    // `lib/sources/gasteizhoy.ts`. Vivía en `lib/utils.ts` y por eso este barrido no
+    // lo veía: llegar a un scraper y llegar a un módulo que importa `cheerio` no es
+    // lo mismo para la regla.
+    razon: "`fetchOgImage`, que importa `cheerio` y solo usa un scraper de servidor",
+  },
+];
+
+/** Módulos de `SOLO_SERVIDOR` alcanzables desde `roots` por imports estáticos. */
+function modulosDeServidorAlcanzables(roots: string[]): string[] {
   const seen = new Set<string>();
-  const scrapers = new Set<string>();
+  const alcanzados = new Set<string>();
   const queue = [...roots];
   while (queue.length > 0) {
     const file = queue.pop() as string;
@@ -50,14 +74,15 @@ function scrapersReachableFrom(roots: string[]): string[] {
     for (const spec of importSpecifiers(file)) {
       const target = resolveSpecifier(file, spec);
       if (!target) continue;
-      if (relative(ROOT, target).replace(/\\/g, "/").startsWith("lib/sources/")) {
-        scrapers.add(relative(ROOT, target).replace(/\\/g, "/"));
+      const rel = relative(ROOT, target).replace(/\\/g, "/");
+      if (SOLO_SERVIDOR.some((m) => rel === m.prefijo || rel.startsWith(m.prefijo))) {
+        alcanzados.add(rel);
       } else {
         queue.push(target);
       }
     }
   }
-  return [...scrapers].sort();
+  return [...alcanzados].sort();
 }
 
 function walk(dir: string, acc: string[] = []): string[] {
@@ -82,31 +107,48 @@ describe("frontera entre el registro y el cliente", () => {
     expect(importSpecifiers(join(ROOT, "lib", "source-data.ts"))).toEqual([]);
   });
 
-  it("lib/utils.ts y lib/tickets.ts no alcanzan ningún scraper", () => {
+  it("lib/utils.ts y lib/tickets.ts no alcanzan ningún módulo de servidor", () => {
     // Estos dos los cargan los componentes cliente: `sourceLabel` desde
     // `lib/shared.tsx` e `isTicketSource` desde las tarjetas y el detalle.
     for (const mod of ["lib/utils.ts", "lib/tickets.ts"]) {
-      expect({ mod, scrapers: scrapersReachableFrom([join(ROOT, mod)]) }).toEqual({
+      expect({ mod, alcanzados: modulosDeServidorAlcanzables([join(ROOT, mod)]) }).toEqual({
         mod,
-        scrapers: [],
+        alcanzados: [],
       });
     }
   });
 
-  it("ningún componente cliente alcanza un scraper", () => {
+  it("ningún componente cliente alcanza un módulo de servidor", () => {
     // El fallo que se está evitando: `lib/shared.tsx` es "use client" y fue a
     // través de `lib/utils.ts` al registro compuesto, llevándose los 18 scrapers
     // al bundle (chunk de la home de 146 KB a 403 KB). Este test es el que lo
     // vuelve a detectar si alguien vuelve a colgar el registro compuesto de un
     // módulo cliente, con el nombre del culpable en el mensaje.
+    //
+    // Y el segundo fallo, que este barrido no veía: `lib/utils.ts` importaba
+    // `cheerio` arriba del todo para `fetchOgImage`, y con ella 148,2 KB de chunk
+    // para una función que solo usa un scraper. `lib/og-image.ts` está en
+    // `SOLO_SERVIDOR` por eso, y no por ser un scraper.
     const culpables: string[] = [];
     for (const file of clientModules()) {
-      const scrapers = scrapersReachableFrom([file]);
-      if (scrapers.length > 0) {
-        culpables.push(`${relative(ROOT, file)} -> ${scrapers.join(", ")}`);
+      const alcanzados = modulosDeServidorAlcanzables([file]);
+      if (alcanzados.length > 0) {
+        culpables.push(`${relative(ROOT, file)} -> ${alcanzados.join(", ")}`);
       }
     }
     expect(culpables).toEqual([]);
+  });
+
+  it("la lista de módulos de servidor no crece por descuido", () => {
+    // La lista es explícita para que añadir una entrada sea una decisión, pero una
+    // lista explícita que se puede dejar atrás sin que nadie lo note es un
+    // inventario, no una regla. Este test ata las dos entradas que hay con la
+    // forma del repo: si `lib/og-image.ts` dejara de importar `cheerio`, dejaría de
+    // tener motivo de estar aquí y el aviso de arriba estaría mintiendo.
+    const prefijos = SOLO_SERVIDOR.map((m) => m.prefijo);
+    expect(prefijos).toEqual(["lib/sources/", "lib/og-image.ts"]);
+    expect(importSpecifiers(join(ROOT, "lib", "og-image.ts"))).toEqual(["cheerio"]);
+    expect(importSpecifiers(join(ROOT, "lib", "utils.ts"))).toEqual(["./source-data"]);
   });
 });
 

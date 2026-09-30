@@ -1,16 +1,14 @@
-import {
-  fetchOgImage,
-  formatDate,
-  formatSpanishDate,
-  localDateStr,
-  sourceLabel,
-  dayBadgeLabel,
-  shortTime,
-} from "@/lib/utils";
+import { formatDate, formatSpanishDate, localDateStr, sourceLabel, dayBadgeLabel, shortTime } from "@/lib/utils";
+import { fetchOgImage } from "@/lib/og-image";
 import { SOURCE_LABELS } from "@/lib/source-registry";
 import { mockFetchWith, EMPTY_HTML } from "./helpers";
 
 describe("fetchOgImage", () => {
+  // Los tests viven aquí y no junto a `lib/og-image.ts` porque `lib/utils.ts` es
+  // cliente-safe y este módulo es de servidor: importarlo desde un fichero de
+  // tests de `utils` no es un problema, pero sí lo sería exportarlo desde `utils`.
+  // La función se movió para sacar `cheerio` del chunk de cliente, no para cambiar
+  // de sitio los tests.
   it("extracts og:image from HTML", async () => {
     mockFetchWith([
       {

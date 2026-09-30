@@ -1,67 +1,15 @@
-import * as cheerio from "cheerio";
 // Importa de `source-data` y no de `source-registry` a propósito: este fichero
 // lo carga `lib/shared.tsx`, que es "use client", así que llegar al registro
 // compuesto arrastraría los 18 scrapers al navegador (+257 KB de chunk, medido).
 // El token de la API MEC de La Genterula venía dentro. La regla la comprueba
 // `__tests__/source-data.test.ts`.
+//
+// Y lo mismo con `lib/og-image.ts`, que se llevó el `import * as cheerio` de aquí:
+// `cheerio` son 148,2 KB de chunk de cliente que el navegador no ejecutaba, porque
+// su único consumidor es un scraper de servidor. `fetchOgImage` no se reexporta
+// desde aquí a propósito: un reexport delataría que el fichero es cliente-safe y
+// alguien volvería a colgarlo de un componente.
 import { SOURCE_LABELS } from "./source-data";
-
-const ogImageCache = new Map<string, string | undefined>();
-
-export async function fetchOgImage(url: string): Promise<string | undefined> {
-  const cached = ogImageCache.get(url);
-  if (cached !== undefined) return cached;
-
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-      signal: AbortSignal.timeout(8000),
-      next: { revalidate: 86400 },
-    });
-    if (!res.ok) {
-      ogImageCache.set(url, undefined);
-      return undefined;
-    }
-
-    const html = await res.text();
-    const $ = cheerio.load(html);
-
-    const ogImage =
-      $('meta[property="og:image"]').attr("content") ||
-      $('meta[name="og:image"]').attr("content") ||
-      $('meta[name="twitter:image"]').attr("content");
-
-    if (ogImage) {
-      const absolute = ogImage.startsWith("http")
-        ? ogImage
-        : new URL(ogImage, url).href;
-      ogImageCache.set(url, absolute);
-      return absolute;
-    }
-
-    const firstImg = $(
-      "article img, .entry-content img, main img, .content img"
-    )
-      .first()
-      .attr("src");
-    if (firstImg) {
-      const absolute = firstImg.startsWith("http")
-        ? firstImg
-        : new URL(firstImg, url).href;
-      ogImageCache.set(url, absolute);
-      return absolute;
-    }
-
-    ogImageCache.set(url, undefined);
-    return undefined;
-  } catch {
-    ogImageCache.set(url, undefined);
-    return undefined;
-  }
-}
 
 export const MONTHS = [
   "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
