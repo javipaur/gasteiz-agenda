@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 // Importa de `source-data` y no de `source-registry` a propósito: este fichero
 // lo carga `lib/shared.tsx`, que es "use client", así que llegar al registro
-// compuesto arrastraría los 19 scrapers al navegador (+257 KB de chunk, medido).
+// compuesto arrastraría los 18 scrapers al navegador (+257 KB de chunk, medido).
 // El token de la API MEC de La Genterula venía dentro. La regla la comprueba
 // `__tests__/source-data.test.ts`.
 import { SOURCE_LABELS } from "./source-data";
@@ -96,10 +96,13 @@ export function localDateStr(d: Date): string {
 
 /**
  * Ids que emitían los módulos anteriores al agregador único y que todavía se
- * pintan: `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts` siguen poniendo
- * `vitoria-gasteiz` en `evento.source`, y la home los sigue pintando con
- * `showSource`. Cada valor apunta a su id del registro, de modo que la etiqueta
- * sale de ahí y no hay dos verdades sobre cómo se llama el Ayuntamiento.
+ * pintan: `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts` ponen ids que no
+ * son los del registro, y la home los sigue pintando con `showSource` a través
+ * de `MoodFilter`, `NextDaysSection` y `CategoryCarousel`. Como la pill va en
+ * `uppercase`, sin esta tabla se leerían "BUSCAMETAS" y "CM-GAZTEIZ" en crudo.
+ *
+ * Cada valor apunta a su id del registro, de modo que la etiqueta sale de ahí y
+ * no hay dos verdades sobre cómo se llama una fuente.
  *
  * Es un shim de compatibilidad con fecha de caducidad: cuando esos módulos se
  * retiren, esta tabla se queda vacía y `sourceLabel` vuelve a ser una sola
@@ -108,14 +111,18 @@ export function localDateStr(d: Date): string {
 const LEGACY_SOURCE_IDS: Record<string, string> = {
   "vitoria-gasteiz": "municipal-agenda",
   "vitoria-gasteiz-rss": "municipal-rss",
+  "buscametas": "buscametas-calendario",
+  "cm-gazteiz": "senderismo",
 };
 
 export function sourceLabel(source?: string): string {
   if (!source) return "";
-  // El mapeo se resuelve en la llamada y no al cargar el módulo a propósito:
-  // `lib/sources/gasteizhoy.ts` importa `fetchOgImage` de este fichero, así que
-  // importar el registro desde aquí cierra un ciclo, y leer `SOURCE_LABELS`
-  // durante la inicialización daría `undefined` según el orden de carga.
+  // La tabla se resuelve en la llamada y no al cargar el módulo. Este fichero lo
+  // carga `lib/shared.tsx`, que es un componente cliente, así que la frontera que
+  // de verdad importa es la del import de arriba: solo la hoja de datos, nunca el
+  // registro compuesto, o los 18 scrapers acabarían en el navegador. Resolverlo
+  // aquí dentro deja además esta función sin nada construido en el ámbito del
+  // módulo.
   return (
     SOURCE_LABELS[source] ??
     (LEGACY_SOURCE_IDS[source] ? SOURCE_LABELS[LEGACY_SOURCE_IDS[source]] : undefined) ??

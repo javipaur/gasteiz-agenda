@@ -3,7 +3,7 @@
  *
  * El motivo de que este fichero exista por separado de `lib/source-registry.ts`
  * es que `lib/shared.tsx` es `"use client"` y llama a `sourceLabel`, que está en
- * `lib/utils.ts`. Si `utils.ts` importara el registro compuesto, los 19 scrapers
+ * `lib/utils.ts`. Si `utils.ts` importara el registro compuesto, los 18 scrapers
  * entrarían en el grafo de cliente: medido con `next build`, el chunk compartido
  * de la home pasaba de 146 KB a 403 KB, con el parsing de cheerio que el
  * navegador nunca ejecuta y con el token de la API MEC de La Genterula dentro.
@@ -129,10 +129,17 @@ export const CULTURE_SOURCE_IDS: readonly string[] = SOURCE_DATA.filter(
 // Indexados por `id`, nunca por `group`: varias entradas comparten label
 // ("Ayuntamiento" ocho veces, "VAM" dos, "Buscametas" dos) y un mapa por `group`
 // las fundiría, que es justo el bug de etiquetas que esto arregla.
-export const SOURCE_LABELS: Record<string, string> = Object.fromEntries(
+//
+// `Partial` y no `Record` a propósito: sin `noUncheckedIndexedAccess` en el
+// tsconfig, `Record<string, string>` le dice al typechecker que
+// `SOURCE_LABELS[loQueSea]` es `string` siempre, y entonces el `??` de quien lo
+// consume parece código muerto y un refactor futuro podría borrarlo sin que
+// `tsc` se queje. Con `Partial`, una búsqueda que no está en el mapa se tipa
+// `string | undefined` y el fallback pasa a ser obligatorio.
+export const SOURCE_LABELS: Partial<Record<string, string>> = Object.fromEntries(
   SOURCE_DATA.map((e) => [e.id, e.label])
 );
 
-export const SOURCE_GROUPS: Record<string, string> = Object.fromEntries(
+export const SOURCE_GROUPS: Partial<Record<string, string>> = Object.fromEntries(
   SOURCE_DATA.map((e) => [e.id, sourceGroup(e)])
 );

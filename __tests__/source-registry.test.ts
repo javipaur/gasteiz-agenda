@@ -135,4 +135,11 @@ describe("SOURCE_REGISTRY", () => {
       }
     }
   });
+
+  it("ninguna fuente queda etiquetada con su propio id", () => {
+    // Restricción global: si alguien añade `{ id: "foo", label: "foo" }`, los
+    // demás tests siguen en verde y la pill vuelve a pintar el slug crudo, que es
+    // el fallo que esta tarea vino a matar.
+    expect(Object.entries(SOURCE_LABELS).filter(([id, l]) => id === l)).toEqual([]);
+  });
 });

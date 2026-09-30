@@ -99,11 +99,26 @@ describe("sourceLabel", () => {
   });
 
   it("traduce los ids que solo emite la agregación antigua", () => {
-    // Mientras `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts` sigan vivos, la
-    // home los pinta con estos ids en vez de con los del registro. Sin traducción,
-    // cada tarjeta del Ayuntamiento enseñaría "vitoria-gasteiz" en crudo.
-    expect(sourceLabel("vitoria-gasteiz")).toBe(SOURCE_LABELS["municipal-agenda"]);
-    expect(sourceLabel("vitoria-gasteiz-rss")).toBe(SOURCE_LABELS["municipal-rss"]);
+    // La home sigue pintando con `showSource` las tarjetas que salen de
+    // `lib/eventos.ts`, `lib/deporte.ts` y `lib/kids.ts`, y esos tres módulos
+    // ponen ids que no son los del registro. Sin esta tabla, con el mood
+    // "Deporte" seleccionado se leerían "BUSCAMETAS" y "CM-GAZTEIZ" en crudo,
+    // porque la pill va en `uppercase`.
+    //
+    // Los cuatro, ni uno más ni uno menos: son los únicos que emiten esos
+    // módulos, y cada uno apunta a su entrada del registro, de modo que el
+    // nombre legible sale de ahí y no de aquí.
+    for (const [legacy, id] of [
+      ["vitoria-gasteiz", "municipal-agenda"],
+      ["vitoria-gasteiz-rss", "municipal-rss"],
+      ["buscametas", "buscametas-calendario"],
+      ["cm-gazteiz", "senderismo"],
+    ] as const) {
+      expect({ legacy, label: sourceLabel(legacy) }).toEqual({
+        legacy,
+        label: SOURCE_LABELS[id],
+      });
+    }
   });
 
   it("no revive jimmy-jazz-gasteiz", () => {

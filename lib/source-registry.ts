@@ -4,7 +4,7 @@
  *
  * La separación no es estética. `lib/shared.tsx` es `"use client"` y llama a
  * `sourceLabel`, que vive en `lib/utils.ts`; si `utils.ts` importara este
- * fichero, los 19 scrapers entrarían en el bundle del cliente. Por eso lo que
+ * fichero, los 18 scrapers entrarían en el bundle del cliente. Por eso lo que
  * llega a los componentes cliente es `lib/source-data.ts`, y este módulo se
  * queda en el servidor. La regla está comprobada en
  * `__tests__/source-data.test.ts`.
@@ -38,9 +38,9 @@ import { scrapeFiestasBlanca } from "./sources/fiestas-blanca";
 import { SOURCE_DATA, type RawLike, type SourceEntry } from "./source-data";
 /**
  * Función de scraping por id. La clave es el `id` de la entrada de datos, así que
- * añadir una fuente son dos líneas: su datos en `SOURCE_DATA` y su scraper aquí.
- * `composite` falla al cargar el módulo si alguna se queda sin `run`, que es
- * mejor que devolver una entrada muda y descubrirlo en la agenda.
+ * añadir una fuente son dos líneas: sus datos en `SOURCE_DATA` y su scraper
+ * aquí. Falla al cargar el módulo si alguna se queda sin `run`, que es mejor que
+ * devolver una entrada muda y descubrirlo en la agenda.
  */
 const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
   "municipal-agenda": () => scrapeMunicipalCalendar({ tipo: [6] }),

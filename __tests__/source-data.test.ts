@@ -95,7 +95,7 @@ describe("frontera entre el registro y el cliente", () => {
 
   it("ningún componente cliente alcanza un scraper", () => {
     // El fallo que se está evitando: `lib/shared.tsx` es "use client" y fue a
-    // través de `lib/utils.ts` al registro compuesto, llevándose los 19 scrapers
+    // través de `lib/utils.ts` al registro compuesto, llevándose los 18 scrapers
     // al bundle (chunk de la home de 146 KB a 403 KB). Este test es el que lo
     // vuelve a detectar si alguien vuelve a colgar el registro compuesto de un
     // módulo cliente, con el nombre del culpable en el mensaje.
@@ -111,6 +111,14 @@ describe("frontera entre el registro y el cliente", () => {
 });
 
 describe("composición del registro", () => {
+  it("no hay ids repetidos en los datos", () => {
+    // `SOURCE_LABELS` y `SOURCE_GROUPS` se construyen con `Object.fromEntries`, así
+    // que un id repetido colapsa en silencio: la entrada desaparece de los mapas
+    // mientras `SOURCE_REGISTRY` sigue teniendo las 27. El test de paridad de
+    // abajo no lo pilla, porque compara el array consigo mismo.
+    expect(new Set(SOURCE_DATA.map((e) => e.id)).size).toBe(SOURCE_DATA.length);
+  });
+
   it("toda entrada de datos tiene su función de scraping", () => {
     // Si faltara alguna, `SOURCE_REGISTRY` habría reventado al construirse, así
     // que además de comparar esto comprobamos que el registro tiene tantas
