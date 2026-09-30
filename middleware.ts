@@ -1,18 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_KEY = process.env.API_KEY;
+import { isPublicApiRoute } from "@/lib/api-public-routes";
 
-const PUBLIC_API_ROUTES = [
-  "/api/search",
-  "/api/newsletter/subscribe",
-  "/api/newsletter/confirm",
-  "/api/newsletter/unsubscribe",
-  "/api/push/subscribe",
-  "/api/cines",
-  "/api/farmacias",
-  "/api/vgbus",
-  "/api/actividades",
-];
+const API_KEY = process.env.API_KEY;
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX = 100;
@@ -64,7 +54,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (PUBLIC_API_ROUTES.some((r) => pathname.startsWith(r))) {
+  if (isPublicApiRoute(pathname)) {
     return NextResponse.next();
   }
 
@@ -73,11 +63,33 @@ export function middleware(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
+  /*
+   * Fail-closed, y deliberadamente ruidoso.
+   *
+   * Aquí antes había un `console.warn("API_KEY not set – API endpoints are open")`
+   * y un `NextResponse.next()`: sin `API_KEY` en el entorno, *toda* la API
+   * contestaba sin autenticar. El aviso era una línea en un log de arranque que
+   * nadie lee, y su efecto era el contrario del que el mensaje pedía: no era
+   * «no he configurado esto», era «lo he abierto».
+   *
+   * Un despliegue con `API_KEY` sin definir no está en modo degradado, está roto,
+   * y tiene que decírselo a quien llama con un 503 que menciona la variable. La
+   * alternativa —abrir y avisar— convierte un error de configuración en una fuga,
+   * y la fuga no sale en ningún log del servidor: sale en la factura de quien
+   * hostea la API.
+   *
+   * Esto solo afecta a las rutas protegidas: las de `PUBLIC_API_ROUTES` han
+   * vuelto antes y siguen funcionando sin clave, que es lo que necesitan para
+   * que la web cargue.
+   */
   if (!API_KEY) {
-    console.warn("API_KEY not set – API endpoints are open");
-    const response = NextResponse.next();
-    setCacheHeaders(response, pathname);
-    return response;
+    return NextResponse.json(
+      {
+        error:
+          "Service misconfigured – API_KEY is not set on the server, so protected endpoints are closed",
+      },
+      { status: 503 }
+    );
   }
 
   const key =
