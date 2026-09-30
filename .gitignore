@@ -40,6 +40,12 @@ next-env.d.ts
 # datos locales (push db)
 .data/
 
+# suscriptores del newsletter: datos personales y tokens de baja. Nunca en git.
+# El repo público lleva el historial, así que sacar el fichero no basta: la
+# reescritura la hace quien mantenga el repo, aparte.
+data/subscribers.json
+data/
+
 # logs y artefactos de test
 dev-server.log
 test-results/

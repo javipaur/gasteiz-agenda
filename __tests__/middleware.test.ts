@@ -180,7 +180,7 @@ describe("la lista de rutas públicas", () => {
     "/api/cines/florida": "documentada en openapi.yaml para apps móviles",
   };
 
-  it("son exactamente estas nueve, y ninguna más", () => {
+  it("son exactamente estas diez, y ninguna más", () => {
     const enCodigo = PUBLIC_API_ROUTES.map((r) => r.path).sort();
     expect(enCodigo).toEqual(Object.keys(ESPERADAS).sort());
   });

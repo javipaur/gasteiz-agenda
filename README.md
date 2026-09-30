@@ -28,7 +28,9 @@ Configurar en Dokploy o en `.env.local`:
 
 | Variable | Descripción |
 |---|---|
-| `API_KEY` | Clave para autenticar endpoints `/api/*` |
+| `API_KEY` | Clave para autenticar endpoints `/api/*`. **Sin ella las rutas protegidas responden 503**: el middleware cierra en vez de abrir |
+| `CORS_ORIGIN` | Origen permitido para las rutas de `/api/*` que piden `API_KEY`. Sin ella, esas rutas no llevan `Access-Control-Allow-Origin` |
+| `SUBSCRIBERS_PATH` | Ruta del fichero de suscriptores. Por defecto `data/subscribers.json`. Apúntala al volumen persistente |
 | `AXIOM_TOKEN` | Token de ingestión de Axiom (opcional) |
 | `AXIOM_DATASET` | Dataset de Axiom |
 | `VAPID_PUBLIC_KEY` | Clave pública VAPID para push notifications |
@@ -44,9 +46,27 @@ Sin `EMAIL_USER`/`EMAIL_PASS` el envío de correo **falla de forma explícita** 
 producción (`scripts/send-newsletter.ts` sale con código 1). Fuera de producción
 se registra en consola y no se envía nada, para poder desarrollar sin credenciales.
 
+## API: qué es público y qué no
+
+Las rutas que responden **sin** `API_KEY` están en una única constante,
+`lib/api-public-routes.ts`, y la comparten tres sitios: el middleware, la CORS de
+`next.config.ts` y el test que contrasta `public/openapi.yaml` contra ella. La
+coincidencia es exacta: no hay prefijos, así que añadir una ruta es escribir su
+nombre.
+
+| Ruta | Por qué es pública |
+|---|---|
+| `/api/farmacias`, `/api/search`, `/api/vgbus`, `/api/push/subscribe` | Las llama el navegador desde un componente cliente, que no tiene la clave |
+| `/api/newsletter/subscribe`, `/api/newsletter/confirm`, `/api/newsletter/unsubscribe` | El alta es un formulario y los otros dos son enlaces que llegan por correo |
+| `/api/cines`, `/api/cines/boulevard`, `/api/cines/florida` | Se publican en el OpenAPI para clientes móviles |
+
+Todo lo demás —`/api/actividades/*`, `/api/v1/events`, `/api/fever`, `/api/rula`,
+`/api/push/send`— pide `x-api-key` o `?api_key=`.
+
 > Antes de desplegar, comprueba que Dokploy tiene un volumen persistente montado.
 > `lib/db.ts` (suscriptores) y `.data/push.db` (push) escriben en disco; sin
-> volumen, ambos se pierden en cada redeploy.
+> volumen, ambos se pierden en cada redeploy. Apunta `SUBSCRIBERS_PATH` a la
+> misma montura que `.data/`.
 
 ## Estructura
 
