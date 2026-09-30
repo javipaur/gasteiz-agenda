@@ -109,6 +109,7 @@ export const SOURCE_DATA: readonly SourceData[] = [
   { id: "entradium", label: "Entradium", tickets: true, priority: 4 },
   { id: "vital", label: "Fundación Vital", priority: 4 },
   { id: "arkabia", label: "Arkabia", priority: 4 },
+  { id: "mercado-abastos", label: "Mercado de Abastos", priority: 4 },
   { id: "miniature", label: "Miniature", category: "Gastronomía", priority: 4 },
   { id: "buscametas-calendario", group: "buscametas", label: "Buscametas", category: "Deporte", kind: "calendario", priority: 5 },
   { id: "buscametas-inscripciones", group: "buscametas", label: "Buscametas", category: "Deporte", kind: "inscripciones", priority: 5 },

@@ -1,14 +1,15 @@
 # Gasteiz Click — memoria del proyecto
 
 Agenda cultural de Vitoria-Gasteiz. Next.js 16 (App Router, RSC), React 19,
-TypeScript estricto, Tailwind v4, ~18 scrapers, PWA, push, newsletter. Se despliega
-en Dokploy con `nixpacks.toml` (Node 22).
+TypeScript estricto, Tailwind v4, 28 fuentes en el registro más 2 catálogos
+sueltos, PWA, push, newsletter. Se despliega en Dokploy con `nixpacks.toml`
+(Node 22).
 
 ## Comandos
 
 ```bash
 npm run dev            # localhost:3000
-npm test               # Jest, 32 suites / 220 tests
+npm test               # Jest, 35 suites / 248 tests
 npm run lint           # ESLint (ver "baseline de lint")
 npm run build
 npx tsc --noEmit --incremental false   # typecheck real
@@ -18,7 +19,7 @@ npm run test:e2e       # Playwright
 ## Estado (2026-09-30)
 
 Rebrand F0/F1 y Fase 1 de la unificación de la agenda, commiteados y
-verificados. Baseline verde: `tsc` 0 errores, 220/220 tests, `build` exit 0, 64
+verificados. Baseline verde: `tsc` 0 errores, 248/248 tests, `build` exit 0, 64
 problemas de lint (48 `no-explicit-any` preexistentes en scrapers).
 
 ## Hecho: la agenda unificada (Fase 1)
@@ -31,7 +32,7 @@ cerrados, medidos y con test.
 
 ### Cómo queda
 
-- `lib/source-data.ts` es la **hoja pura** del registro de 27 fuentes: no importa
+- `lib/source-data.ts` es la **hoja pura** del registro de 28 fuentes: no importa
   nada. `lib/source-registry.ts` es la composición que le une las funciones de
   scraping. `lib/utils.ts` y `lib/tickets.ts` derivan de la hoja, nunca del
   registro compuesto.
@@ -67,6 +68,38 @@ cerrados, medidos y con test.
   mientras `isTicketSource()` comparaba con `"jimmyjazz"`, así que la única sala
   que vende entradas decía "Más información". Y el recinto era inventado por el
   scraper, no por la fuente: es justo lo que el registro vino a arreglar.
+- **Una fuente sin fecha no entra en el registro.** Es la regla que decidió
+  Civitatis y Kora, y conviene no reelegirla a la ligera: `normalizeRaw` descarta
+  lo que no tiene fecha válida, y las dos publican *sesiones recurrentes*
+  ("Free tour por Vitoria", "Martes de 19:15h a 20:15h") sin fecha concreta.
+  Registrarlas obligaría a fabricar una —la siguiente ocurrencia del día de la
+  semana— y eso mete fechas falsas en la agenda, en el detalle y en el JSON-LD.
+  Se exponen como endpoint propio, con el horario literal, y las consume
+  `/turismo`. Si algún día se quieren en la agenda, el sitio tiene que publicar
+  calendario; no lo resuelve el scraper.
+
+### Las tres fuentes migradas de `demo-next-js`
+
+Eran 21 route handlers de scraping, de los que 18 ya existían aquí con mejor
+implementación. Las tres que faltaban:
+
+| Fuente | Cómo entra | Por qué |
+| --- | --- | --- |
+| `mercado-abastos` | Registro, `priority: 4` | Tiene fechas de verdad, vía la API REST de The Events Calendar |
+| `civitatis` | Endpoint suelto `/api/actividades/tours/civitatis` | Recurrente, sin fecha |
+| `kora` | Endpoint suelto `/api/actividades/experiencias` | Recurrente, sin fecha |
+
+Las tres dejaron de necesitar Puppeteer. Ninguna lo necesitaba: Mercado de
+Abastos expone `/wp-json/tribe/events/v1/events` con los eventos ya
+normalizados, y Civitatis y Kora traen las tarjetas en el HTML inicial. Eso
+ahorra ~300 MB de Chromium en la imagen de Dokploy y mantiene los tres dentro
+de la convención de tests del repo (`mockFetchWith` + fixture), que con Puppeteer
+no funcionaba.
+
+`/api/actividades/tours` y `/api/actividades/tardeo` **no se han tocado**: son
+vistas sobre el agregado y las deja el registro. `/api/actividades/tours` sigue
+siendo un filtro por categoría, así que las fichas de Civitatis no entran ahí
+todavía; la ruta de Civitatis es aparte a propósito.
 
 ### Fases que quedan
 
@@ -151,6 +184,18 @@ in-memory no se arregla sin store compartido.
   ids puede salirse del registro.
 - **La taxonomía de `lib/categories.ts` es de 15 categorías**; `CULTURA_CATEGORIAS`
   son 4 cubos de vista y no sustituyen a la anterior.
+- **Civitatis y Kora esconden la imagen real en `data-src`.** En las dos, el
+  `src` es un placeholder —un gif de 1px en base64 en Civitatis,
+  `/assets/images/blank.png` en Kora— y el `srcset` llega vacío. La URL buena va
+  en `data-src`; en Kora es una lista de tamaños separada por comas y sirve la
+  primera. Leer `src` da una imagen rota que parece correcta en el test.
+- **Mercado de Abastos devuelve `title` como string plano**, no como
+  `{rendered}`: el REST de The Events Calendar lo difiere de `content.rendered`
+  y `excerpt.rendered`, que sí vienen envueltos. Y sus `start_date` son
+  `"YYYY-MM-DD HH:mm:ss"` en hora de Europe/Madrid **sin offset**, igual que las
+  del Ayuntamiento: hay que interpretarlas como hora local, no como UTC.
+  actualmente el mercado no publica nada upcoming —los 24 eventos que devuelve son
+  de 2024—, así que no aparece en la agenda y es lo esperado.
 
 ## Commits
 

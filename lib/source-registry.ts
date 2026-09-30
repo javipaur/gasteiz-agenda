@@ -27,6 +27,7 @@ import { scrapeEventbrite } from "./sources/eventbrite";
 import { scrapeEntradium } from "./sources/entradium";
 import { scrapeVital } from "./sources/vital";
 import { scrapeArkabia } from "./sources/arkabia";
+import { scrapeMercadoAbastos } from "./sources/mercado-abastos";
 import { scrapeMiniature } from "./sources/miniature";
 import {
   scrapeBuscametasCalendario,
@@ -67,6 +68,7 @@ const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
   entradium: () => scrapeEntradium(),
   vital: () => scrapeVital(),
   arkabia: () => scrapeArkabia(),
+  "mercado-abastos": () => scrapeMercadoAbastos(),
   miniature: () => scrapeMiniature(),
   "buscametas-calendario": () => scrapeBuscametasCalendario(),
   "buscametas-inscripciones": () => scrapeBuscametasInscripciones(),

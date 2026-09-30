@@ -1,0 +1,354 @@
+﻿{
+    "events":  [
+                   {
+                       "id":  2985,
+                       "global_id":  "mercadoabastos.eus?id=2985",
+                       "global_id_lineage":  [
+                                                 "mercadoabastos.eus?id=2985"
+                                             ],
+                       "author":  "1",
+                       "status":  "publish",
+                       "date":  "2024-07-15 12:25:35",
+                       "date_utc":  "2024-07-15 10:25:35",
+                       "modified":  "2024-07-17 08:31:01",
+                       "modified_utc":  "2024-07-17 06:31:01",
+                       "url":  "https://mercadoabastos.eus/evento/concierto-de-blues-y-jazz-dedicado-a-la-semana-del-jazz-de-vitoria-gasteiz-2024-concierto-intimo-con-luis-teruel-e-inaki-rodriguez-viernes-19-de-julio-2024-1930/",
+                       "rest_url":  "https://mercadoabastos.eus/wp-json/tribe/events/v1/events/2985",
+                       "title":  "Concierto de Blues y Jazz dedicado a la semana del Jazz de Vitoria-Gasteiz 2024. Concierto íntimo con Luis Teruel e Iñaki Rodriguez – Viernes 19 de Julio 2024 – 19:30",
+                       "description":  "\u003cp\u003eLuis Teruel e Iñaki Rodríguez son dos músicos de la escena navarra que confluyen en este dúo para rememorar algunos de los clásicos más importantes del repertorio del pop, jazz, rock y soul. Un concierto con composiciones de artistas tan importantes como Stevie Wonder, Elton John, Billie Joel, Grover Washington Jr, Sting y un largo etc . Ambos artistas poseen una amplia trayectoria en los escenarios, pero este es el primer proyecto que presentan a dúo. El resultado es una mezcla fresca, divertida y original de clásicos de grandes figuras de la música. Intérpretes:\u003cbr /\u003e\nLuis Teruel: guitarra y voz. Iñaki Rodríguez: saxos y clarinete.\u003cbr /\u003e\nMás información en \u003ca class=\"text-underline\" href=\"https://redteatrosnavarra.com/es/catalogo-de-espectaculos-profesionales/luis-teruel-i%C3%B1aki-rodr%C3%ADguez\" target=\"_blank\" rel=\"noopener\"\u003eredteatrosnavarra.com\u003c/a\u003e\u003c/p\u003e",
+                       "excerpt":  "\u003cp\u003eClásicos de grandes figuras de la música. Intérpretes:\u003cbr /\u003e\nLuis Teruel: guitarra y voz. Iñaki Rodríguez: saxos y clarinete.\u003c/p\u003e",
+                       "slug":  "concierto-de-blues-y-jazz-dedicado-a-la-semana-del-jazz-de-vitoria-gasteiz-2024-concierto-intimo-con-luis-teruel-e-inaki-rodriguez-viernes-19-de-julio-2024-1930",
+                       "image":  {
+                                     "url":  "https://mercadoabastos.eus/wp-content/uploads/2024/07/Concierto-intimo-con-Luis-Teruel-e-Inaki-Rodriguez.jpg",
+                                     "sizes":  {
+                                                   "medium":  {
+                                                                  "width":  300,
+                                                                  "height":  200,
+                                                                  "mime-type":  "image/jpeg",
+                                                                  "filesize":  17488,
+                                                                  "url":  "https://mercadoabastos.eus/wp-content/uploads/2024/07/Concierto-intimo-con-Luis-Teruel-e-Inaki-Rodriguez-300x200.jpg"
+                                                              },
+                                                   "large":  null
+                                               }
+                                 },
+                       "all_day":  false,
+                       "start_date":  "2024-07-19 19:30:00",
+                       "start_date_details":  {
+                                                  "year":  "2024",
+                                                  "month":  "07",
+                                                  "day":  "19",
+                                                  "hour":  "19",
+                                                  "minutes":  "30",
+                                                  "seconds":  "00"
+                                              },
+                       "end_date":  "2024-07-19 22:00:00",
+                       "end_date_details":  {
+                                                "year":  "2024",
+                                                "month":  "07",
+                                                "day":  "19",
+                                                "hour":  "22",
+                                                "minutes":  "00",
+                                                "seconds":  "00"
+                                            },
+                       "utc_start_date":  "2024-07-19 17:30:00",
+                       "utc_start_date_details":  {
+                                                      "year":  "2024",
+                                                      "month":  "07",
+                                                      "day":  "19",
+                                                      "hour":  "17",
+                                                      "minutes":  "30",
+                                                      "seconds":  "00"
+                                                  },
+                       "utc_end_date":  "2024-07-19 20:00:00",
+                       "utc_end_date_details":  {
+                                                    "year":  "2024",
+                                                    "month":  "07",
+                                                    "day":  "19",
+                                                    "hour":  "20",
+                                                    "minutes":  "00",
+                                                    "seconds":  "00"
+                                                },
+                       "timezone":  "Europe/Madrid",
+                       "timezone_abbr":  "CEST",
+                       "cost":  "\u0026#8364;10",
+                       "cost_details":  {
+                                            "currency_symbol":  "",
+                                            "currency_code":  "",
+                                            "currency_position":  "",
+                                            "values":  [
+                                                           "10"
+                                                       ]
+                                        },
+                       "website":  "",
+                       "show_map":  true,
+                       "show_map_link":  true,
+                       "hide_from_listings":  false,
+                       "sticky":  false,
+                       "featured":  false,
+                       "categories":  [
+
+                                      ],
+                       "tags":  [
+
+                                ],
+                       "venue":  {
+                                     "id":  2969,
+                                     "author":  "1",
+                                     "status":  "private",
+                                     "date":  "2024-07-15 08:32:34",
+                                     "date_utc":  "2024-07-15 06:32:34",
+                                     "modified":  "2024-07-15 08:32:34",
+                                     "modified_utc":  "2024-07-15 06:32:34",
+                                     "url":  "https://mercadoabastos.eus/?post_type=tribe_venue\u0026p=2969",
+                                     "venue":  "Mercado de Abastos Vitoria-Gasteiz",
+                                     "slug":  "mercado-de-abastos-vitoria-gasteiz",
+                                     "address":  "Jesús Guridi, 1A",
+                                     "city":  "Vitoria-Gasteiz",
+                                     "country":  "España",
+                                     "province":  "Álava - Araba",
+                                     "zip":  "01004",
+                                     "stateprovince":  "Álava - Araba",
+                                     "show_map":  false,
+                                     "show_map_link":  false,
+                                     "global_id":  "mercadoabastos.eus?id=2969",
+                                     "global_id_lineage":  [
+                                                               "mercadoabastos.eus?id=2969"
+                                                           ]
+                                 },
+                       "organizer":  [
+
+                                     ],
+                       "custom_fields":  [
+
+                                         ],
+                       "ticketed":  false
+                   },
+                   {
+                       "id":  3008,
+                       "global_id":  "mercadoabastos.eus?id=3008",
+                       "global_id_lineage":  [
+                                                 "mercadoabastos.eus?id=3008"
+                                             ],
+                       "author":  "1",
+                       "status":  "publish",
+                       "date":  "2024-07-15 13:20:41",
+                       "date_utc":  "2024-07-15 11:20:41",
+                       "modified":  "2024-07-17 14:39:07",
+                       "modified_utc":  "2024-07-17 12:39:07",
+                       "url":  "https://mercadoabastos.eus/evento/concierto-a-capella-demode-quartet/",
+                       "rest_url":  "https://mercadoabastos.eus/wp-json/tribe/events/v1/events/3008",
+                       "title":  "Concierto a Capella Demode Quartet",
+                       "description":  "\u003cp\u003eMúsica a capela. Con sentido del humor, originalidad, buenas voces y un trabajo a capela riguroso, divertido y elegante, han descrito a este grupo.\u003cbr /\u003e\nHan participado en numerosas galas, tienen varios discos, han participado en varios programas de TV. En 2022 galardonados en los Premios Max con el premio a Mejor Espectáculo Musical otorgado a una producción propia\u003c/p\u003e",
+                       "excerpt":  "\u003cp\u003eMúsica a capela. Con sentido del humor, originalidad, buenas voces y un trabajo a capela riguroso, divertido y elegante, han descrito a este grupo.\u003c/p\u003e",
+                       "slug":  "concierto-a-capella-demode-quartet",
+                       "image":  {
+                                     "url":  "https://mercadoabastos.eus/wp-content/uploads/2024/07/Concierto-a-Capella-Demode-Quartet.jpg",
+                                     "sizes":  {
+                                                   "medium":  {
+                                                                  "width":  300,
+                                                                  "height":  200,
+                                                                  "mime-type":  "image/jpeg",
+                                                                  "filesize":  18733,
+                                                                  "url":  "https://mercadoabastos.eus/wp-content/uploads/2024/07/Concierto-a-Capella-Demode-Quartet-300x200.jpg"
+                                                              },
+                                                   "large":  null
+                                               }
+                                 },
+                       "all_day":  false,
+                       "start_date":  "2024-07-27 19:30:00",
+                       "start_date_details":  {
+                                                  "year":  "2024",
+                                                  "month":  "07",
+                                                  "day":  "27",
+                                                  "hour":  "19",
+                                                  "minutes":  "30",
+                                                  "seconds":  "00"
+                                              },
+                       "end_date":  "2024-07-27 22:00:00",
+                       "end_date_details":  {
+                                                "year":  "2024",
+                                                "month":  "07",
+                                                "day":  "27",
+                                                "hour":  "22",
+                                                "minutes":  "00",
+                                                "seconds":  "00"
+                                            },
+                       "utc_start_date":  "2024-07-27 17:30:00",
+                       "utc_start_date_details":  {
+                                                      "year":  "2024",
+                                                      "month":  "07",
+                                                      "day":  "27",
+                                                      "hour":  "17",
+                                                      "minutes":  "30",
+                                                      "seconds":  "00"
+                                                  },
+                       "utc_end_date":  "2024-07-27 20:00:00",
+                       "utc_end_date_details":  {
+                                                    "year":  "2024",
+                                                    "month":  "07",
+                                                    "day":  "27",
+                                                    "hour":  "20",
+                                                    "minutes":  "00",
+                                                    "seconds":  "00"
+                                                },
+                       "timezone":  "Europe/Madrid",
+                       "timezone_abbr":  "CEST",
+                       "cost":  "\u0026#8364;18",
+                       "cost_details":  {
+                                            "currency_symbol":  "",
+                                            "currency_code":  "",
+                                            "currency_position":  "",
+                                            "values":  [
+                                                           "18"
+                                                       ]
+                                        },
+                       "website":  "",
+                       "show_map":  true,
+                       "show_map_link":  true,
+                       "hide_from_listings":  false,
+                       "sticky":  false,
+                       "featured":  false,
+                       "categories":  [
+
+                                      ],
+                       "tags":  [
+
+                                ],
+                       "venue":  [
+
+                                 ],
+                       "organizer":  [
+
+                                     ],
+                       "custom_fields":  [
+
+                                         ],
+                       "ticketed":  false
+                   },
+                   {
+                       "id":  3015,
+                       "global_id":  "mercadoabastos.eus?id=3015",
+                       "global_id_lineage":  [
+                                                 "mercadoabastos.eus?id=3015"
+                                             ],
+                       "author":  "1",
+                       "status":  "publish",
+                       "date":  "2024-07-15 13:32:53",
+                       "date_utc":  "2024-07-15 11:32:53",
+                       "modified":  "2024-07-17 08:30:42",
+                       "modified_utc":  "2024-07-17 06:30:42",
+                       "url":  "https://mercadoabastos.eus/evento/musica-chill-con-dj-l2/",
+                       "rest_url":  "https://mercadoabastos.eus/wp-json/tribe/events/v1/events/3015",
+                       "title":  "Música Chill con DJ L2",
+                       "description":  "\u003cdiv class=\"woocommerce-product-details__short-description\"\u003e\n\u003cp\u003e8€ con consumición y aperitivo.\u003c/p\u003e\n\u003c/div\u003e",
+                       "excerpt":  "\u003cp\u003e8€ con consumición y aperitivo.\u003c/p\u003e",
+                       "slug":  "musica-chill-con-dj-l2",
+                       "image":  {
+                                     "url":  "https://mercadoabastos.eus/wp-content/uploads/2024/07/musica-chill-con-dj-miami.jpg",
+                                     "sizes":  {
+                                                   "medium":  {
+                                                                  "width":  300,
+                                                                  "height":  200,
+                                                                  "mime-type":  "image/jpeg",
+                                                                  "filesize":  19891,
+                                                                  "url":  "https://mercadoabastos.eus/wp-content/uploads/2024/07/musica-chill-con-dj-miami-300x200.jpg"
+                                                              },
+                                                   "large":  null
+                                               }
+                                 },
+                       "all_day":  false,
+                       "start_date":  "2024-07-28 12:30:00",
+                       "start_date_details":  {
+                                                  "year":  "2024",
+                                                  "month":  "07",
+                                                  "day":  "28",
+                                                  "hour":  "12",
+                                                  "minutes":  "30",
+                                                  "seconds":  "00"
+                                              },
+                       "end_date":  "2024-07-28 15:00:00",
+                       "end_date_details":  {
+                                                "year":  "2024",
+                                                "month":  "07",
+                                                "day":  "28",
+                                                "hour":  "15",
+                                                "minutes":  "00",
+                                                "seconds":  "00"
+                                            },
+                       "utc_start_date":  "2024-07-28 10:30:00",
+                       "utc_start_date_details":  {
+                                                      "year":  "2024",
+                                                      "month":  "07",
+                                                      "day":  "28",
+                                                      "hour":  "10",
+                                                      "minutes":  "30",
+                                                      "seconds":  "00"
+                                                  },
+                       "utc_end_date":  "2024-07-28 13:00:00",
+                       "utc_end_date_details":  {
+                                                    "year":  "2024",
+                                                    "month":  "07",
+                                                    "day":  "28",
+                                                    "hour":  "13",
+                                                    "minutes":  "00",
+                                                    "seconds":  "00"
+                                                },
+                       "timezone":  "Europe/Madrid",
+                       "timezone_abbr":  "CEST",
+                       "cost":  "\u0026#8364;8",
+                       "cost_details":  {
+                                            "currency_symbol":  "",
+                                            "currency_code":  "",
+                                            "currency_position":  "",
+                                            "values":  [
+                                                           "8"
+                                                       ]
+                                        },
+                       "website":  "",
+                       "show_map":  false,
+                       "show_map_link":  false,
+                       "hide_from_listings":  false,
+                       "sticky":  false,
+                       "featured":  false,
+                       "categories":  [
+
+                                      ],
+                       "tags":  [
+
+                                ],
+                       "venue":  {
+                                     "id":  2969,
+                                     "author":  "1",
+                                     "status":  "private",
+                                     "date":  "2024-07-15 08:32:34",
+                                     "date_utc":  "2024-07-15 06:32:34",
+                                     "modified":  "2024-07-15 08:32:34",
+                                     "modified_utc":  "2024-07-15 06:32:34",
+                                     "url":  "https://mercadoabastos.eus/?post_type=tribe_venue\u0026p=2969",
+                                     "venue":  "Mercado de Abastos Vitoria-Gasteiz",
+                                     "slug":  "mercado-de-abastos-vitoria-gasteiz",
+                                     "address":  "Jesús Guridi, 1A",
+                                     "city":  "Vitoria-Gasteiz",
+                                     "country":  "España",
+                                     "province":  "Álava - Araba",
+                                     "zip":  "01004",
+                                     "stateprovince":  "Álava - Araba",
+                                     "show_map":  false,
+                                     "show_map_link":  false,
+                                     "global_id":  "mercadoabastos.eus?id=2969",
+                                     "global_id_lineage":  [
+                                                               "mercadoabastos.eus?id=2969"
+                                                           ]
+                                 },
+                       "organizer":  [
+
+                                     ],
+                       "custom_fields":  [
+
+                                         ],
+                       "ticketed":  false
+                   }
+               ],
+    "total":  24,
+    "total_pages":  1
+}

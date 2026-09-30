@@ -66,7 +66,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [municipal-agenda, municipal-teatro, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, miniature, buscametas-calendario, buscametas-inscripciones]
+              enum: [municipal-agenda, municipal-teatro, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, mercado-abastos, miniature, buscametas-calendario, buscametas-inscripciones]
           description: >-
             Filtrar por fuente. Los valores son los ids del registro de fuentes de la
             agenda agregada, no nombres de sala. La comparación es exacta y en minúsculas.
@@ -274,6 +274,78 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/EventoAgenda"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/tours/civitatis:
+    get:
+      tags: [events]
+      summary: Catálogo de tours de Civitatis en Vitoria
+      description: >-
+        Catálogo comercial de Civitatis para Vitoria-Gasteiz. A diferencia de
+        `/api/actividades/tours`, que es una vista sobre el agregado de la
+        agenda, esta ruta devuelve el catálogo tal cual, con campos que el
+        modelo `EventoAgenda` no tiene: duración, idioma, precio, valoración y
+        número de Reviews. Los tours de Civitatis son recurrentes y no tienen
+        fecha, por eso no entran en la agenda.
+      operationId: getCivitatisTours
+      responses:
+        "200":
+          description: Catálogo de tours
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: civitatis
+                  category:
+                    type: string
+                    example: tours
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TourCivitatis"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/actividades/experiencias:
+    get:
+      tags: [events]
+      summary: Experiencias de Kora Green City en Vitoria
+      description: >-
+        Experiencias de bienestar y sostenibilidad de Kora Green City. Son
+        sesiones recurrentes ("Martes de 19:15h"), sin fecha concreta, así que
+        no forman parte de la agenda y se exponen aparte conservando el
+        horario tal cual lo publica la web.
+      operationId: getExperiencias
+      responses:
+        "200":
+          description: Lista de experiencias
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    example: kora
+                  category:
+                    type: string
+                    example: experiencias
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ExperienciaKora"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
@@ -957,6 +1029,63 @@ components:
         location:
           type: string
           example: Gazteiz
+
+    TourCivitatis:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        link:
+          type: string
+        image:
+          type: string
+        duration:
+          type: string
+          example: 1h 45m
+        language:
+          type: string
+          example: Español
+        price:
+          type: string
+          example: 5 €
+        rating:
+          type: number
+          nullable: true
+          description: Puntuación sobre 10, con punto decimal.
+        reviews:
+          type: integer
+          nullable: true
+        travelers:
+          type: string
+          example: 230.605 viajeros
+        categories:
+          type: string
+          example: visitas-guiadas
+
+    ExperienciaKora:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        link:
+          type: string
+        reservation:
+          type: string
+          description: Enlace de reserva, normalmente a Eventbrite.
+        schedule:
+          type: string
+          example: Martes de 19:15h a 20:15h
+        price:
+          type: string
+        language:
+          type: string
+          example: Español e inglés
 
     Concierto:
       type: object
