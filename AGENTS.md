@@ -9,7 +9,7 @@ sueltos, PWA, push, newsletter. Se despliega en Dokploy con `nixpacks.toml`
 
 ```bash
 npm run dev            # localhost:3000
-npm test               # Jest, 48 suites / 419 tests
+npm test               # Jest, 49 suites / 424 tests
 npm run lint           # ESLint (ver "baseline de lint")
 npm run build
 npx tsc --noEmit --incremental false   # typecheck real
@@ -21,14 +21,55 @@ npm run test:e2e       # Playwright
 Rebrand F0/F1, unificación de la agenda (Fase 1), seguridad (Fase 2),
 consolidación (Fase 3) y red de seguridad (Fase 4) cerrados y commiteados.
 Fases 1 y 2 **desplegadas en producción**; la 3 y la 4 están commiteadas y
-pendientes de desplegar. Baseline verde: `tsc` 0 errores, 419/419 tests, `build`
-exit 0, 63 problemas de lint (45 `no-explicit-any`, la mayoría preexistentes en
-scrapers).
+pendientes de desplegar. Baseline verde: `tsc` 0 errores, 424/424 tests, `build`
+exit 0, y `npm run lint` sale con **0 errores** y 15 warnings que son todos
+`catch (error)` sin usar.
 
-Tres cosas siguen abiertas y **no son de código**: la rotación del token MEC en
-el servidor de La Genterula, la confirmación del volumen persistente en Dokploy,
-y las dos decisiones de la Fase 4 que quedan abajo, que son de criterio y no de
-ejecución.
+Dos cosas siguen abiertas y **no son de código**: la rotación del token MEC en
+el servidor de La Genterula, y la confirmación del volumen persistente en Dokploy.
+
+## Hecho: el baseline de lint (el punto H de la Fase 4)
+
+Empezar por «arreglar los 63 problemas» era la lectura equivocada, y contar no
+servía: **cinco de ellos no eran deuda, eran bugs**, y se habrían tragado con el
+resto. Los que de verdad eran bugs están arreglados, y lo que queda son 37
+`no-explicit-any` en ficheros que no se arreglan aquí.
+
+- **No hay baseline por recuento**, y el motivo es concreto: arreglar un `any` y
+  añadir otro se cancelan, el total no se mueve y el rojo no aparece nunca. La
+  lista de ficheros exentos sí detecta eso.
+- **La lista está en `lib/lint-baseline.json`, no en `eslint.config.mjs`.** Un
+  JSON se lee desde Node y desde TypeScript, así que el test consume la misma
+  lista que la config. Y fuera de la config porque
+  `__tests__/lint-baseline.test.ts` tiene que leerla: una lista escrita dentro de
+  la config es un inventario, se deja atrás sin que nadie lo note, y entonces un
+  `any` nuevo en un scraper ya exento no se distingue de silenciar uno de verdad.
+- **El test corre ESLint de verdad.** Es lo que un recuento no puede hacer: un
+  `any` en un fichero que no está en la lista es un rojo aunque el total no
+  cambie.
+- **El alcance es lo que hace la lista aceptable:** trece scrapers que leen JSON
+  y HTML de sitios sin esquema, un script de un solo uso, y tres rutas que
+  reproducen la forma cruda porque la app móvil la consume. **Ningún componente
+  ni ninguna página**, y el test lo comprueba: ahí un `any` llega hasta la UI y
+  sigue siendo un error.
+
+### Los cuatro bugs que el recuento escondía
+
+- **`CulturePageClient` leía `Date.now()` dentro del `useMemo`** que ordena por
+  popularidad. Un memo que lee el reloj es impuro, y uno impuro puede devolver su
+  valor cacheado indefinidamente: dejar la página abierta cruzando la medianoche
+  seguía puntuando contra el «hoy» con el que se calculó la primera vez. La
+  página pasa ahora el instante como prop.
+- **`FavoritesContext` lee `localStorage` en un efecto**, y ahí la regla está bien
+  en principio y mal en el caso. Un inicializador perezoso quita el `setState` e
+  introduce un desajuste de hidratación: el servidor pintaría cero favoritos y el
+  cliente ya en el primer render pintaría los reales, y `Header` pinta ese
+  contador. El `loaded` tampoco es decorativo: es lo que impide que el efecto de
+  escritura persista una lista vacía antes de que la lectura haya pasado.
+- **`app/error.tsx` usaba `<a href="/">`** para un enlace interno, que es una
+  carga completa de página donde bastaba una navegación de cliente.
+- **`lib/sources/municipal.ts` declaraba `filterParts` con `let`** y nunca la
+  reasignaba; venía del refactor anterior, que movió ese fetch a su propia función.
 
 ## Hecho: la red de seguridad (Fase 4, parcial)
 
@@ -240,7 +281,7 @@ todavía; la ruta de Civitatis es aparte a propósito.
 
 ### Fases que quedan
 
-Nada de código. Las dos decisiones de la Fase 4 que no son ejecución:
+Nada de código, y una sola decisión:
 
 - **`/api/cron/send-newsletter`** — no es una referencia colgada, es una decisión
   nueva. La nota anterior de este mismo fichero decía que el script ya lo
@@ -249,19 +290,19 @@ Nada de código. Las dos decisiones de la Fase 4 que no son ejecución:
   Crear la ruta sería exponer un endpoint que manda correo a todos los
   suscriptores, con el middleware pidiendo `x-api-key`. Dokploy ya puede correr
   `npm run newsletter:send` como cron sin ella. **Sin decidir.**
-- **Baseline de ESLint** — hay 63 problemas y no existe ninguna mecánica de
-  baseline. Los 45 `no-explicit-any` están concentrados en 10 scrapers y son
-  `raw.foo.bar` sobre JSON sin tipar de sitios reales, así que ponerles un tipo
-  es trabajo de scraper y no de lint. Las opciones son: arreglar los 45, una
-  lista explícita de ficheros donde la regla se apague, o un script que compare el
-  recuento. El recuento es lo peor de las tres: arreglar uno y añadir otro se
-  cancela y el rojo no aparece. **Sin decidir.**
+
+El punto H de la fase 4, el baseline de ESLint, está hecho y está arriba. Empezar
+por los otros dos de la lista era la lectura equivocada, como se cuenta ahí.
 
 Fuera de alcance, anotado para que no se pierda: el rate limit en `Map`
 in-memory no se arregla sin store compartido.
 
 ## Trampas del repo
 
+- **`.tmp/` estaba en `.gitignore` pero no en los ignores de ESLint.** El
+  recuento de problemas dependía de qué scripts de un solo uso la máquina de
+  quien ejecutaba el lint hubiera dejado ahí. Si añades un directorio de trabajo,
+  va en los dos sitios.
 - **La base de `node:sqlite` se queda bloqueada en Windows**, así que un
   `rmSync` de una base de prueba tras `jest.resetModules()` falla con `EPERM`
   casi siempre: el `DatabaseSync` viejo sigue referenciado hasta que pase el GC.
