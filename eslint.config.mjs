@@ -2,6 +2,8 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
+import EXENCIONES from "./lib/lint-baseline.json" with { type: "json" };
+
 /**
  * Por qué esta regla y no un guard propio.
  *
@@ -75,15 +77,38 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "playwright-report/**",
     "test-results/**",
+    // Scripts de un solo uso. `.tmp/` ya estaba en `.gitignore`, pero ESLint no
+    // lee el de git: sin esto, el recuento de problemas dependía de qué
+    // scripts de autenticación hubiera dejado alguien en la máquina, y eso es
+    // justo lo que un baseline no puede ser.
+    ".tmp/**",
   ]),
-  {
+{
     // `__tests__` se queda fuera a propósito: los tests de contrato fijan el
     // comportamiento de `eventSlug` y `agendaSlug` llamándolos, y un test de
-    // componente necesitará montar un fixture. Lo que no se permite es que el código
-    // que se despliega recalcule el slug por su cuenta.
+    // componente necesitaría montar un fixture. Lo que no se permite es que el
+    // código que se despliega recalcule el slug por su cuenta.
     files: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "scripts/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": reglaEventSlug(),
+    },
+  },
+  {
+    // La deuda de `any` de los scrapers. La lista está en
+    // `lib/lint-baseline.json`, no aquí: un JSON se lee desde este config y desde
+    // el test sin que Node tenga que reparsear un `.ts` por consola. Y el motivo
+    // de que viva fuera de la config es que `__tests__/lint-baseline.test.ts` la
+    // necesita leer para comprobar que no crece —una lista escrita dentro de la
+    // config es un inventario, se deja atrás sin que nadie lo note, y entonces un
+    // `any` nuevo en un scraper que ya estaba no se distingue de Taparlo de
+    // verdad.
+    //
+    // El alcance es a propósito estrecho: los scrapers y las tres rutas que
+    // reproducen la forma cruda. Un `any` en un componente llega hasta la UI y
+    // sigue siendo un rojo.
+    files: EXENCIONES.map((e) => e.fichero),
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ]);

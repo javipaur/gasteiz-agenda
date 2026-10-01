@@ -1,0 +1,62 @@
+[
+  {
+    "fichero": "lib/sources/vam.ts",
+    "razon": "El opendata de Euskadi devuelve arrays JSON anidados y sin tipar."
+  },
+  {
+    "fichero": "lib/sources/buscametas.ts",
+    "razon": "La API .NET devuelve distancias y plazas como texto y objeto libre."
+  },
+  {
+    "fichero": "lib/sources/municipal.ts",
+    "razon": "CalendarioServlet devuelve una bolsa de secciones que cambia de forma cada año."
+  },
+  {
+    "fichero": "lib/sources/farmacias.ts",
+    "razon": "El listado de la DKV llega como HTML con una maquetación distinta cada mes."
+  },
+  {
+    "fichero": "lib/sources/fiestas-blanca.ts",
+    "razon": "Los resultados crudos de calendariosID=513 traen picture como HTML."
+  },
+  {
+    "fichero": "lib/sources/euskadi.ts",
+    "razon": "El mismo opendata de Euskadi, con una segunda forma de respuesta."
+  },
+  {
+    "fichero": "lib/sources/jimmyjazz.ts",
+    "razon": "El listado no declara los campos de fecha que devuelve."
+  },
+  {
+    "fichero": "lib/sources/rula.ts",
+    "razon": "La API MEC devuelve el evento con la forma que le pone el plugin."
+  },
+  {
+    "fichero": "lib/sources/musikaze.ts",
+    "razon": "El HTML no declara los campos que se leen de las tarjetas."
+  },
+  {
+    "fichero": "lib/sources/helldorado.ts",
+    "razon": "La cabecera de fecha del festival no viene tipada en el HTML."
+  },
+  {
+    "fichero": "lib/sources/fever.ts",
+    "razon": "Fever devuelve el detalle como bloque de texto con marcado."
+  },
+  {
+    "fichero": "scripts/check-sources.ts",
+    "razon": "Es una herramienta de un solo uso que se ejecuta a mano, no llega a producción."
+  },
+  {
+    "fichero": "app/api/actividades/route.ts",
+    "razon": "Contrato con la app móvil: reproduce la forma cruda del calendario municipal."
+  },
+  {
+    "fichero": "app/api/actividades/navidad/route.ts",
+    "razon": "Igual que el anterior, con el calendario de Navidad."
+  },
+  {
+    "fichero": "app/api/actividades/carreras/calendario/route.ts",
+    "razon": "Devuelve la respuesta del calendario de carreras tal cual la da la fuente."
+  }
+]
