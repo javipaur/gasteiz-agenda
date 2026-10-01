@@ -200,9 +200,23 @@ describe("composición del registro", () => {
  * componentes, que es donde se pinta.
  *
  * Quedan `source:` escritos a mano en `app/api/**` y en `lib/sources/**`, y quedan
- * a propósito: son la superficie de la Fase 2 de seguridad y la forma que cada
- * scraper da a su evento, que `RawLike` descarta antes de construir el agregado.
- * Ninguno de los dos caminos pasa por `sourceLabel` hoy.
+ * a propósito, por dos razones distintas que conviene no volver a confundir.
+ *
+ * En `lib/sources/**` es la forma que cada scraper da a su evento, que `RawLike`
+ * descarta antes de construir el agregado.
+ *
+ * En `app/api/**` es otra cosa: el `source` del **envoltorio** de la respuesta,
+ * que describe de dónde sale la lista y no de qué fuente es cada evento. Por eso
+ * no tiene por qué ser un id del registro: `/api/actividades/tours` responde
+ * `"agregado"` porque es una vista sobre las veintiocho fuentes, y
+ * `/api/actividades/senderismo` responde `"cm-gazteiz"` porque el `group` de su
+ * entrada se llama así. Los eventos de dentro sí llevan su id real.
+ *
+ * La razón por la que no se corrigen es que esas rutas las consume una app móvil
+ * con `x-api-key`, y por tanto la forma de la respuesta es contrato con ella.
+ * Cambiar el valor de un campo que el cliente usa para filtrar le deja sin
+ * resultados, sin ningún error en el servidor. Por eso este test se queda en
+ * `app/` y `lib/` y no baja a `app/api/`.
  */
 describe("ninguna vista escribe el id de la fuente a mano", () => {
   /** `app/` y `lib/` sin las rutas de API, sin los scrapers y sin los tests. */

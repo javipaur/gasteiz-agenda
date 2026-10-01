@@ -1,83 +1,39 @@
+import { NextResponse } from "next/server";
 
-    //const url = `https://www.vitoria-gasteiz.org/wb021/was/CalendarioServlet?accion=buscar&idioma=es&calendariosID=196&fd=${fd}&fh=${fh}`;
+import { scrapeMunicipalCalendar } from "@/lib/sources/municipal";
 
-    import { NextResponse } from "next/server";
-    
-    function extractSrcsetFromPicture(picture: string): string | null {
-      if (!picture) return null;
-    
-      const webp = picture.match(
-        /<source[^>]+type=['"]image\/webp['"][^>]+srcset=['"]([^'"]+)['"]/
-      );
-      if (webp) return webp[1];
-    
-      const jpeg = picture.match(
-        /<source[^>]+type=['"]image\/jpeg['"][^>]+srcset=['"]([^'"]+)['"]/
-      );
-      if (jpeg) return jpeg[1];
-    
-      return null;
-    }
-    
-    function transformImageUrl(url?: string): string | null {
-      if (!url) return null;
-      return url.replace(/_smart\.(webp|jpg|jpeg)$/i, "_smar.jpg");
-    }
-    
-    function normalizeEvento(evento: any) {
-      const extractedPicture = extractSrcsetFromPicture(evento.picture);
-      const image =
-        transformImageUrl(evento.imagen) ||
-        transformImageUrl(extractedPicture ?? undefined);
-    
-      const fullImage = image ? "https://www.vitoria-gasteiz.org".concat(image) : null;
-      return {
-        title: evento.titulo ?? "",
-        date: evento.datetime ?? "",
-        image: fullImage,
-        location: evento.localizacion ?? "",
-        link: evento.url ?? "",
-      };
-    }
-    
-    export async function GET(request: Request) {
-     //     const apiKey = request.headers.get("Authorization");
-  /*if (!apiKey || apiKey !== process.env.API_KEY) {
-    return new Response(
-      JSON.stringify({ error: "No autorizado" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
+/**
+ * Calendario municipal sin filtro, que es `calendariosID=196`: exactamente lo que
+ * pregunta la entrada `municipal-general` del registro.
+ *
+ * Antes esta ruta montaba su propia consulta a `CalendarioServlet` y traía
+ * copiadas de `lib/sources/municipal.ts` las tres piezas que la hacen —el regex
+ * del `srcset`, la transformación del sufijo `_smart` y el aplanado de las
+ * secciones de la respuesta—, con el cuerpo además indentado de forma irregular.
+ * Ahora pide el mismo dato al scraper y decide aquí solo la forma.
+ *
+ * La forma no cambia porque la consume un cliente externo: mismos cinco campos,
+ * con `""` en los que quedan vacíos y `null` en la imagen. Lo único que cambia es
+ * que dos de esos campos ya no pueden salir vacíos donde antes sí:
+ * `scrapeMunicipalCalendar` cae a `fechaInicio` si no hay `datetime` y a
+ * `dirUbicacion` si no hay `localizacion`. Es más dato, no menos, y solo cuando el
+ * calendario lacks del campo principal.
+ */
+export async function GET() {
+  try {
+    const eventos = (await scrapeMunicipalCalendar()).map((evento) => ({
+      title: evento.title,
+      date: evento.date,
+      image: evento.image ?? null,
+      location: evento.location,
+      link: evento.link,
+    }));
+
+    return NextResponse.json(eventos);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Error al consultar eventos" },
+      { status: 500 }
     );
-  }*/
-
-      try {
-        const hoy = new Date();
-        const inicio = new Date(hoy);
-        inicio.setHours(0, 0, 0, 0);
-    
-        const fin = new Date(hoy);
-        fin.setFullYear(fin.getFullYear() + 1);
-    
-        const fd = inicio.getTime();
-        const fh = fin.getTime();
-    
-       const url = `https://www.vitoria-gasteiz.org/wb021/was/CalendarioServlet?accion=buscar&idioma=es&calendariosID=196&fd=${fd}&fh=${fh}`;
-
-        const res = await fetch(url, { cache: "no-store" });
-        const data = await res.json();
-    
-        const eventos: any[] = Object.values(data || {})
-          .reduce((acc: any[], seccion: any) => {
-            if (seccion?.resultados) acc.push(...seccion.resultados);
-            return acc;
-          }, [])
-          .map(normalizeEvento);
-    
-        return NextResponse.json(eventos);
-    
-      } catch (error) {
-        return NextResponse.json(
-          { error: "Error al consultar eventos" },
-          { status: 500 }
-        );
-      }
-    }
+  }
+}
