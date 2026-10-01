@@ -71,15 +71,14 @@ resto. Los que de verdad eran bugs están arreglados, y lo que queda son 37
 - **`lib/sources/municipal.ts` declaraba `filterParts` con `let`** y nunca la
   reasignaba; venía del refactor anterior, que movió ese fetch a su propia función.
 
-## Hecho: la red de seguridad (Fase 4, parcial)
+## Hecho: la red de seguridad (Fase 4)
 
-Tres de los cinco puntos, y los dos que faltan no son código. La lista de esta
+Cinco de los cinco puntos, y los dos que faltan no son código. La lista de esta
 fase estaba a medias equivocada: **`/api/cron/send-newsletter` no es una referencia
 colgada**. `scripts/send-newsletter.ts` no hace ningún `fetch` a `/api/*` desde la
 unificación: llama a `getProximosEventos()` directamente, y no hay config de cron en
-el repo. Crear esa ruta es una decisión nueva —un endpoint que manda correo a todos
-los suscriptores— y Dokploy ya puede correr `npm run newsletter:send` como cron
-sin ella. Sigue sin hacer.
+el repo. La decisión está tomada y el motivo está en "Fases que quedan", que ahora
+está vacía.
 
 ### El huso horario ya no es un test que no puede fallar
 
@@ -281,18 +280,25 @@ todavía; la ruta de Civitatis es aparte a propósito.
 
 ### Fases que quedan
 
-Nada de código, y una sola decisión:
+**Nada.** Las cuatro fases están cerradas.
 
-- **`/api/cron/send-newsletter`** — no es una referencia colgada, es una decisión
-  nueva. La nota anterior de este mismo fichero decía que el script ya lo
-  referenciaba, y no es cierto: desde la unificación el script llama a
-  `getProximosEventos()` sin pasar por HTTP, y no hay config de cron en el repo.
-  Crear la ruta sería exponer un endpoint que manda correo a todos los
-  suscriptores, con el middleware pidiendo `x-api-key`. Dokploy ya puede correr
-  `npm run newsletter:send` como cron sin ella. **Sin decidir.**
+La decisión que quedaba —crear o no `/api/cron/send-newsletter`— es **no**, y el
+motivo importa porque no era el que decía la lista:
 
-El punto H de la fase 4, el baseline de ESLint, está hecho y está arriba. Empezar
-por los otros dos de la lista era la lectura equivocada, como se cuenta ahí.
+- No era una referencia colgada. Desde la unificación `scripts/send-newsletter.ts`
+  no hace ningún `fetch` a `/api/*`: llama a `getProximosEventos()` directamente,
+  y no hay config de cron en el repo. Crear la ruta era una decisión nueva.
+- Y la ruta es peor que el cron para lo que hace. `instrumentation.ts` ya arranca
+  un trabajo programado en el proceso para el push (`ENABLE_PUSH_SCHEDULER=1`), así
+  que un segundo `setInterval` habría sido el camino corto y coherente. No lo es:
+  el scheduler en proceso depende de que el proceso de Next siga vivo, y
+  `/api/push/send` existe para poder dispararlo **desde fuera**, para el caso de
+  que se haya caído. Con una ruta de newsletter no habría ese camino de
+  recuperación, porque el correo no tiene equivalente de "reintentar a los que no
+  salieron" en `lib/db`. Una newsletter a medias no se puede reanudar.
+- Lo que queda es que **Dokploy corra `npm run newsletter:send` como cron**, que
+  es lo que el script está pensado para desde su comentario de cabecera. Eso no
+  se puede comprobar desde el repo.
 
 Fuera de alcance, anotado para que no se pierda: el rate limit en `Map`
 in-memory no se arregla sin store compartido.

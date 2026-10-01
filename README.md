@@ -51,6 +51,29 @@ Sin `MEC_TOKEN` pasa lo mismo con La Genterula: `scrapeRula` avisa por consola y
 devuelve lista vacía, y el resto de la agenda sigue saliendo. Es deliberado, para
 que rotar el token sea cambiar una variable y no editar código.
 
+### Cómo se envía el newsletter
+
+**No hay ninguna ruta que lo dispare.** El newsletter se manda con un cron, y es
+deliberado:
+
+```bash
+npm run newsletter:send
+```
+
+Se configura en Dokploy como tarea programada (sugerencia: una vez por semana).
+El script obtiene los eventos del agregador, se los pasa a cada suscriptor activo
+y **sale con código 1 si algo falla**, para que el cron no lo tome por bueno.
+
+No depende de HTTP ni de `API_KEY`: un script del repo no debería depender de que
+su propio despliegue le deje pasar. Por eso no existe `/api/cron/send-newsletter`
+—que además sería un endpoint capaz de mandar correo a todos los suscriptores— y
+por eso el push sí tiene una ruta (`/api/push/send`) pero el correo no: al correo
+no se le puede reintentar solo a los que no salieron.
+
+Sin `EMAIL_USER`/`EMAIL_PASS` el script **falla** en producción en vez de fingir
+que ha enviado. Es a propósito: una newsletter a medias no tiene forma de
+reanudarse.
+
 ## API: qué es público y qué no
 
 Las rutas que responden **sin** `API_KEY` están en una única constante,
