@@ -9,22 +9,82 @@ sueltos, PWA, push, newsletter. Se despliega en Dokploy con `nixpacks.toml`
 
 ```bash
 npm run dev            # localhost:3000
-npm test               # Jest, 40 suites / 366 tests
+npm test               # Jest, 44 suites / 392 tests
 npm run lint           # ESLint (ver "baseline de lint")
 npm run build
 npx tsc --noEmit --incremental false   # typecheck real
 npm run test:e2e       # Playwright
 ```
 
-## Estado (2026-09-30)
+## Estado (2026-10-01)
 
-Rebrand F0/F1, unificación de la agenda (Fase 1) y seguridad (Fase 2) cerrados,
-commiteados, revisados y **desplegados en producción**. Baseline verde: `tsc` 0
-errores, 366/366 tests, `build` exit 0, 64 problemas de lint (48
-`no-explicit-any` preexistentes en scrapers), chunks de cliente 1.081 KB.
+Rebrand F0/F1, unificación de la agenda (Fase 1), seguridad (Fase 2) y
+consolidación (Fase 3) cerrados y commiteados. Fases 1 y 2 **desplegadas en
+producción**; la 3 está commiteada y pendiente de desplegar. Baseline verde:
+`tsc` 0 errores, 392/392 tests, `build` exit 0, 63 problemas de lint (45
+`no-explicit-any`, la mayoría preexistentes en scrapers).
 
 Dos cosas siguen abiertas y **no son de código**: la rotación del token MEC en
 el servidor de La Genterula, y confirmar el volumen persistente en Dokploy.
+
+## Hecho: la consolidación (Fase 3)
+
+Tres refactors independientes, sin spec porque no había nada que decidir de
+arquitectura: se unificó el `beforeinstallprompt`, La Blanca dejó de llevar el año
+escrito, y el calendario municipal perdió su cuarto fetch a mano.
+
+### `beforeinstallprompt` tiene una sola implementación
+
+`lib/useInstallPrompt.ts` es el store y ya no había debate: `Header.tsx` e
+`InstallBanner.tsx` tenían cada uno su listener, su interfaz de evento y su
+`useState`.
+
+- El store es `createInstallStore(target: EventTarget)` con una instancia por
+  defecto ligada a `window`. Por eso su contrato se testea en node, con un
+  `EventTarget` falso, sin esperar a que la Fase 4 traiga `jsdom`.
+- **El bug que arregla:** `promptInstall()` solo anulaba el evento si el usuario
+  aceptaba. `beforeinstallprompt` se dispara una vez por carga de página y
+  `prompt()` lo consume, así que tras un descarte el siguiente clic llamaba a
+  `prompt()` sobre un evento ya consumido y el navegador lo rechaza. Ahora lo
+  descarta siempre, y lo hace **antes** de esperar a `userChoice`, para que entre
+  el clic y la respuesta no quede un evento que otro clic reutilice.
+- El descarte del banner se lee en el inicializador de `useState`, no en un
+  efecto: `react-hooks/set-state-in-effect` lo prohíbe, y no hay desajuste de
+  hidratación que tapar porque en servidor `useInstallPrompt()` ya devuelve
+  `false` y el banner no se pinta.
+
+### La Blanca saca el año de los datos
+
+El año estaba escrito en **cinco** sitios de `lib/sources/fiestas-blanca.ts` y en
+cuatro más entre los componentes, la página y el endpoint. Los nueve morían igual:
+el día que terminaba la edición, el rango pedido era del año anterior, el
+calendario no devolvía nada, la sección se vacía y no se loguea nada.
+
+- `blancaEditionYear(dates)` de `lib/blanca.ts` es el único sitio que sabe qué
+  edición es esta: lo lee de las fechas que `calendariosID=513` ya devuelve.
+- **La petición a GasteizHoy ya no puede ir en paralelo con la del calendario.**
+  Su URL lleva el año dentro, así que depende de que la primera haya respondido.
+  Fuera de temporada no hay año, y entonces no se pide: es la respuesta correcta.
+- De paso, **27 peticiones pasaron a ser una.** `fetchAllDays` recorría el rango
+  día a día en lotes de cinco para construir la misma consulta que
+  `fetchMunicipalCalendar` emite una vez con su rango por defecto. Ese fetch se
+  comparte ahora desde `municipal.ts` en vez de estar copiado, y su
+  `AbortSignal.timeout` cubre las diez entradas municipales en lugar de solo una.
+- Los fixtures son de **2027** a propósito. Con 2026, los tests passarían hoy y
+  solo fallarían en agosto de 2027.
+- El filtro de la etiqueta genérica pasó de `!== "La Blanca 2026"` a un patrón,
+  por el mismo motivo.
+
+### El calendario municipal tiene una sola puerta
+
+`app/api/actividades/eventos/agenda/route.ts` era un cuarto fetch a mano de
+`CalendarioServlet`, con tres copias de `municipal.ts` dentro (el regex del
+`srcset`, el sufijo `_smart` y el aplanado de secciones) y la indentación rota.
+Ahora usa `scrapeMunicipalCalendar` y decide solo la forma.
+
+`__tests__/api/actividades-agenda.test.ts` es el primer test de route handler del
+repo, y está en esa ruta porque es la que tenía la forma en riesgo: fija el
+conjunto cerrado de claves, los tipos y el `calendariosID`.
 
 ## Hecho: la agenda unificada (Fase 1)
 
@@ -107,22 +167,18 @@ todavía; la ruta de Civitatis es aparte a propósito.
 
 ### Fases que quedan
 
-3. **Consolidación** — unificar el `beforeinstallprompt`, que sigue duplicado en
-   `Header.tsx` (4 sitios) e `InstallBanner.tsx` (2) aunque `lib/useInstallPrompt.ts`
-   ya exista; fechas de La Blanca no hardcodeadas
-   (`lib/sources/fiestas-blanca.ts:12-13` fija `2026-07-15`/`2026-08-10`, y se
-   desincronizará solo); `app/api/actividades/tours` y `tardeo` que responden
-   `source: "agregado"`, que no es un id del registro; y
-   `app/api/actividades/{route,navidad/route,senderismo/route}.ts` que emiten
-   `source: "vitoria-gasteiz"` y `"cm-gazteiz"`, ids que tampoco son del registro.
-   Los dos ficheros muertos (`app/types.ts`, `lib/safeFetch.ts`) ya se borraron.
 4. **Red de seguridad** — `jsdom` + tests de componentes (hoy `testEnvironment:
-   "node"` y cero tests de React), tests de `push`/`email` (los de `middleware` y
-   `db` ya existen), `/api/cron/send-newsletter` (el script ya lo referencia y no
-   existe), y el baseline de ESLint. Y cerrar de verdad el test del huso horario:
-   hoy avisa por consola cuando el runner está en UTC, porque en UTC
-   `localDateKey(d)` y `d.slice(0,10)` son la misma función y ningún test puede
-   distinguirlas.
+   "node"` y cero tests de React), tests de `push`/`email` (los de
+   `middleware` y `db` ya existen), `/api/cron/send-newsletter` (el script ya
+   lo referencia y no existe), y el baseline de ESLint. Y cerrar de verdad el test
+   del huso horario: hoy avisa por consola cuando el runner está en UTC, porque en
+   UTC `localDateKey(d)` y `d.slice(0,10)` son la misma función y ningún test
+   puede distinguirlas.
+
+   La Fase 3 cambió el presupuesto de esa fase: el store de
+   `beforeinstallprompt` ya se testea en node con un `EventTarget` falso, así
+   que de los tres sitios que la necesitaban queda el banner en sí, que sí
+   necesita `jsdom`.
 
 Fuera de alcance, anotado para que no se pierda: el rate limit en `Map`
 in-memory no se arregla sin store compartido.
@@ -164,6 +220,23 @@ in-memory no se arregla sin store compartido.
   `tsc` aborta en fase de parseo sin reportar ningún error real, lo que parece un
   typecheck roto cuando no lo está. Se arregla borrando `.next/dev` y pidiendo
   una página al server.
+- **`/api/actividades/*` es contrato con la app móvil.** Con `x-api-key`, pero
+  las consume un cliente de fuera: la forma de su respuesta no se toca. Sus
+  `source:` del envelope (`"agregado"`, `"cm-gazteiz"`, `"vitoria-gasteiz"`) no son
+  ids del registro **a propósito** y no se corrigen: describen de dónde sale la
+  lista, no de qué fuente es cada evento, y cambiar el string le deja al cliente
+  sin resultados sin ningún error en el servidor. Los eventos de dentro sí llevan
+  su id real.
+- **El calendario municipal tiene tres ventanas distintas para la misma fiesta**,
+  y eso es un bug pendiente: `lib/season.ts:15` dice 4–9 ago, `lib/blanca.ts:1-4`
+  dice 15 jul–12 ago, y `fiestas-blanca.ts` ya no dice ninguna. No se mezcló con
+  la Fase 3 porque es otra decisión.
+- **`fetchMunicipalCalendar` es la única puerta al calendario**, y por eso lleva
+  `cache: "no-store"`. Eso hace que Next la marca `revalidate: 0`, con lo que
+  cualquier ruta que la use se sale de la generación estática y se compila como
+  dinámica. El aviso `Dynamic server usage` durante `next build` es **preexistente**
+  y esperado: viene de que la home siempre llamó al agregado. Los scrapers lo
+  capturan y devuelven vacío, así que el build sale 0.
 - **Rula descarga 6,5 MB por petición** (`lib/sources/rula.ts`): Next no cachea
   fetches de más de 2 MB, así que la entrada del registro declara
   `cacheTtlMs` y su `run` se cachea por su cuenta. Con TTL de 2 h son ~79 MB al
