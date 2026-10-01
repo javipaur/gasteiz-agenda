@@ -50,23 +50,19 @@ describe("aggregate", () => {
     // 14 en un evento que el usuario ve el día 15 y no colisionaría con la otra
     // fuente: la misma pareja deduplicaría en Dokploy y no en local.
     //
-    // Solo muerde al este de UTC, y eso no se puede arreglar desde aquí. Se
-    // intentó fijar la zona con `process.env.TZ = "Europe/Madrid"` en un
-    // `beforeAll` y **no hace nada**: dentro de un test de Jest la asignación se
-    // lee de vuelta correcta pero V8 ignora el cambio, porque fija la zona por
-    // isolate al arrancar el worker de test. Medido, no supuesto: con la máquina
-    // en UTC, `process.env.TZ` valía "Europe/Madrid", `Intl` seguía resolviendo
-    // "UTC" y `new Date(2027, 0, 15).toISOString()` seguía dando
-    // `2027-01-15T00:00:00.000Z`. Tampoco vale fijarla en el cuerpo del fichero,
-    // que es aún más temprano. Fijarla de verdad exige que nazca el worker con la
-    // variable puesta, o sea tocar `jest.config.ts`, que es global y lo necesita
-    // la T9.
+    // Solo muerde al este de UTC, y por eso `process.env.TZ = "Europe/Madrid"`
+    // está en `jest.config.ts`: se evalúa antes de que Jest bifurque los workers,
+    // así que la variable llega heredada al nascent. Con la máquina en UTC el caso
+    // daba un verde que no protegía nada.
+    //
+    // Dentro de un `beforeAll` **no** funciona: la asignación se lee de vuelta
+    // correcta pero V8 la ignora, porque fija la zona por isolate al arrancar el
+    // worker de test. Está medido, no supuesto. `__tests__/huso.test.ts` lo fija
+    // con un rojo, que es más difícil de pasar por alto que un `console.warn`.
     //
     // Y en UTC el test no es solo débil: es imposible que muerda, porque allí
-    // `localDateKey(d)` y `d.slice(0, 10)` son la misma función para toda fecha.
-    // Ningún test en negro puede distinguirlas. Por eso el caso avisa por consola
-    // cuando corre en una zona donde no protege, en vez de dejar un verde que
-    // alguien se lea como protección.
+    // `localDateKey(d)` y `d.slice(0,10)` son la misma función para toda fecha.
+    // El aviso se queda por si `huso.test.ts` se desactiva o el pin se rompe.
     const medianoche = new Date(2027, 0, 15, 0, 0, 0).toISOString();
     const mediodia = new Date(2027, 0, 15, 12, 0, 0).toISOString();
 
