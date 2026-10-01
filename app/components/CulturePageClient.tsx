@@ -57,7 +57,23 @@ function TicketIcon({ className }: { className?: string }) {
   );
 }
 
-export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
+/**
+ * `ahora` lo pasa el servidor en vez de leerlo con `Date.now()` en el render.
+ *
+ * La puntuación de "popularidad" resta días hasta el evento, así que depende del
+ * reloj: leerlo dentro del `useMemo` lo hacía impuro, y un memo impuro puede
+ * devolver el valor cacheado indefinidamente — la ordenación se congelaría con
+ * el `hoy` con el que se calculó la primera vez. Pasándolo como prop, además de
+ * dejar el memo puro, la ordenación es reproducible por petición y no depende
+ * de cuándo hydrate el navegador.
+ */
+export default function CulturePageClient({
+  eventos,
+  ahora,
+}: {
+  eventos: Evento[];
+  ahora: number;
+}) {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
   const [filter, setFilter] = useState<string>("all");
@@ -86,9 +102,8 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
   const visible = useMemo(() => {
     const list = [...filtered];
     if (sort === "popularidad") {
-      const today = Date.now();
       const score = (e: Evento) => {
-        const days = Math.max(0, Math.round((new Date(e.date).getTime() - today) / 86400000));
+        const days = Math.max(0, Math.round((new Date(e.date).getTime() - ahora) / 86400000));
         let s = 60 - days;
         if (e.image) s += 8;
         s += PESO_FAMILIA[sourceGroup({ id: e.source })] ?? PESO_FAMILIA_POR_DEFECTO;
@@ -109,7 +124,7 @@ export default function CulturePageClient({ eventos }: { eventos: Evento[] }) {
       );
     }
     return list;
-  }, [filtered, sort]);
+  }, [filtered, sort, ahora]);
 
   const handleCategoryChange = (key: string) => {
     setFilter(key);

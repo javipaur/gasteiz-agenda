@@ -44,6 +44,19 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      // La regla `react-hooks/set-state-in-effect` está apagada para esta línea
+      // a propósito, y conviene que siga apagada. Leer aquí no es pereza: es lo
+      // que evita un desajuste de hidratación. Con un inicializador perezoso el
+      // servidor pintaría cero favoritos y el cliente, en su primer render, ya
+      // pintaría los reales — y `Header` pinta ese contador.
+      //
+      // El `loaded` tampoco es decorativo: el efecto de escritura de abajo
+      // persiste `favorites`, así que sin él, montar el provider borraría los
+      // favoritos de quien los tuviera antes de que esta lectura terminara.
+      //
+      // El coste es un render en cascada al montar, una vez. Cambiarlo por algo
+      // "más limpio" reintroduciría el fallo que el `try` de abajo evita.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFavorites(readFavorites(localStorage.getItem(STORAGE_KEY)));
     } catch {
       // `localStorage` no disponible (modo privado, cookies bloqueadas). El

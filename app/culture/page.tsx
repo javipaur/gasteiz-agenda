@@ -46,7 +46,17 @@ export default async function CulturePage() {
           "/culture"
         )}
       />
-      <CulturePageClient eventos={eventos} />
+      <CulturePageClient
+        eventos={eventos}
+        // La regla `react-hooks/purity` salta aquí, y es un falso positivo: esta
+        // es una página de servidor que se renderiza una vez por petición, así
+        // que no hay re-render de cliente contra el que el valor pueda quedarse
+        // viejo. Al pasarlo como prop, el `useMemo` del cliente queda puro, que es
+        // donde sí importaba: antes leía el reloj dentro del memo y podía
+        // devolver la ordenación cacheada indefinidamente.
+        // eslint-disable-next-line react-hooks/purity
+        ahora={Date.now()}
+      />
     </>
   );
 }

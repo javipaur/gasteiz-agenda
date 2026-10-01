@@ -105,7 +105,7 @@ export async function fetchMunicipalCalendar(
   const fh = options?.fh ?? fin.getTime();
   const calendariosID = options?.calendariosID ?? 196;
 
-  let filterParts: string[] = [];
+  const filterParts: string[] = [];
   if (options?.tipo) filterParts.push(`"tipo":${JSON.stringify(options.tipo)}`);
   if (options?.dest) filterParts.push(`"dest":${JSON.stringify(options.dest)}`);
   const filterStr = filterParts.length > 0 ? `&f={${filterParts.join(",")}}` : "";

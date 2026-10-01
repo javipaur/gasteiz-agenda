@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useLogger } from "@/lib/axiom/client";
 
 export default function GlobalError({
@@ -43,12 +44,12 @@ export default function GlobalError({
         >
           Reintentar
         </button>
-        <a
+        <Link
           href="/"
           className="inline-flex items-center gap-2 px-6 py-3 bg-bg-muted text-fg rounded-full font-body text-sm font-medium hover:bg-border transition-all duration-300"
         >
           Volver al inicio
-        </a>
+        </Link>
       </div>
     </div>
   );

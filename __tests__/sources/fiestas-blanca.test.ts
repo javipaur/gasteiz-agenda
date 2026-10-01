@@ -31,7 +31,9 @@ describe("scrapeFiestasBlanca", () => {
       { match: GASTEIZHOY, content: loadFixture("blanca-gasteizhoy.html") },
     ]);
 
-    const fiestas = await scrapeFiestasBlanca();
+    // La llamada importa por lo que provoca, no por lo que devuelve: lo que se
+    // mira aquí son las URLs que se pidieron.
+    await scrapeFiestasBlanca();
 
     // La página de GasteizHoy lleva el año en la URL, así que si el scraper
     // pidiera la del año equivocado no casaría ningún título con ninguna fecha y
