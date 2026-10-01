@@ -8,6 +8,7 @@ import { Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
+import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
 import { LogoMark } from "./LogoMark";
 
 type SearchHit = {
@@ -70,11 +71,6 @@ function PlayStoreIcon({ className }: { className?: string }) {
   );
 }
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -84,8 +80,7 @@ export default function Header() {
   const [results, setResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const installAvailable = useInstallPrompt();
   const isStandalone = useSyncExternalStore(
     useCallback((onChange: () => void) => {
       const mq = window.matchMedia("(display-mode: standalone)");
@@ -113,15 +108,6 @@ export default function Header() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   useEffect(() => {
@@ -271,11 +257,8 @@ export default function Header() {
   }, [router]);
 
   const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-  }, [deferredPrompt]);
+    await promptInstall();
+  }, []);
 
   return (
     <>
@@ -553,7 +536,7 @@ export default function Header() {
                 )}
               </Link>
 
-              {deferredPrompt && (
+              {installAvailable && (
                 <button
                   onClick={handleInstall}
                   className="hidden md:flex p-2.5 min-w-[44px] min-h-[44px] text-fg-muted hover:text-accent transition-colors rounded-full hover:bg-accent-soft"

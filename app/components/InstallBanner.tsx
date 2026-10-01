@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
+
+const STORAGE_KEY = "gasteiz-install-dismissed";
+const REAPARICION_MS = 72 * 60 * 60 * 1000;
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
@@ -27,44 +31,34 @@ function PlayStoreIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Si se descartó hace menos de 72 horas, el banner no vuelve a salir.
+ *
+ * Se lee al montar y no en un efecto: durante el render del servidor
+ * `localStorage` no existe, y `useInstallPrompt()` devuelve `false` en servidor,
+ * así que el banner no se pinta nunca en SSR y no hay desajuste de hidratación
+ * que un efecto tuviera que tapar.
+ */
+function descartadoReciente(): boolean {
+  if (typeof window === "undefined") return false;
+  const descartadoAt = Number(localStorage.getItem(STORAGE_KEY));
+  return descartadoAt > 0 && Date.now() - descartadoAt < REAPARICION_MS;
+}
+
 export default function InstallBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showBanner, setShowBanner] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    const dismissedAt = localStorage.getItem("gasteiz-install-dismissed");
-    if (dismissedAt) {
-      const hoursSince = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60);
-      if (hoursSince < 72) return;
-    }
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowBanner(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  const disponible = useInstallPrompt();
+  const [descartado, setDescartado] = useState(descartadoReciente);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShowBanner(false);
-    }
-    setDeferredPrompt(null);
+    await promptInstall();
   };
 
   const handleDismiss = () => {
-    setDismissed(true);
-    setShowBanner(false);
-    localStorage.setItem("gasteiz-install-dismissed", String(Date.now()));
+    setDescartado(true);
+    localStorage.setItem(STORAGE_KEY, String(Date.now()));
   };
 
-  if (!showBanner || dismissed) return null;
+  if (!disponible || descartado) return null;
 
   return (
     <section className="px-5 sm:px-6 py-8 max-w-7xl mx-auto">
