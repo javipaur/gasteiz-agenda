@@ -9,7 +9,7 @@ sueltos, PWA, push, newsletter. Se despliega en Dokploy con `nixpacks.toml`
 
 ```bash
 npm run dev            # localhost:3000
-npm test               # Jest, 44 suites / 392 tests
+npm test               # Jest, 48 suites / 419 tests
 npm run lint           # ESLint (ver "baseline de lint")
 npm run build
 npx tsc --noEmit --incremental false   # typecheck real
@@ -18,14 +18,87 @@ npm run test:e2e       # Playwright
 
 ## Estado (2026-10-01)
 
-Rebrand F0/F1, unificación de la agenda (Fase 1), seguridad (Fase 2) y
-consolidación (Fase 3) cerrados y commiteados. Fases 1 y 2 **desplegadas en
-producción**; la 3 está commiteada y pendiente de desplegar. Baseline verde:
-`tsc` 0 errores, 392/392 tests, `build` exit 0, 63 problemas de lint (45
-`no-explicit-any`, la mayoría preexistentes en scrapers).
+Rebrand F0/F1, unificación de la agenda (Fase 1), seguridad (Fase 2),
+consolidación (Fase 3) y red de seguridad (Fase 4) cerrados y commiteados.
+Fases 1 y 2 **desplegadas en producción**; la 3 y la 4 están commiteadas y
+pendientes de desplegar. Baseline verde: `tsc` 0 errores, 419/419 tests, `build`
+exit 0, 63 problemas de lint (45 `no-explicit-any`, la mayoría preexistentes en
+scrapers).
 
-Dos cosas siguen abiertas y **no son de código**: la rotación del token MEC en
-el servidor de La Genterula, y confirmar el volumen persistente en Dokploy.
+Tres cosas siguen abiertas y **no son de código**: la rotación del token MEC en
+el servidor de La Genterula, la confirmación del volumen persistente en Dokploy,
+y las dos decisiones de la Fase 4 que quedan abajo, que son de criterio y no de
+ejecución.
+
+## Hecho: la red de seguridad (Fase 4, parcial)
+
+Tres de los cinco puntos, y los dos que faltan no son código. La lista de esta
+fase estaba a medias equivocada: **`/api/cron/send-newsletter` no es una referencia
+colgada**. `scripts/send-newsletter.ts` no hace ningún `fetch` a `/api/*` desde la
+unificación: llama a `getProximosEventos()` directamente, y no hay config de cron en
+el repo. Crear esa ruta es una decisión nueva —un endpoint que manda correo a todos
+los suscriptores— y Dokploy ya puede correr `npm run newsletter:send` como cron
+sin ella. Sigue sin hacer.
+
+### El huso horario ya no es un test que no puede fallar
+
+`process.env.TZ = "Europe/Madrid"` está en `jest.config.ts`, que se evalúa en el
+proceso principal **antes** de bifurcar los workers, así que la variable llega
+heredada al nascent. Dentro de un `beforeAll` no funciona: V8 fija la zona por
+isolate al arrancar el worker, la asignación se lee de vuelta correcta y no cambia
+nada. Está medido, no supuesto.
+
+Lo que arregla no es el orden de los tests, es lo que un test **puede** detectar:
+en UTC `localDateKey(d)` y `d.slice(0,10)` son la misma función para toda fecha, así
+que media docena de tests no distinguían la implementación buena de un
+`slice(0,10)` colado. `__tests__/huso.test.ts` convierte el `console.warn` en un
+rojo: quitar el pin con `TZ=UTC` en el entorno tumba sus tres casos.
+
+### jsdom es opt-in por fichero
+
+`testEnvironment` sigue siendo `node` y jsdom entra con un docblock
+`@jest-environment jsdom`. Ponerlo global costaría el doble a las 46 suites de
+scrapers, que no usan el DOM. `testMatch` ahora recoge también `.tsx`: sin eso un
+test de componente no solo fallaría, es que **no se recogería**, y el repo parecería
+no tener ninguno.
+
+El primer test de componente es `InstallBanner`, que la Fase 3 reescribió y que
+nunca se había renderizado. La ventana de 72 h es justo lo que un componente puede
+probar y un store no: se lee de `localStorage` en el inicializador de `useState`.
+
+Dos trampas, ambas escritas en `__tests__/helpers-dom.ts`:
+
+- **Una sola copia de React.** El store de `useInstallPrompt` es un singleton de
+  módulo, así que cada caso recarga los módulos con `isolateModules`. Si el `act` y
+  el `createRoot` vienen del registro antiguo, el componente se renderiza con
+  **otra** copia de React y React dice "Invalid hook call" sin más. Por eso el
+  helper recibe React como argumento en vez de importarlo, y por eso esos tests no
+  usan JSX: el transform resuelve `jsx-runtime` del registro de fuera, que es
+  justo la otra copia.
+- **`IS_REACT_ACT_ENVIRONMENT`** lo pone `jest.setup.ts` solo cuando hay `document`,
+  para que React deje de avisar en las 46 suites que no renderizan nada.
+
+No se ha añadido `@testing-library/react`: `react-dom/client` y `act` ya están en
+`dependencies` y los cuatro helpers hacen falta en diez líneas. Se cambia el día
+que los tests de componente sean varios y necesiten consultas por rol o por texto.
+
+### Push y mail: las decisiones que cuestan avisos a usuarios
+
+- La **poda** de suscripciones se prueba desde los dos lados, y el interesante es el
+  segundo: 404 y 410 significan que el endpoint ya no existe y la fila se va; un 500
+  **no**, y tampoco el `TypeError` sin `statusCode` que lanza `web-push` sin red.
+  Ensanchar la comprobación a "cualquier status definido" tumba el test, así que la
+  regla no puede pudrirse en una bomba.
+- La base de `node:sqlite` es **una por test** y no se borra entre ellos: SQLite
+  mantiene el fichero bloqueado y tras `resetModules` el `rmSync` falla con `EPERM`
+  en Windows. Se limpian todas al final, mejor que un `afterEach` que tumba la suite
+  por un fichero abierto.
+- `lib/mail.ts` hubo que tocarlo para poder testearlo: leía `EMAIL_USER`/`EMAIL_PASS`
+  en el import y resolvía una sola vez tras `cachedResolved`, así que la primera
+  llamada de un proceso decidía para siempre y el camino de producción era
+  inalcanzable. El entorno se lee ahora dentro de la función. **La regla no cambia**:
+  en producción, falta de credenciales es un error y no un mock. Revertirlo a una
+  constante de módulo tumba el test.
 
 ## Hecho: la consolidación (Fase 3)
 
@@ -167,23 +240,50 @@ todavía; la ruta de Civitatis es aparte a propósito.
 
 ### Fases que quedan
 
-4. **Red de seguridad** — `jsdom` + tests de componentes (hoy `testEnvironment:
-   "node"` y cero tests de React), tests de `push`/`email` (los de
-   `middleware` y `db` ya existen), `/api/cron/send-newsletter` (el script ya
-   lo referencia y no existe), y el baseline de ESLint. Y cerrar de verdad el test
-   del huso horario: hoy avisa por consola cuando el runner está en UTC, porque en
-   UTC `localDateKey(d)` y `d.slice(0,10)` son la misma función y ningún test
-   puede distinguirlas.
+Nada de código. Las dos decisiones de la Fase 4 que no son ejecución:
 
-   La Fase 3 cambió el presupuesto de esa fase: el store de
-   `beforeinstallprompt` ya se testea en node con un `EventTarget` falso, así
-   que de los tres sitios que la necesitaban queda el banner en sí, que sí
-   necesita `jsdom`.
+- **`/api/cron/send-newsletter`** — no es una referencia colgada, es una decisión
+  nueva. La nota anterior de este mismo fichero decía que el script ya lo
+  referenciaba, y no es cierto: desde la unificación el script llama a
+  `getProximosEventos()` sin pasar por HTTP, y no hay config de cron en el repo.
+  Crear la ruta sería exponer un endpoint que manda correo a todos los
+  suscriptores, con el middleware pidiendo `x-api-key`. Dokploy ya puede correr
+  `npm run newsletter:send` como cron sin ella. **Sin decidir.**
+- **Baseline de ESLint** — hay 63 problemas y no existe ninguna mecánica de
+  baseline. Los 45 `no-explicit-any` están concentrados en 10 scrapers y son
+  `raw.foo.bar` sobre JSON sin tipar de sitios reales, así que ponerles un tipo
+  es trabajo de scraper y no de lint. Las opciones son: arreglar los 45, una
+  lista explícita de ficheros donde la regla se apague, o un script que compare el
+  recuento. El recuento es lo peor de las tres: arreglar uno y añadir otro se
+  cancela y el rojo no aparece. **Sin decidir.**
 
 Fuera de alcance, anotado para que no se pierda: el rate limit en `Map`
 in-memory no se arregla sin store compartido.
 
 ## Trampas del repo
+
+- **La base de `node:sqlite` se queda bloqueada en Windows**, así que un
+  `rmSync` de una base de prueba tras `jest.resetModules()` falla con `EPERM`
+  casi siempre: el `DatabaseSync` viejo sigue referenciado hasta que pase el GC.
+  Por eso `__tests__/helpers-push.ts` crea un directorio por test y **no** borra
+  entre ellos; limpia todos al final y traga el fallo. Un `afterEach` que limpia
+  tumba la suite entera por un fichero abierto.
+- **`process.env.NODE_ENV` es de solo lectura en los tipos**, y los tests de mail
+  necesitan cambiarlo para mirar los dos lados de la regla del mock. Se escribe con
+  un cast a `Record<string, string|undefined>` en vez de un `// @ts-expect-error`
+  que alguien acabaría borrando.
+- **`@typescript-eslint/no-require-imports` está justificada en
+  `__tests__/components/`**, con `eslint-disable` línea a línea y su motivo. Es el
+  único sitio del repo que usa `require()`, y es a propósito: `jest.isolateModules`
+  aísla un registro sincrónico y un `import` estático se resolvería antes de que
+  empezara. Desactivar la regla para `__tests__` entero sería tirar la excepción
+  justo donde no hace falta.
+- **El aviso `Dynamic server usage` durante `next build` es preexistente** y sale
+  en varias rutas a la vez. Viene de que la home siempre llamó al agregado, cuyo
+  fetch es `no-store`. Los scrapers lo capturan y devuelven lista vacía, así que
+  el build sale 0. Si aparece en una ruta **nueva**, eso sí es información: significa
+  que esa ruta se ha salido de la generación estática por el motivo equivocado.
+
 
 - **Nada alcanzable desde un componente cliente llega a un módulo de servidor.**
   Hay dos caminos y los dos importan: `lib/sources/` (los scrapers) y cualquier
