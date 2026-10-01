@@ -22,8 +22,15 @@ process.env.TZ = "Europe/Madrid";
 
 const config: Config = {
   preset: "ts-jest",
+  // Node para todo, y jsdom solo donde un fichero lo pide con un docblock
+  // `@jest-environment jsdom`. Cambiar el entorno global costaría el doble de
+  // tiempo a las 45 suites de scrapers, que no usan el DOM para nada, y el
+  // opt-in por fichero no obliga a nadie a acordarse de que existe.
   testEnvironment: "node",
-  testMatch: ["**/__tests__/**/*.test.ts"],
+  // `.tsx` entra por los tests de componente. Sin esto un test de componente
+  // no solo no correría: no se recogería, y parecería que no hay ninguno.
+  testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
