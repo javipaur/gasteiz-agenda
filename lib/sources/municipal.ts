@@ -67,17 +67,35 @@ function normalizeEvento(evento: any): MunicipialEvento {
     cancelled: evento.isCancelado || undefined,
   };
 }
-
-export async function scrapeMunicipalCalendar(options?: {
+export type MunicipalQuery = {
   calendariosID?: number;
   tipo?: (number | string)[];
   dest?: string[];
   fd?: number;
   fh?: number;
-}): Promise<MunicipialEvento[]> {
+};
+
+/**
+ * Los resultados crudos de `CalendarioServlet`, sin normalizar.
+ *
+ * Vive separado de `scrapeMunicipalCalendar` porque no todo el mundo que consulta
+ * el calendario municipal quiere el mismo tipo de evento. La agenda pide el
+ * calendario por `tipo` y su normalización; La Blanca pide `calendariosID=513` y
+ * trae su propio `mapEvent`, porque sus consumidores leen `dateEnd`, `timeEnd`,
+ * `target` y `dayWeek`, que `MunicipialEvento` no tiene. Antes las dos rutas
+ * montaban la URL y aplanaban las secciones por su cuenta, con lo que una cambio
+ * en la forma de la respuesta había que hacerlo dos veces.
+ *
+ * El rango por defecto es de hoy a dentro de un año, así que una consulta de
+ * calendario no necesita que quien la llama le pase fechas.
+ */
+export async function fetchMunicipalCalendar(
+  options?: MunicipalQuery
+): Promise<any[]> {
   const hoy = new Date();
   const inicio = new Date(hoy);
   inicio.setHours(0, 0, 0, 0);
+
   const fin = options?.fh
     ? new Date(options.fh)
     : new Date(hoy.getFullYear() + 1, hoy.getMonth(), hoy.getDate());
@@ -94,16 +112,27 @@ export async function scrapeMunicipalCalendar(options?: {
 
   const url = `${MUNICIPAL_BASE}?accion=buscar&idioma=es&calendariosID=${calendariosID}&fd=${fd}&fh=${fh}&deCM=false&moEx=false${filterStr}`;
 
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, {
+    cache: "no-store",
+    // El timeout no es decoración: se lo trae `scrapeFiestasBlanca`, que pedía el
+    // calendario 27 veces seguidas y se colgaba en cuanto una no respondía. Al
+    // mover el fetch aquí, ponerlo cubre las diez entradas municipales en vez de
+    // solo una.
+    signal: AbortSignal.timeout(20000),
+  });
   if (!res.ok) return [];
   const data = await res.json();
 
-  const eventos: MunicipialEvento[] = Object.values(data || {})
+  return Object.values(data || {})
     .reduce((acc: any[], seccion: any) => {
       if (seccion?.resultados) acc.push(...seccion.resultados);
       return acc;
-    }, [])
-    .map(normalizeEvento);
+    }, []);
+}
 
-  return eventos;
+export async function scrapeMunicipalCalendar(
+  options?: MunicipalQuery
+): Promise<MunicipialEvento[]> {
+  const crudos = await fetchMunicipalCalendar(options);
+  return crudos.map(normalizeEvento);
 }

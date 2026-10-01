@@ -5,6 +5,7 @@ import { InViewWrapper, EventCard } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { agendaSlug } from "@/lib/slug";
+import { blancaEditionYear } from "@/lib/blanca";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 
 const BLANCA_COLORS: Record<string, string> = {
@@ -68,7 +69,10 @@ function mapFiestaToCard(f: FiestaBlanca) {
     location: f.location || undefined,
     link: f.url || undefined,
     category: f.category || "Fiestas",
-    source: "La Blanca 2026",
+    // El id del registro, no el título de la edición: `sourceLabel` solo sabe
+    // traducir ids, y una etiqueta con el año dentro se queda en crudo en la pill
+    // de cada tarjeta en cuanto la edición cambia.
+    source: "fiestas-blanca",
     time: f.timeStart || undefined,
   };
 }
@@ -80,6 +84,21 @@ export default function FiestasBlancaPageClient({
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [selectedDay, setSelectedDay] = useState<string>("Todos");
+
+  /**
+   * El año y el rango salen de las fechas que hay, no de una constante. El
+   * subtítulo estaba escrito con el año a mano y con las fechas a mano, así que
+   * los dos se quedaban diciendo la edición anterior en cuanto esta terminaba.
+   */
+  const edicion = useMemo(() => {
+    const dates = fiestas.map((f) => f.date).filter(Boolean).sort();
+    const year = blancaEditionYear(dates);
+    const rango =
+      dates.length > 1
+        ? `${formatDateLong(dates[0])} – ${formatDateLong(dates[dates.length - 1])}, ${year}`
+        : "";
+    return { year, rango };
+  }, [fiestas]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -133,7 +152,7 @@ export default function FiestasBlancaPageClient({
               Fiestas de la Virgen Blanca
             </h1>
             <p className="text-fg-muted text-lg md:text-xl leading-relaxed max-w-2xl">
-              Programa completo · 15 julio – 10 agosto 2026
+              Programa completo{edicion.rango ? ` · ${edicion.rango}` : ""}
             </p>
           </InViewWrapper>
         </div>

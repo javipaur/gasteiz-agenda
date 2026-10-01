@@ -3,6 +3,7 @@
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { agendaSlug } from "@/lib/slug";
+import { blancaEditionYear } from "@/lib/blanca";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 import SectionHead from "./SectionHead";
 
@@ -37,7 +38,10 @@ function mapFiestaToCard(f: FiestaBlanca) {
     location: f.location || undefined,
     link: f.url || undefined,
     category: f.category || "Fiestas",
-    source: "La Blanca 2026",
+    // El id del registro, no el título de la edición: `sourceLabel` solo sabe
+    // traducir ids, y una etiqueta con el año dentro se queda en crudo en la pill
+    // de cada tarjeta en cuanto la edición cambia.
+    source: "fiestas-blanca",
     time: f.timeStart || undefined,
   };
 }
@@ -60,7 +64,7 @@ export default function FiestasBlancaSection({
     new Date(`${s}T00:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
   const range =
     dates.length > 1 ? `${fmt(dates[0])} – ${fmt(dates[dates.length - 1])}` : "";
-  const year = dates.length ? new Date(`${dates[0]}T00:00:00`).getFullYear() : new Date().getFullYear();
+  const year = blancaEditionYear(dates) ?? new Date().getFullYear();
 
   return (
     <section className="py-16 md:py-20 px-5 sm:px-6">

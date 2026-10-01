@@ -5,16 +5,24 @@ import FiestasBlancaPageClient from "../components/FiestasBlancaPageClient";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { agendaSlug } from "@/lib/slug";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
-import { isBlancaSeason, blancaNextEditionYear } from "@/lib/blanca";
+import { isBlancaSeason, blancaNextEditionYear, blancaEditionYear } from "@/lib/blanca";
 
 export async function generateMetadata() {
   if (isBlancaSeason()) {
-    return {
-      title: "Fiestas de la Virgen Blanca 2026 - Vitoria-Gasteiz",
-      description:
-        "Programa completo de las Fiestas de la Virgen Blanca 2026 en Vitoria-Gasteiz. Conciertos, verbenas, fuegos artificiales y más.",
-      alternates: { canonical: "/fiestas-blanca" },
-    };
+    // El año sale de las fechas del calendario, que es de donde lo saca también
+    // el scraper. Escribirlo aquí era otra copia del mismo dato, y las dos se
+    // quedaban obsoletas por separado.
+    const year = blancaEditionYear(
+      (await scrapeFiestasBlanca()).map((f) => f.date)
+    );
+    if (year !== null) {
+      return {
+        title: `Fiestas de la Virgen Blanca ${year} - Vitoria-Gasteiz`,
+        description:
+          `Programa completo de las Fiestas de la Virgen Blanca ${year} en Vitoria-Gasteiz. Conciertos, verbenas, fuegos artificiales y más.`,
+        alternates: { canonical: "/fiestas-blanca" },
+      };
+    }
   }
   return {
     title: "Fiestas de la Virgen Blanca - Vitoria-Gasteiz",
@@ -110,6 +118,7 @@ export default async function FiestasBlancaPage() {
   }
 
   const fiestas = await scrapeFiestasBlanca();
+  const year = blancaEditionYear(fiestas.map((f) => f.date));
 
   return (
     <>
@@ -136,7 +145,7 @@ export default async function FiestasBlancaPage() {
               source: "fiestas-blanca",
             }))
             .slice(0, 100),
-          "Programa de las Fiestas de la Virgen Blanca 2026",
+          `Programa de las Fiestas de la Virgen Blanca ${year ?? ""}`.trim(),
           "/fiestas-blanca"
         )}
       />

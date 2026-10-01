@@ -1,16 +1,20 @@
 import * as cheerio from "cheerio";
 
-const BASE_URL =
-  "https://www.vitoria-gasteiz.org/wb021/was/CalendarioServlet";
+import { fetchMunicipalCalendar } from "./municipal";
+import { blancaEditionYear } from "../blanca";
 
 const CALENDARIO_ID = 513;
 
-const GASTEIZHOY_URL =
-  "https://www.gasteizhoy.com/la-blanca-2026-fiestas-de-vitoria/";
-
-// Fiestas de la Virgen Blanca 2026: 15 jul to 9 ago
-const FIESTAS_START = new Date("2026-07-15");
-const FIESTAS_END = new Date("2026-08-10");
+/**
+ * El año no está cableado aquí, y esa es la decisión.
+ *
+ * Una edición se identifica por las fechas que devuelve `calendariosID=513`, que
+ * vienen con su año en `fechaInicio`. Fijar un rango de julio y agosto, como hacía
+ * este scraper, no sale más corto: es una petición menos hoy y un scraper muerto
+ * el día que termine la edición, porque el rango se quedaría en el año pasado. Con
+ * el año leído de los datos, el rango por defecto de `fetchMunicipalCalendar` (de
+ * hoy a hoy más un año) cubre la edición que sea.
+ */
 
 export type FiestaBlanca = {
   id: string;
@@ -98,13 +102,26 @@ const MONTH_MAP: Record<string, string> = {
   diciembre: "12",
 };
 
+/**
+ * La página del año que sea. Antes era una constante con el año dentro; ahora lo
+ * recibe quien llama, que es quien ya lo ha leído de las fechas del calendario.
+ */
+function gasteizHoyUrl(year: number): string {
+  return `https://www.gasteizhoy.com/la-blanca-${year}-fiestas-de-vitoria/`;
+}
+
+/**
+ * Un artículo de la página de GasteizHoy solo trae día y mes, así que el año lo
+ * pone quien llama. Antes venía hardcodeado en la línea de arriba y una edición
+ * nueva no casaba con ningún evento: el título normalizado y la fecha no llegaban
+ * a ser la misma clave, y la categoría se perdía en silencio.
+ */
 async function fetchGasteizHoyPage(
-  page: number
+  page: number,
+  year: number
 ): Promise<{ events: GasteizHoyEvent[]; hasNext: boolean }> {
-  const url =
-    page === 1
-      ? GASTEIZHOY_URL
-      : `${GASTEIZHOY_URL}page/${page}/`;
+  const base = gasteizHoyUrl(year);
+  const url = page === 1 ? base : `${base}page/${page}/`;
 
   const res = await fetch(url, {
     headers: {
@@ -140,7 +157,7 @@ async function fetchGasteizHoyPage(
       .trim()
       .toLowerCase();
     const monthNum = MONTH_MAP[dateMonth] || "01";
-    const date = `2026-${monthNum}-${dateDay.padStart(2, "0")}`;
+    const date = `${year}-${monthNum}-${dateDay.padStart(2, "0")}`;
 
     const categories: string[] = [];
     $(article)
@@ -169,14 +186,14 @@ async function fetchGasteizHoyPage(
   return { events, hasNext };
 }
 
-async function fetchAllGasteizHoyCategories(): Promise<
-  Map<string, string[]>
-> {
+async function fetchAllGasteizHoyCategories(
+  year: number
+): Promise<Map<string, string[]>> {
   const map = new Map<string, string[]>();
   let page = 1;
 
   while (page <= 10) {
-    const { events, hasNext } = await fetchGasteizHoyPage(page);
+    const { events, hasNext } = await fetchGasteizHoyPage(page, year);
     for (const ev of events) {
       const key = `${normalizeTitle(ev.title)}|${ev.date}`;
       map.set(key, ev.categories);
@@ -188,6 +205,15 @@ async function fetchAllGasteizHoyCategories(): Promise<
   return map;
 }
 
+/**
+ * La etiqueta que GasteizHoy pone a todo lo que es de la fiesta no aporta nada:
+ * el registro ya declara `category: "Fiestas"` para esta fuente, y una etiqueta
+ * que lleva el título de la edición en vez de decir qué es el evento solo estorba.
+ * Se filtra por patrón y no por texto exacto porque el año cambia solo, y un
+ * `!== "La Blanca 2026"` se quedaba obsoleto con la edición siguiente.
+ */
+const ETIQUETA_GENERICA = /^La Blanca\b/;
+
 function matchCategory(
   title: string,
   date: string,
@@ -196,66 +222,10 @@ function matchCategory(
   const key = `${normalizeTitle(title)}|${date}`;
   const cats = categoryMap.get(key);
   if (cats && cats.length > 0) {
-    return cats.filter((c) => c !== "La Blanca 2026").join(", ") || cats[0];
+    const propias = cats.filter((c) => !ETIQUETA_GENERICA.test(c));
+    return propias.join(", ") || cats[0];
   }
   return "";
-}
-
-function toTimestamp(date: Date): number {
-  return date.getTime();
-}
-
-async function fetchDay(dayStart: Date): Promise<any[]> {
-  const dayEnd = new Date(dayStart);
-  dayEnd.setHours(23, 59, 59, 999);
-
-  const params = new URLSearchParams({
-    accion: "buscar",
-    idioma: "es",
-    claveArea: "",
-    claveTema: "",
-    calendariosID: String(CALENDARIO_ID),
-    t: "",
-    fd: String(toTimestamp(dayStart)),
-    fh: String(toTimestamp(dayEnd)),
-    deCM: "false",
-    f: "",
-    moEx: "false",
-  });
-
-  const res = await fetch(`${BASE_URL}?${params}`, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
-    },
-    signal: AbortSignal.timeout(20000),
-  });
-
-  if (!res.ok) return [];
-
-  const data = await res.json();
-  return data.actividades?.resultados || [];
-}
-
-async function fetchAllDays(): Promise<any[]> {
-  const allRaw: any[] = [];
-  const days: Date[] = [];
-  const current = new Date(FIESTAS_START);
-
-  while (current <= FIESTAS_END) {
-    days.push(new Date(current));
-    current.setDate(current.getDate() + 1);
-  }
-
-  const BATCH_SIZE = 5;
-  for (let i = 0; i < days.length; i += BATCH_SIZE) {
-    const batch = days.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(batch.map((d) => fetchDay(d)));
-    for (const r of results) {
-      if (r.status === "fulfilled") allRaw.push(...r.value);
-    }
-  }
-
-  return allRaw;
 }
 
 export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
@@ -265,12 +235,7 @@ export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
   const isBuild = process.env.NEXT_PHASE === "phase-production-build";
 
   try {
-    const [allRaw, categoryMap] = await Promise.all([
-      fetchAllDays(),
-      isBuild
-        ? Promise.resolve(new Map<string, string[]>())
-        : fetchAllGasteizHoyCategories().catch(() => new Map<string, string[]>()),
-    ]);
+    const allRaw = await fetchMunicipalCalendar({ calendariosID: CALENDARIO_ID });
 
     const seen = new Set<string>();
     const fiestas = allRaw
@@ -287,6 +252,19 @@ export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
         if (cmp !== 0) return cmp;
         return a.timeStart.localeCompare(b.timeStart);
       });
+
+    // El año se lee de las fechas que acaba de devolver el calendario, y por eso
+    // la página de GasteizHoy va **después**: su URL lleva el año dentro, así que
+    // no hay a quién preguntárselo hasta que la primera consulta ha respondido.
+    // Fuera de temporada el calendario no devuelve nada, y entonces no hay ni año
+    // ni fiestas ni nada que enrichir, que es la respuesta correcta.
+    const year = blancaEditionYear(fiestas.map((f) => f.date));
+    const categoryMap =
+      isBuild || year === null
+        ? new Map<string, string[]>()
+        : await fetchAllGasteizHoyCategories(year).catch(
+            () => new Map<string, string[]>()
+          );
 
     for (const f of fiestas) {
       f.category = matchCategory(f.title, f.date, categoryMap);

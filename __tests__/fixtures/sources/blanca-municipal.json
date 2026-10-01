@@ -1,0 +1,54 @@
+{
+  "actividades": {
+    "posicionResultado": 1,
+    "numResultados": 3,
+    "hayMasDatos": false,
+    "resultados": [
+      {
+        "codigo": "BLANCA-2027-001",
+        "titulo": "Chupinazo de las Fiestas",
+        "fechaInicio": "20270725",
+        "fechaFin": "20270725",
+        "horaInicio": "18:00",
+        "horaFin": "19:00",
+        "localizacion": "Plaza de la Virgen Blanca",
+        "url": "https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?idioma=es&uid=blanca-chupinazo",
+        "destinatario": "Todos los públicos",
+        "isCancelado": false,
+        "dayWeek": "lunes",
+        "imagen": "/riupload/riImage/6710/0/2026/07/24/chupinazo_smart.jpg",
+        "picture": ""
+      },
+      {
+        "codigo": "BLANCA-2027-002",
+        "titulo": "Verbena en la Plaza de la Virgen Blanca",
+        "fechaInicio": "20270726",
+        "fechaFin": "20270726",
+        "horaInicio": "22:00",
+        "horaFin": "00:00",
+        "localizacion": "Plaza de la Virgen Blanca",
+        "url": "https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?idioma=es&uid=blanca-verbena",
+        "destinatario": "Todos los públicos",
+        "isCancelado": false,
+        "dayWeek": "martes",
+        "imagen": "",
+        "picture": "<picture><source type='image/webp' srcset='https://www.vitoria-gasteiz.org/riupload/riImage/6711/0/2026/07/25/verbena_smart.webp' /></picture>"
+      },
+      {
+        "codigo": "BLANCA-2027-003",
+        "titulo": "Torneo de la Blanca",
+        "fechaInicio": "20270727",
+        "fechaFin": "20270727",
+        "horaInicio": "09:00",
+        "horaFin": "14:00",
+        "localizacion": "Fronton Jai Alai",
+        "url": "https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?idioma=es&uid=blanca-torneo",
+        "destinatario": "Público infantil",
+        "isCancelado": true,
+        "dayWeek": "miércoles",
+        "imagen": "/riupload/riImage/6712/0/2026/07/26/torneo_smart.jpg",
+        "picture": ""
+      }
+    ]
+  }
+}
