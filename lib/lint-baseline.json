@@ -12,10 +12,6 @@
     "razon": "CalendarioServlet devuelve una bolsa de secciones que cambia de forma cada año."
   },
   {
-    "fichero": "lib/sources/farmacias.ts",
-    "razon": "El listado de la DKV llega como HTML con una maquetación distinta cada mes."
-  },
-  {
     "fichero": "lib/sources/fiestas-blanca.ts",
     "razon": "Los resultados crudos de calendariosID=513 traen picture como HTML."
   },

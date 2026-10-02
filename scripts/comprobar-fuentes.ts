@@ -9,6 +9,7 @@
  */
 import { scrapeArkabia } from "@/lib/sources/arkabia";
 import { scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
+import { scrapeFarmacias } from "@/lib/sources/farmacias";
 
 async function arkabia() {
   console.log("\n=== Arkabia (home) ===");
@@ -46,4 +47,23 @@ async function inscripciones() {
   }
 }
 
-void arkabia().then(inscripciones);
+async function farmacias() {
+  console.log("\n=== Farmacias (Open Data Euskadi) ===");
+  try {
+    const lista = await scrapeFarmacias();
+    console.log(`  ${lista.length} farmacias`);
+    for (const f of lista.slice(0, 4)) {
+      console.log(
+        `    ${f.name.slice(0, 34).padEnd(34)} ${f.shortAddress.slice(0, 28).padEnd(28)} ${f.phone}`
+      );
+    }
+    const sinNombre = lista.filter((f) => f.name === "Farmacia (nombre no publicado)");
+    if (sinNombre.length) {
+      console.log(`  ${sinNombre.length} sin titular publicado (se conserva con etiqueta)`);
+    }
+  } catch (e) {
+    console.log(`  ERROR: ${(e as Error).message}`);
+  }
+}
+
+void arkabia().then(inscripciones).then(farmacias);

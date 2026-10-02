@@ -93,7 +93,7 @@ export default function FarmaciasPageClient() {
   return (
     <div className="px-5 sm:px-6 max-w-6xl mx-auto pt-28 pb-32">
       <p className="inline-flex items-center gap-2 mb-4 font-mono text-[11px] uppercase tracking-[0.2em] text-fg-subtle">
-        <MapPin size={13} aria-hidden="true" /> Farmacias de guardia
+        <MapPin size={13} aria-hidden="true" /> Farmacias de Vitoria-Gasteiz
       </p>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
         <h1 className="font-display text-4xl md:text-5xl text-fg tracking-[-0.02em]">
@@ -102,7 +102,13 @@ export default function FarmaciasPageClient() {
         {fetchedAt > 0 && <FreshnessBadge since={fetchedAt} />}
       </div>
       <p className="text-fg-muted max-w-xl mb-8">
-        De guardia en Vitoria-Gasteiz{ fecha ? ` para el ${fecha}` : "" }. Pulsa el teléfono para llamar directamente.
+        Directorio de farmacias de Vitoria-Gasteiz con dirección y teléfono. Pulsa
+        el teléfono para llamar directamente.
+        <span className="block mt-2 text-fg-subtle">
+          No es el cuadrante de guardia: el Colegio de Farmacéuticos de Álava
+          bloquea el acceso automatizado a su listado, así que no se puede saber
+          cuál está de turno. Para eso, llama al Colegio.
+        </span>
       </p>
 
       {error && (
@@ -152,7 +158,7 @@ export default function FarmaciasPageClient() {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-base font-semibold text-fg">
-              {farmacias.length} farmacia{farmacias.length !== 1 ? "s" : ""} de guardia
+              {farmacias.length} farmacia{farmacias.length !== 1 ? "s" : ""} en Vitoria-Gasteiz
             </h2>
             {fecha === hoy && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-green/15 text-green border border-green/25 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em]">
@@ -160,13 +166,15 @@ export default function FarmaciasPageClient() {
                   <span className="absolute inline-flex h-full w-full rounded-full bg-green opacity-60 animate-ping" />
                   <span className="relative inline-flex size-1.5 rounded-full bg-green" />
                 </span>
-                Hoy
+                Actualizado
               </span>
             )}
           </div>
 
           {farmacias.length === 0 && !loading ? (
-            <p className="text-fg-muted text-sm">No hay farmacias de guardia registradas hoy.</p>
+            <p className="text-fg-muted text-sm">
+              No se han podido cargar las farmacias. Inténtalo de nuevo.
+            </p>
           ) : (
             <ul className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
               {farmacias.map((f) => (
@@ -255,7 +263,8 @@ export default function FarmaciasPageClient() {
       )}
 
       <p className="mt-6 text-[11px] text-fg-muted">
-        Fuente: Cofa Lava (Colegio de Farmacéuticos de Álava). Horarios de guardia.
+        Fuente: Open Data Euskadi, Gobierno Vasco — «Farmacias y botiquines de Euskadi»
+        (CC BY, actualización mensual). No incluye el turno de guardia.
         <br />
         <FechaDebito iso={fecha} />
       </p>
