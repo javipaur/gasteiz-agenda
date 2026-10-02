@@ -115,7 +115,10 @@ async function TodayWithData() {
 }
 
 async function MoodWithData() {
-  const [eventos, peliculas, infantil, deporte] = await Promise.all([
+  // El segundo elemento de `getPeliculas` son los cines que fallaron y el
+  // componente no lo necesita: `MoodFilter` solo pinta peliculas, asi que se
+  // descarta aqui en vez de propagar el detalle por toda la pagina.
+  const [eventos, { peliculas }, infantil, deporte] = await Promise.all([
     getCachedEventos(),
     getPeliculas(),
     getKidsEventos(),

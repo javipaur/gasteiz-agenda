@@ -46,7 +46,7 @@ async function getCounts() {
   const [conciertos, cine, ninos, cultura, deporte, curated, fiestas] =
     await Promise.allSettled([
       countEventsInWindow(CONCIERTOS_SET),
-      (async () => (await getPeliculas()).length)(),
+      (async () => (await getPeliculas()).peliculas.length)(),
       countEventsInWindow(INFANTIL_SET),
       countEventsInWindow(CULTURA_SET),
       countEventsInWindow(DEPORTE_SET),

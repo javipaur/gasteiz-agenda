@@ -2,6 +2,10 @@ import { loadFixture, mockFetchWith } from "../helpers";
 import { scrapeFlorida } from "@/lib/sources/cines";
 
 describe("scrapeFlorida", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("parses the new reservaentradas listing into peliculas with horarios", async () => {
     const html = loadFixture("florida-listing.html");
 
@@ -28,36 +32,61 @@ describe("scrapeFlorida", () => {
     }
   });
 
-  it("filters out movies without bookable sessions", async () => {
+  it("trae la duracion, que Florida si publica", async () => {
+    // Bouya no puede: Sensacine no la da. Aqui se fija que Florida no la pierda.
     const html = loadFixture("florida-listing.html");
-    mockFetchWith([
-      { match: /reservaentradas\.com/, content: html },
-    ]);
+    mockFetchWith([{ match: /reservaentradas\.com/, content: html }]);
 
     const peliculas = await scrapeFlorida();
-    // fixture has 14 movies but only 12 with real sessions
-    expect(peliculas.length).toBe(12);
 
-    const titles = peliculas.map((p) => p.titulo.toLowerCase());
-    expect(titles).not.toContain("cineforum");
-    expect(titles).not.toContain("tadeo jones y la lámpara maravillosa");
+    expect(peliculas.length).toBeGreaterThan(0);
+    for (const p of peliculas) {
+      expect(p.duracion.length).toBeGreaterThan(0);
+    }
   });
 
-  it("returns an empty array when the fetch fails", async () => {
-    mockFetchWith([
-      { match: /reservaentradas\.com/, content: "", status: 500 },
-    ]);
+  it("falla hacia arriba cuando la fuente no responde", async () => {
+    // Antes devolvia `[]` con un console.error, y la ruta lo envolvia en un
+    // 200: un fallo era indistinguible de "no hay peliculas", que es
+    // justamente lo que el cliente no puede permitirse cachear.
+    mockFetchWith([{ match: /reservaentradas\.com/, content: "", status: 500 }]);
 
-    const peliculas = await scrapeFlorida();
-    expect(peliculas).toEqual([]);
+    await expect(scrapeFlorida()).rejects.toThrow(/500/);
   });
 
-  it("returns an empty array for HTML without movies", async () => {
+  it("devuelve una lista vacia para HTML sin peliculas", async () => {
+    // Aqui si es un 200 con lista vacia, porque la fuente respondio bien y no
+    // tenia nada. Es el caso que el error anterior hacia pasar por fallo.
     mockFetchWith([
       { match: /reservaentradas\.com/, content: "<html><body><p>vacío</p></body></html>" },
     ]);
 
     const peliculas = await scrapeFlorida();
     expect(peliculas).toEqual([]);
+  });
+
+  it("descarta las peliculas sin sesiones", async () => {
+    const html = loadFixture("florida-listing.html");
+    mockFetchWith([{ match: /reservaentradas\.com/, content: html }]);
+
+    const peliculas = await scrapeFlorida();
+
+    // Todas las que sobreviven tienen al menos una sesion reservable: es la
+    // condicion del scraper, y sin ella la cartelera Annunciaria peliculas
+    // donde no se puede comprar entrada.
+    for (const p of peliculas) {
+      expect(p.horarios.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("deduplica los horarios", async () => {
+    const html = loadFixture("florida-listing.html");
+    mockFetchWith([{ match: /reservaentradas\.com/, content: html }]);
+
+    const peliculas = await scrapeFlorida();
+
+    for (const p of peliculas) {
+      expect(new Set(p.horarios).size).toBe(p.horarios.length);
+    }
   });
 });

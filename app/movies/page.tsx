@@ -11,6 +11,9 @@ export const metadata = {
 };
 
 export default async function MoviesPage() {
-  const peliculas = await getPeliculas();
+  // `getPeliculas` devuelve tambien los cines que fallaron. La pagina se pinta
+  // con las que hay: si uno de los dos caido, se ven las del otro en vez de
+  // una cartelera vacia, que era lo que pasaba antes.
+  const { peliculas } = await getPeliculas();
   return <MoviesPageClient peliculas={peliculas} />;
 }

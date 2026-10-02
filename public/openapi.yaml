@@ -763,19 +763,31 @@ paths:
       security: []
       responses:
         "200":
-          description: Películas de ambos cines, cada una etiquetada con su cine
+          description: >-
+            Películas de ambos cines, cada una etiquetada con su cine. Si uno de
+            los dos falló, `cinesConError` dice cuál y `peliculas` trae las del
+            otro. Si ninguno falló, `cinesConError` no está.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  url:
-                    type: string
+                  urls:
+                    type: array
+                    description: Las dos fuentes que alimentan la cartelera
+                    items:
+                      type: string
                   scrapedAt:
                     type: string
                     format: date-time
                   total:
                     type: integer
+                  cinesConError:
+                    type: array
+                    description: Cines cuyo scraping falló. Ausente si no falló ninguno
+                    items:
+                      type: string
+                      enum: [Florida, Boulevard]
                   peliculas:
                     type: array
                     items:
@@ -786,6 +798,23 @@ paths:
                             cine:
                               type: string
                               enum: [Florida, Boulevard]
+        "502":
+          description: >-
+            Ninguno de los dos cines respondió. Un 200 con `peliculas: []`
+            significa que el cine respondió y no tenía cartelera, que es otro
+            cosa.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  cinesConError:
+                    type: array
+                    items:
+                      type: string
+                      enum: [Florida, Boulevard]
 
   /api/cines/boulevard:
     get:
@@ -795,7 +824,9 @@ paths:
       security: []
       responses:
         "200":
-          description: Películas en cartelera
+          description: >-
+            Películas en cartelera. `duracion` va siempre vacía: Sensacine no
+            la publica en la página del cine.
           content:
             application/json:
               schema:
@@ -812,6 +843,15 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Pelicula"
+        "502":
+          description: La fuente no respondió
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
   /api/cines/florida:
     get:
@@ -821,7 +861,7 @@ paths:
       security: []
       responses:
         "200":
-          description: Películas en cartelera
+          description: Películas en cartelera, con su duración
           content:
             application/json:
               schema:
@@ -838,6 +878,15 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Pelicula"
+        "502":
+          description: La fuente no respondió
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
   /api/farmacias:
     get:

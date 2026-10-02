@@ -2,6 +2,11 @@ import * as cheerio from "cheerio";
 
 export type Pelicula = {
   titulo: string;
+  /**
+   * Florida si la publica, de `.calificacion-list` ("100 min."). Boulevard no la
+   * tiene porque Sensacine no la da en la pagina del cine; ahi el campo va
+   * vacio a proposito. Ver `app/services/boulevard.ts`.
+   */
   duracion: string;
   genero: string;
   imagen: string;
@@ -12,6 +17,15 @@ export type Pelicula = {
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
+/**
+ * Falla hacia arriba si la fuente no responde.
+ *
+ * Antes devolvia `[]` con un `console.error`, y la ruta lo envolvia en un 200.
+ * Eso hacia que un fallo de la fuente fuera indistinguible de "hoy no hay
+ * peliculas": la app movil recibia una cartelera vacia y la cacheaba. Ahora
+ * propaga y la ruta responde 502, asi que el cliente puede distinguir las dos
+ * cosas. El camino feliz no cambia.
+ */
 export async function scrapeFlorida(): Promise<Pelicula[]> {
   const res = await fetch("https://www.reservaentradas.com/cine/alava/florida", {
     headers: { "User-Agent": USER_AGENT },
@@ -20,8 +34,7 @@ export async function scrapeFlorida(): Promise<Pelicula[]> {
   });
 
   if (!res.ok) {
-    console.error(`reservaentradas Florida returned ${res.status}`);
-    return [];
+    throw new Error(`reservaentradas Florida returned ${res.status}`);
   }
 
   const html = await res.text();
