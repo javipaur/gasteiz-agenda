@@ -12,16 +12,40 @@ export type ArkabiaEvento = {
 };
 
 const HOME_URL = "https://arkabia.eus/";
-const AJAX_URL = "https://arkabia.eus/wp-admin/admin-ajax.php";
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 function parseFecha(fecha: string): string {
-  // Formats seen: "04/06 - 13/10/2026", "12/09/2026", "01/01"
-  const m = fecha.match(/(\d{2})\/(\d{2})(?:\/(\d{4}))?/);
-  if (!m) return "";
-  const year = m[3] || String(new Date().getFullYear());
-  return `${year}-${m[2]}-${m[1]}`;
+  // Formatos medidos en la home en vivo:
+  //   "04/06 - 12/10/2026"        rango, dia/mes a la izquierda
+  //   "26/09/2026 - 21/01/2027"   rango, fecha completa a la izquierda
+  //   "07/10/2026"                fecha simple
+  //   "03-04/10/2026"             rango pegado al dia
+  //
+  // El regex de antes era `(\d{2})\/(\d{2})(?:\/(\d{4}))?`, que engancha en el
+  // **primer** par dia/mes que encuentra. En "04/06 - 12/10/2026" eso es el
+  // 04/06, sin ano, asi que tomaba el ano en curso y daba `2026-10-06`: dos
+  // cosas mal, el dia del mes y el ano. Y en "03-04/10/2026" enganchaba en el
+  // 04/10, o sea la fecha **de fin** en vez de la de inicio.
+  //
+  // Se separa primero el tramo de la izquierda del rango y se interpreta entero,
+  // que es lo que significa.
+  const izquierda = fecha.split(/\s+-\s+/)[0].trim();
+
+  const conRangoPegado = izquierda.match(/(\d{2})-(\d{2})\/(\d{2})\/(\d{4})/);
+  if (conRangoPegado) {
+    return `${conRangoPegado[4]}-${conRangoPegado[3]}-${conRangoPegado[1]}`;
+  }
+
+  const conAno = izquierda.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (conAno) return `${conAno[3]}-${conAno[2]}-${conAno[1]}`;
+
+  const sinAno = izquierda.match(/(\d{2})\/(\d{2})$/);
+  if (sinAno) {
+    return `${String(new Date().getFullYear())}-${sinAno[2]}-${sinAno[1]}`;
+  }
+
+  return "";
 }
 
 function parseItems(html: string): ArkabiaEvento[] {
@@ -81,44 +105,28 @@ export async function scrapeArkabia(): Promise<ArkabiaEvento[]> {
   }
 
   const homeHtml = await home.text();
-  const $home = cheerio.load(homeHtml);
-  const nonce =
-    $home(".modulo-programacion__filtros").attr("data-eventos-nonce") || "";
 
-  if (!nonce) {
-    console.error("Arkabia: no se encontró el nonce de filtrado");
-    return [];
+  // **La home es la fuente, no el AJAX.** El `admin-ajax.php?filtrar_eventos`
+  // que usa el boton del propio sitio responde `success: true` con un
+  // `<div class="no-results">` y cero tarjetas, para los tres filtros
+  // (semana, mes, todos). No es un problema nuestro: `/evento/` y
+  // `/evento-cat/*/` tambien salen vacios, asi que el `WP_Query` del CPT esta
+  // roto en el sitio y los botones de la web vacian la lista al pulsarlos.
+  //
+  // La home, en cambio, renderiza los eventos en servidor y trae 16 con el
+  // markup completo. Es la unica fuente viable: el CPT no esta en el REST de
+  // WordPress (`/wp-json/wp/v2/types` no lo lista) y el RSS trae la fecha de
+  // publicacion del post, no la del evento.
+  const desdeLaHome = parseItems(homeHtml);
+  if (desdeLaHome.length > 0) {
+    return desdeLaHome;
   }
 
-  const body = new URLSearchParams();
-  body.append("action", "filtrar_eventos");
-  body.append("nonce", nonce);
-  body.append("filtro", "todos");
-
-  const ajax = await fetch(AJAX_URL, {
-    method: "POST",
-    headers: {
-      "User-Agent": USER_AGENT,
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
-    body,
-    next: { revalidate: 3600 },
-    signal: AbortSignal.timeout(20000),
-  });
-
-  if (!ajax.ok) {
-    console.error(`Arkabia AJAX returned ${ajax.status}`);
-    return [];
-  }
-
-  const json = (await ajax.json().catch(() => null)) as {
-    success?: boolean;
-    data?: { html?: string; message?: string };
-  } | null;
-  if (!json?.success) {
-    console.error("Arkabia AJAX: response not successful");
-    return [];
-  }
-
-  return parseItems(json?.data?.html || "");
+  // La home tampoco traia nada. Se registra por que, porque ahora mismo es un
+  // fallo de scrape y no se distingue de un centro sin programacion.
+  console.error(
+    "Arkabia: la home no trajo tarjetas de " +
+      ".modulo-programacion__item. Si el site sigue asi, no hay agenda que leer."
+  );
+  return [];
 }

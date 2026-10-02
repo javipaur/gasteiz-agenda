@@ -39,44 +39,70 @@ export async function scrapeBuscametasCalendario(): Promise<BuscametasEvento[]> 
 }
 
 export async function scrapeBuscametasInscripciones(): Promise<any[]> {
-  const { data } = await axios.get<string>(
-    "https://www.buscametas.com/inscripciones/",
-    {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; NextScraper/1.0)",
-      },
-    }
-  );
+  // `fetch` y no `axios`, a diferencia de `scrapeBuscametasCalendario` de este
+  // mismo fichero. Ese hace un POST multipart con `form-data`, que axios resuelve
+  // bien y `fetch` no. Este es un GET simple, y con axios **no se podia testear**:
+  // `mockFetchWith` intercepta `global.fetch`, asi que el mock no llegaba y los
+  // tests setaban pegando a la red de verdad —que es como pasaban con el
+  // selector muerto. Los 24 scrapers que si tienen test usan `fetch`.
+  const res = await fetch("https://www.buscametas.com/inscripciones/", {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; NextScraper/1.0)" },
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(20000),
+  });
 
+  if (!res.ok) {
+    throw new Error(`buscametas inscripciones returned ${res.status}`);
+  }
+
+  const data = await res.text();
   const $ = cheerio.load(data);
   const eventos: any[] = [];
 
-  $("tr.card").each((_, el) => {
+  // El contenedor era `tr.card` y ahora es `.insc-item`, con las clases `i2-*`
+  // dentro. Medido contra la pagina en vivo: `tr.card` = 0 elementos y
+  // `.insc-item` = 21, o sea que el `.each()` no recorria nada y la ruta
+  // respondia 200 con `{"eventos":[]}`. Un fallo de selector aqui no se ve: es
+  // una lista vacia, que es lo que devuelve un cine sin eventos.
+  $(".insc-item").each((_, el) => {
     const row = $(el);
-    const title = row.find(".card-heading-title").text().trim();
-    const date = row.find(".card-date").text().trim();
-    const location = row.find(".card-location span").text().trim();
-    const link = row.find(".card-link a").attr("href")?.trim() ?? "";
-    const rawImage = row.find(".card-img-top img").attr("src")?.trim() ?? "";
+    const title = row.find(".i2-nombre").text().trim();
+    const date = row.find(".i2-fecha").text().trim();
+    const location = row.find(".i2-loc").text().trim();
+    const link = row.find(".i2-cta").attr("href")?.trim() ?? "";
+    const rawImage = row.find(".i2-card-media img").attr("src")?.trim() ?? "";
     const image = rawImage
       ? rawImage.startsWith("http")
         ? rawImage
         : `https://www.buscametas.com${rawImage.startsWith("/") ? "" : "/"}${rawImage}`
       : "";
 
-    eventos.push({
+    // La fecha del sitio puede ser simple ("04/10/2026") o un rango
+  // ("31/10/2026 - 01/11/2026"). Se normaliza a la de **inicio**, que es la que
+  // ordena y la que la app pinta. Se deja el rango entero en `dateRango` para
+  // quien quiera el detalle: recortarlo pierde informacion que el sitio
+  // publica.
+  const rangoFecha = date.match(
+    /(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/
+  );
+
+  eventos.push({
       title,
-      date,
+      date: rangoFecha ? rangoFecha[1] : date,
+      dateRango: rangoFecha ? date : undefined,
       location,
       link: link ? `https://www.buscametas.com${link.startsWith("/") ? "" : "/"}${link}` : "",
       image,
     });
   });
 
+  // Ya viene en `dd/mm/yyyy` y, con el rango recortado arriba, sin el guion. El
+  // sort compara en ISO para no depender del idioma: `new Date("04/10/2026")`
+  // lo interpreta como octubre en algunos navegadores y como abril en otros.
   eventos.sort((a, b) => {
-    const dateA = new Date(a.date.split("-")[0].trim().split("/").reverse().join("-"));
-    const dateB = new Date(b.date.split("-")[0].trim().split("/").reverse().join("-"));
-    return dateA.getTime() - dateB.getTime();
+    const aIso = a.date.split("/").reverse().join("-");
+    const bIso = b.date.split("/").reverse().join("-");
+    return new Date(aIso).getTime() - new Date(bIso).getTime();
   });
 
   return eventos;

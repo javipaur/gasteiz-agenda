@@ -74,6 +74,9 @@ jest.mock("@/lib/sources/musikaze", () => ({
   scrapeMusikaze: jest.fn().mockResolvedValue([]),
 }));
 
+// `scrapeBuscametasInscripciones` pasa a devolver `dateRango` ademas de `date`
+// (el sitio publica algunos como "31/10/2026 - 01/11/2026"). El mock lo refleja
+// para que un test de este fichero no falle por la forma.
 jest.mock("@/lib/sources/buscametas", () => ({
   scrapeBuscametasCalendario: jest.fn().mockResolvedValue([]),
   scrapeBuscametasInscripciones: jest.fn().mockResolvedValue([]),
