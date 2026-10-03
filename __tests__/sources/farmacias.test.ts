@@ -15,6 +15,22 @@ import { parseFarmaciasGeojson, scrapeFarmacias } from "@/lib/sources/farmacias"
  * municipios. Fijar el recuento de Vitoria (78) es lo que ata el scraper a la
  * fuente. Sin ese numero, un filtro que se rompe devuelve `[]` y el test sigue
  * verde, porque `expect([]).toEqual([])`.
+ *
+ * **`scrapeFarmacias` ahora lanza cuando no sabe, y no cuando no hay.** El
+ * `catch` de `app/api/farmacias/route.ts` era inalcanzable porque las dos salidas
+ * de error del scraper devolvían `[]`: un 503 de opendata con la caché fría salía
+ * como `200 {count: 0, data: []}`, y la app móvil cacheaba ese vacío sin reintentar
+ * nunca. Aquí es donde se fija esa frontera, porque es la misma que separa el dato
+ * del fallo:
+ *
+ * - el origen no responde, o el cuerpo no es el GeoJSON -> se propaga;
+ * - ya había copia previa -> se devuelve la copia, que es un dato viejo y no un
+ *   vacío;
+ * - responde bien y trae las 78 -> 78, como siempre.
+ *
+ * `parseFarmaciasGeojson` sigue devolviendo `[]` ante un cuerpo ilegible: es una
+ * función pura y su contrato no se toca. Lo que cambia es que `scrapeFarmacias`
+ * ya no confunde ese `[]` con un directorio vacío.
  */
 describe("parseFarmaciasGeojson", () => {
   const geojson = () => loadFixture("farmacias-euskadi.geojson");
@@ -128,7 +144,7 @@ describe("scrapeFarmacias", () => {
     expect(await scrape()).toHaveLength(78);
   });
 
-  it("devuelve vacio si la fuente responde 403, sin tumbar la ruta", async () => {
+  it("lanza si la fuente responde 403 y no hay copia previa, en vez de devolver vacío", async () => {
     mockFetchWith([
       {
         match: /opendata\.euskadi\.eus/,
@@ -139,9 +155,46 @@ describe("scrapeFarmacias", () => {
 
     const { scrapeFarmacias: scrape } = await import("@/lib/sources/farmacias");
 
-    // Coincide con el comportamiento que tenia el scraper de Cofalava: si no
-    // hay `ok`, lista vacia. Lo que no se permite es una excepcion sin captura.
-    expect(await scrape()).toEqual([]);
+    // Antes devolvía `[]`, y eso convertía un 403 de opendata en un `200 {count: 0,
+    // data: []}`: indistinguible de un directorio vacío, y el `catch` de
+    // `app/api/farmacias/route.ts` era inalcanzable por esto. La ruta tiene que
+    // poder distinguir "no hay farmacias" de "no lo sé".
+    await expect(scrape()).rejects.toThrow(/403/);
+  });
+
+  it("lanza si el cuerpo no es el GeoJSON, aunque venga con status 200", async () => {
+    // El WAF de Cofalava devolvía HTML de error con status 200. `parseFarmaciasGeojson`
+    // lo devuelve como `[]` sin lanzar —eso no cambia, es una función pura— y
+    // antes ese `[]` salía por la ruta como un directorio vacío.
+    mockFetchWith([
+      {
+        match: /opendata\.euskadi\.eus/,
+        content: "<html><body>403 Forbidden</body></html>",
+      },
+    ]);
+
+    const { scrapeFarmacias: scrape } = await import("@/lib/sources/farmacias");
+
+    // Cero farmacias es un fallo: el GeoJSON real trae 78 en Vitoria sin
+    // excepción, así que un 0 significa que el parser o el filtro se rompieron.
+    await expect(scrape()).rejects.toThrow(/no dio ninguna farmacia/);
+  });
+
+  it("devuelve la copia previa si la fuente cae después de haber descargado", async () => {
+    // La caché de 6 h es lo que hace útil tenerla: datos viejos son datos, y un
+    // corte de red no debe vaciar un mapa que se acaba de pintar. Solo la caché
+    // fría propaga el fallo.
+    const geojson = loadFixture("farmacias-euskadi.geojson");
+    mockFetchWith([{ match: /opendata\.euskadi\.eus/, content: geojson }]);
+
+    const { scrapeFarmacias: scrape } = await import("@/lib/sources/farmacias");
+
+    expect(await scrape()).toHaveLength(78);
+
+    // Ahora la fuente se cae. Mismo módulo, así que la caché sigue poblada.
+    jest.spyOn(global, "fetch").mockResolvedValue(new Response("nope", { status: 503 }));
+
+    await expect(scrape()).resolves.toHaveLength(78);
   });
 
   it("usa la fuente oficial y no el sitio bloqueado", async () => {

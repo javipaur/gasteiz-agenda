@@ -74,15 +74,17 @@ describe("GET /api/actividades/eventos/agenda", () => {
     }
   });
 
-  it("devuelve una lista vacía si el calendario falla, no un 500", async () => {
-    // `scrapeMunicipalCalendar` ya devuelve `[]` cuando la respuesta no es 2xx, y
-    // esta ruta solo tiene que traducirlo. Un 500 aquí dejaría sin agenda a un
-    // cliente que antes sí sabía leer una lista vacía.
+  it("devuelve un 500 si el calendario falla, no una lista vacía", async () => {
+    // Antes esta ruta devolvía 200 con `[]` porque `scrapeMunicipalCalendar`
+    // resolvía en vez de rechazar al recibir un 5xx. Un 200 con lista vacía es
+    // indistinguible de "el calendario no publica nada hoy", que es la razón por
+    // la que el fallo se escondía. La ruta ya tenía un `catch` para esto: lo que
+    // cambia es que pasa a ser alcanzable.
     mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "", status: 500 }]);
 
     const res = await get();
 
-    expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual([]);
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toEqual({ error: "Error al consultar eventos" });
   });
 });

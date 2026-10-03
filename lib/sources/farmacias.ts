@@ -122,6 +122,28 @@ export function parseFarmaciasGeojson(raw: string): FarmaciaGuardia[] {
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
+/**
+ * Las 78 farmacias de Vitoria, o un error.
+ *
+ * **Por qué aquí se lanza y antes se devolvía `[]`.** El `catch` de
+ * `app/api/farmacias/route.ts` era código inalcanzable: las dos salidas de error
+ * de este scraper devolvían lista vacía, así que un `503` de opendata con la caché
+ * fría salía como `200 {count: 0, data: []}`. Eso es byte a byte lo mismo que
+ * "hoy no hay farmacias", y la app móvil cachea lo que llega: un corte de red de
+ * treinta segundos se convertía en un mapa vacío permanente, sin error en ninguna
+ * parte. Un `[]` aquí ya no significa "no hay", significa "no lo sé", y son dos
+ * cosas que el cliente tiene que poder distinguir.
+ *
+ * El mismo razonamiento que el de los cines (`lib/cines.ts`): un origen que
+ * responde bien y no tiene datos **sí** es un dato, y por eso `res.ok` con un
+ * cuerpo vacío se devuelve tal cual. Un origen que no responde o que devuelve una
+ * cosa que no es el GeoJSON, no.
+ *
+ * Los datos viejos siguen valiendo cuando los hay. Si ya se descargó el GeoJSON
+ * alguna vez, un 503 posterior devuelve la copia anterior —datos viejos son
+ * datos— y solo la caché fría propaga el fallo. La caché vive en el módulo, así
+ * que en el proceso de Next dura hasta que se reinicia el despliegue.
+ */
 export async function scrapeFarmacias(): Promise<FarmaciaGuardia[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TTL) {
@@ -139,10 +161,23 @@ export async function scrapeFarmacias(): Promise<FarmaciaGuardia[]> {
     });
     if (!res.ok) {
       if (cache) return cache;
-      return [];
+      throw new Error(`opendata.euskadi.eus respondió ${res.status}`);
     }
 
-    const farmacias = parseFarmaciasGeojson(await res.text());
+    const texto = await res.text();
+    const farmacias = parseFarmaciasGeojson(texto);
+
+    // Cero farmacias es un fallo, no un directorio vacío: el GeoJSON del Gobierno
+    // Vasco trae 843 registros en 150 municipios y 78 son de Vitoria, sin
+    // excepción. Si el filtro o el parser se rompen, sale 0, y un 0 con status 200
+    // es la misma mentira que daba el `catch` inalcanzable de la ruta. El body
+    // ilegible entra por aquí: el WAF de Cofalava devolvía HTML de error con
+    // status 200 y `parseFarmaciasGeojson` lo convertía en `[]` sin decir nada.
+    if (farmacias.length === 0) {
+      throw new Error(
+        `el GeoJSON de opendata.euskadi.eus no dio ninguna farmacia de ${MUNICIPIO} (${texto.length} bytes)`
+      );
+    }
 
     cache = farmacias;
     lastFetch = now;
@@ -151,6 +186,6 @@ export async function scrapeFarmacias(): Promise<FarmaciaGuardia[]> {
   } catch (error) {
     console.error("Error obteniendo las farmacias de Vitoria:", error);
     if (cache) return cache;
-    return [];
+    throw error;
   }
 }

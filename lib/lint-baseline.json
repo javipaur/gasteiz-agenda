@@ -44,14 +44,6 @@
     "razon": "Es una herramienta de un solo uso que se ejecuta a mano, no llega a producción."
   },
   {
-    "fichero": "app/api/actividades/route.ts",
-    "razon": "Contrato con la app móvil: reproduce la forma cruda del calendario municipal."
-  },
-  {
-    "fichero": "app/api/actividades/navidad/route.ts",
-    "razon": "Igual que el anterior, con el calendario de Navidad."
-  },
-  {
     "fichero": "app/api/actividades/carreras/calendario/route.ts",
     "razon": "Devuelve la respuesta del calendario de carreras tal cual la da la fuente."
   }
