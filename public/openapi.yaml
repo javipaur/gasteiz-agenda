@@ -106,14 +106,25 @@ paths:
             minimum: 1
             maximum: 200
             default: 50
-          description: Número máximo de resultados
+          description: >-
+            Número máximo de resultados. Un valor que no sea un entero —`?limit=all`,
+            que es como el cliente móvil pide "dame todo"— **cae al valor por defecto
+            (50)**, y uno numérico fuera de rango se recorta a 1..200. Ninguno de los
+            dos casos es un error: la respuesta es correcta igual en ambos, así que no
+            hay nada que el cliente pueda corregir y por eso no hay 400.
+          example: 50
         - name: offset
           in: query
           schema:
             type: integer
             minimum: 0
             default: 0
-          description: Offset para paginación
+          description: >-
+            Offset para paginación. Sin tope superior, a propósito: recortarlo dejaría
+            al cliente en un bucle de páginas vacías al final de un listado largo. Un
+            valor no numérico cae al 0, y `meta.limit` y `meta.offset` siempre salen
+            como números.
+          example: 0
       responses:
         "200":
           description: Lista de eventos
@@ -147,10 +158,12 @@ paths:
                   hasMore: true
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/ScraperFailed"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/proximos:
     get:
@@ -195,13 +208,31 @@ paths:
       operationId: getActividades
       responses:
         "200":
-          description: Lista de actividades municipales
+          description: >-
+            Lista de actividades municipales. `data: []` **sí** significa que el
+            calendario no traía actividades: el origen respondió.
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "500":
+          description: >-
+            El calendario municipal no se pudo leer. Es un fallo del origen de datos
+            o de esta ruta, no de la petición, y no se arregla cambiando parámetros.
+            Antes devolvía `200 {count: 0, data: []}` para siempre —leía una clave
+            que la respuesta del Ayuntamiento no tiene— y eso era indistinguible de
+            "no hay actividades", con la app móvil cacheando un vacío permanente
+            sin ningún error en ninguna parte.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error al consultar eventos"
+        "503":
+          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/senderismo:
     get:
@@ -446,9 +477,13 @@ paths:
       operationId: getNavidad
       responses:
         "200":
-          description: Lista de eventos navideños
+          description: >-
+            Lista de eventos navideños. `data: []` **sí** significa que el calendario
+            no traía eventos: el origen respondió.
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ScraperFailed"
         "503":
           $ref: "#/components/responses/ServiceMisconfigured"
 
@@ -700,6 +735,25 @@ paths:
                       $ref: "#/components/schemas/RulaEvent"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: >-
+            Falló el scraper. En la práctica casi siempre es una de dos cosas:
+            falta `MEC_TOKEN` en el entorno del despliegue, o la API de La
+            Genterula no responde. Las dos son de este servidor, no de quien llama:
+            reintentar con otra clave no lo cambia y hay que mirar el despliegue.
+            Documentar el 500 y no un `200` con la lista vacía es a propósito —
+            antes la ausencia de token se cacheaba y salía como `200 {count: 0}`—,
+            porque "no lo sé" y "no hay eventos" tienen que poder distinguirse. Y
+            `data` vacío **sí** significa que no hay eventos: el origen respondió y
+            no traía ninguno.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error al consultar eventos de La Gente Rula"
         "503":
           $ref: "#/components/responses/ServiceMisconfigured"
 
@@ -891,18 +945,44 @@ paths:
   /api/farmacias:
     get:
       tags: [sources]
-      summary: Farmacias de guardia
+      summary: Farmacias de Vitoria
       operationId: getFarmacias
       security: []
       responses:
         "200":
-          description: Lista de farmacias de guardia
+          description: >-
+            Farmacias del directorio abierto del Gobierno Vasco. **No es el cuadrante
+            de guardia**: la fuente de guardia es inaccesible y lo que se sirve es un
+            directorio, así que los campos de turno y horario salen vacíos.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Farmacia"
+                type: object
+                properties:
+                  source:
+                    type: string
+                    description: >-
+                      De dónde sale el dato. `opendata-euskadi` desde que Cofalava dejó
+                      de responder; el nombre anterior, `cofalava`, ya no se emite.
+                    example: "opendata-euskadi"
+                  date:
+                    type: string
+                    description: >-
+                      Día al que corresponde el cuadrante, o cadena vacía si el
+                      directorio no publica ninguno.
+                  count:
+                    type: integer
+                    description: Cuántas farmacias trae `data`.
+                  fetchedAt:
+                    type: integer
+                    format: int64
+                    description: Instante de la descarga, en milisegundos epoch.
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Farmacia"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
 
   /api/newsletter/subscribe:
     post:
@@ -923,9 +1003,15 @@ paths:
                   format: email
       responses:
         "200":
-          description: Suscripción exitosa
+          description: Suscripción registrada
         "400":
           description: Email inválido
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/ScraperFailed"
+        "502":
+          $ref: "#/components/responses/UpstreamUnavailable"
 
   /api/newsletter/confirm:
     get:
@@ -1318,19 +1404,91 @@ components:
 
     Farmacia:
       type: object
+      description: >-
+        Una farmacia del directorio. Los nombres de campo son los que emite
+        `lib/sources/farmacias.ts` y los que consumen el mapa, la página y la app
+        móvil; antes el documento declaraba `nombre`/`direccion`/`ciudad`/`telefono`/
+        `horario`, que no existen, así que un cliente generado desde aquí leía
+        `undefined` en las cinco. Los tres últimos campos son cadenas y no números a
+        propósito: es lo que hacía el scraper anterior y lo que el mapa consume con
+        `Number(f.lat)`.
       properties:
-        nombre:
+        id:
           type: string
-        direccion:
+          description: >-
+            Identificador en el registro sanitario (`idif`). Antes era el id del
+            marcador del mapa, que ya no existe; sin id único el mapa y la lista no
+            tienen clave estable.
+        name:
           type: string
-        ciudad:
+          description: >-
+            Nombre del titular. Una de las de Vitoria no lo publica y sale como
+            "Farmacia (nombre no publicado)" en vez de desaparecer de la lista.
+        address:
           type: string
-        telefono:
+          description: 'Dirección completa: calle, código postal y municipio.'
+        shortAddress:
           type: string
-        horario:
+          description: Solo la calle, sin código postal ni municipio.
+        phone:
           type: string
+        date:
+          type: string
+          description: >-
+            Vacía siempre. El directorio es un **directorio**, no un cuadrante de
+            guardia: no publica turno ni fecha, y no se inventa ninguno.
+        horarios:
+          type: string
+          description: Vacía siempre, por lo mismo que `date`.
+        neighborhood:
+          type: string
+          description: Vacía siempre, por lo mismo que `date`.
+        city:
+          type: string
+        zone:
+          type: string
+          description: Vacía siempre, por lo mismo que `date`.
+        lat:
+          type: string
+          description: Latitud en grados, como cadena.
+        lng:
+          type: string
+          description: Longitud en grados, como cadena.
 
   responses:
+    UpstreamUnavailable:
+      description: >-
+        El origen de datos que tiene delante no respondió, o respondió con un error.
+        No es un problema de quien llama —la petición es válida— y reintentar dentro
+        de un rato sí recupera, porque el estado del servidor no ha cambiado. Un
+        `200` con la lista vacía significaría "no hay nada", que es otra cosa: un
+        origen que responde bien y no tiene datos **es** un dato, y por eso sale con
+        `200`. Es el mismo código que usa `/api/cines` para lo mismo.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "No se pudieron obtener las farmacias de Vitoria"
+
+    ScraperFailed:
+      description: >-
+        El scraper de esta ruta falló. Es un fallo de este servidor, no de la
+        petición: reintentar con otra clave o con otros parámetros no lo cambia.
+        Sirve para las rutas cuyo scraper propaga el error en vez de devolver una
+        lista vacía, porque un `200 {count: 0}` que en realidad significa "no lo sé"
+        es lo que cachea un cliente móvil como si fuera un resultado.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Error al consultar eventos"
+
     ServiceMisconfigured:
       description: >-
         El servidor no tiene `API_KEY` en el entorno, así que el middleware

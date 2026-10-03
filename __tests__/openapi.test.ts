@@ -4,6 +4,12 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { SOURCE_DATA } from "@/lib/source-data";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { PUBLIC_API_ROUTES, isPublicApiRoute } from "@/lib/api-public-routes";
+// El scraper del directorio de farmacias, para contrastar el esquema `Farmacia`
+// contra las claves que emite de verdad. Es el único import de un `lib/sources/`
+// del fichero, y entra por el motivo contrario al que lo prohíbe
+// `__tests__/source-data.test.ts`: aquí el grafo se recorre al revés, del documento
+// hacia el código, y lo que se quiere es que los dos digan lo mismo.
+import { parseFarmaciasGeojson } from "@/lib/sources/farmacias";
 
 /**
  * El contrato público de `/api/v1/events` contra lo que la ruta devuelve de
@@ -548,17 +554,16 @@ describe("las respuestas que el middleware produce de verdad", () => {
 });
 
 describe("la cobertura del documento", () => {
-  it("cubre las treinta rutas protegidas salvo las tres que se listan aquí", () => {
-    // La lista es explícita a propósito. Las tres de abajo existen en
-    // `app/api/**` y no están en el YAML; si alguien añade una cuarta sin
-    // documentarla, este test lo dice por el nombre en vez de dejar que la deuda
-    // crezca en silencio. Y si las documenta, tiene que quitar la de aquí.
+  it("cubre las treinta rutas protegidas salvo las dos que se listan aquí", () => {
+    // La lista es explícita a propósito. Las dos de abajo existen en `app/api/**`
+    // y no están en el YAML; si alguien añade una tercera sin documentarla, este
+    // test lo dice por el nombre en vez de dejar que la deuda crezca en silencio.
+    // Y si las documenta, tiene que quitar la de aquí.
+    //
+    // `/api/log` salió de esta lista cuando pasó a ser pública: la consume el
+    // logger del navegador, que no tiene `API_KEY`.
     const sinDocumentar = PROTEGIDAS_EN_DISCO.filter((r) => !rutasDocumentadas().includes(r));
-    expect(sinDocumentar.sort()).toEqual([
-      "/api/fiestas-blanca",
-      "/api/log",
-      "/api/push/send",
-    ]);
+    expect(sinDocumentar.sort()).toEqual(["/api/fiestas-blanca", "/api/push/send"]);
   });
 
   it("no documenta ninguna ruta que no exista", () => {
@@ -568,13 +573,232 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 40 rutas: 10 públicas y 30 protegidas", () => {
+  it("la política entera son 40 rutas: 11 públicas y 29 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 40, publicas: 10, protegidas: 30 });
+    }).toEqual({ total: 40, publicas: 11, protegidas: 29 });
+  });
+});
+
+/**
+ * Los códigos que las rutas **nuevos** producen y el documento no declaraba, y el
+ * `Farmacia` que no describía la respuesta real.
+ *
+ * Una revisión anterior arregló seis fallos de estas rutas **en el código** y dejó
+ * el OpenAPI como estaba. Ese es el peor sitio posible para arreglar un contrato:
+ * el documento es lo único que lee quien integra, así que el arreglo le llega como
+ * una sorpresa, y no como una mejora. Concretamente:
+ *
+ * - Un `catch` que devuelve `502`/`503`/`500` donde antes devolvía `200` con la
+ *   lista vacía. El `200` vacío era una mentira: "no lo sé" y "no hay nada" salían
+ *   byte a byte iguales, y la app móvil cachea lo que recibe, así que medio minuto
+ *   de origen caído se convertía en un vacío permanente sin error en ninguna parte.
+ * - Un `catch` que degradaba a `200 {results: []}` en `/api/search`, que es
+ *   exactamente la respuesta de una búsqueda que no encuentra nada.
+ *
+ * `/api/search` queda fuera de esta lista a propósito, y no por olvido: no está
+ * documentada, y documentarla con su `503` la volvería pública para efectos del
+ * contrato mientras el test de autenticación exige que una ruta pública no declare
+ * `503` —el middleware devuelve antes de mirar el entorno—. Queda anotado en el
+ * nombre del test de abajo, que es donde se ve.
+ */
+describe("los códigos que el código produce y el documento no declaraba", () => {
+  it.each([
+    // La ruta, el código que le faltaba y por qué lo devuelve.
+    ["/api/farmacias", "502", "opendata no contesta y la caché está fría"],
+    ["/api/actividades", "500", "el calendario municipal no se pudo leer"],
+    ["/api/actividades/navidad", "500", "el calendario municipal no se pudo leer"],
+    ["/api/rula", "500", "falta MEC_TOKEN o La Genterula no responde"],
+    ["/api/v1/events", "500", "el agregador no devolvió eventos"],
+  ])("%s declara %d (%s)", (ruta, codigo, porque) => {
+    expect({
+      ruta,
+      codigo,
+      porque,
+      declarado: codigosDeRespuesta(ruta, "get").includes(codigo),
+    }).toEqual({ ruta, codigo, porque, declarado: true });
+  });
+
+  it("alta al newsletter declara el 502 del correo de confirmación y los que ya devolvía", () => {
+    // El `502` es el que faltaba: la fila se escribe **antes** de enviar el correo,
+    // así que cuando SMTP falla la suscripción está registrada pero el enlace nunca
+    // llega, y la ruta respondía `200 {ok: true}` con «revisa tu correo». Quien
+    // integrates contra el documento no tenía forma de distinguir «suscrito» de
+    // «nunca te va a llegar nada».
+    //
+    // El `429` y el `500` también faltaban y ya los devolvía la ruta antes de esta
+    // revisión: se añaden al revisar la operación entera, no por el 502, porque
+    // dejar declared un `200` al lado de unos códigos que el servidor sí devuelve
+    // es la misma mentira que se vino a arreglar.
+    expect(codigosDeRespuesta("/api/newsletter/subscribe", "post")).toEqual(
+      expect.arrayContaining(["200", "400", "429", "500", "502"])
+    );
+  });
+
+  it("/api/search sigue sin documentarse, y el test lo nombra", () => {
+    // El 503 de `/api/search` no se puede documentar sin romper el otro test: una
+    // ruta pública no puede prometer un 503, porque el middleware devuelve antes de
+    // mirar el entorno. Documentarla exigiría primero decidir si es pública o
+    // protegida, que es otra decisión. Se anota aquí para que la deuda tenga
+    // nombre en vez de ser una ausencia.
+    expect(rutasDocumentadas()).not.toContain("/api/search");
+  });
+
+  it("el 502 y el 500 son respuestas de `components.responses`, no copias por ruta", () => {
+    // Por el mismo motivo que el 503: veinte copias de la misma respuesta son veinte
+    // sitios donde puede quedar una vieja, y el 502 va a aparecer en más rutas
+    // (`/api/cines` lo usa ya) conforme se arreglen.
+    const i = LINEAS.findIndex(
+      (l) => l.trimStart().startsWith("responses:") && sangriaDe(l) === 2
+    );
+    const nombres = bloqueDesde(i, 4)
+      .filter((l) => sangriaDe(l) === 4)
+      .map((l) => l.trim().replace(/:$/, ""));
+
+    for (const nombre of ["UpstreamUnavailable", "ScraperFailed"]) {
+      expect(nombres).toContain(nombre);
+    }
+  });
+});
+
+/**
+ * El esquema `Farmacia` describía una respuesta que no existe, y en la ruta que el
+ * documento publica para clientes móviles.
+ *
+ * `/api/farmacias` es `security: []`, o sea pública, y el documento la daba como un
+ * **array** de objetos con `nombre`, `direccion`, `ciudad`, `telefono` y `horario`.
+ * La ruta real devuelve un **objeto** —un envelope con `source`, `date`, `count`,
+ * `fetchedAt` y `data`— y cada item es `{id, name, shortAddress, address, phone,
+ * date, horarios, neighborhood, city, zone, lat, lng}`. Ni el contenedor coincide ni
+ * **uno** de los cinco nombres de campo: un cliente generado desde el documento
+ * recibe `undefined` en todos y, como además lo indexa como si fuera una lista,
+* revienta al recorrerlo. Un documento que se lee perfecto y no describe nada es
+ * peor que uno que no existe, porque el integrador ya llegó a la conclusión de que
+ * el contrato estaba escrito.
+ *
+ * El caso contrasta contra `parseFarmaciasGeojson` de verdad y no contra una lista
+ * escrita aquí: esa lista se contrastaría con el documento, no con el código, que es
+ * justo lo que se quiere evitar. Y el `200` se contrasta por sus propiedades
+ * directas, que es lo que distingue «un array de cosas» de «un envelope».
+ */
+describe("el esquema de /api/farmacias es el que devuelve la ruta", () => {
+  /**
+   * Las líneas del bloque `schema:` de una respuesta concreta.
+   *
+   * La sangría del `schema:` se deduce de la del código de respuesta: `"200":` está a
+   * 8, `content:` a 10, `application/json:` a 12 y `schema:` a 14. Buscar
+   * `"schema:"` a pelo daría el primero que encuentre —que puede ser el de un
+   * `requestBody`— y devolvería el bloque equivocado en silencio.
+   */
+  function bloqueDeEsquema(ruta: string, operacion: string, codigo: string): string[] {
+    const bloque = bloqueDeOperacion(ruta, operacion);
+    const i = bloque.findIndex((l) => l.trim() === `"${codigo}":`);
+    if (i < 0) return [];
+    const sangriaSchema = sangriaDe(bloque[i]) + 6;
+    const j = bloque.findIndex(
+      (l, k) => k > i && l.trim() === "schema:" && sangriaDe(l) === sangriaSchema
+    );
+    if (j < 0) return [];
+    return bloque.slice(j + 1).filter((l) => sangriaDe(l) > sangriaSchema);
+  }
+
+  /** Los nombres de las propiedades directas del `schema:` de una respuesta. */
+  function propiedadesDeRespuesta(
+    ruta: string,
+    operacion: string,
+    codigo: string
+  ): string[] {
+    const bloque = bloqueDeOperacion(ruta, operacion);
+    const i = bloque.findIndex((l) => l.trim() === `"${codigo}":`);
+    if (i < 0) return [];
+    const sangriaSchema = sangriaDe(bloque[i]) + 6;
+    const j = bloque.findIndex(
+      (l, k) => k > i && l.trim() === "properties:" && sangriaDe(l) === sangriaSchema + 2
+    );
+    if (j < 0) return [];
+    return bloque
+      .slice(j + 1)
+      .filter((l) => l.trim() !== "" && sangriaDe(l) === sangriaSchema + 4)
+      .map((l) => l.trim().match(/^([A-Za-z0-9_]+):/)?.[1] ?? "");
+  }
+
+  /**
+   * Los nombres de las propiedades de un esquema de `components.schemas`.
+   *
+   * No se puede usar `esquema()` y quedarse con las líneas de sangria 8: el bloque
+   * lleva un `description: >-` y **su contenido también va a sangria 8**, así que
+   * un filtro por sangría se come las líneas de la descripción y las cuenta como
+   * propiedades. Por eso se busca el `properties:` y se corta ahí, que es lo que
+   * separa la estructura del texto literal.
+   */
+  function propiedadesDeEsquema(nombre: string): string[] {
+    const bloque = esquema(nombre);
+    const sangriaProperties = sangriaDe(bloque.find((l) => l.trim() === "properties:") ?? "");
+    const i = bloque.findIndex((l) => l.trim() === "properties:");
+    if (i < 0) return [];
+    return bloque
+      .slice(i + 1)
+      .filter((l) => l.trim() !== "" && sangriaDe(l) === sangriaProperties + 2)
+      .map((l) => l.trim().match(/^([A-Za-z0-9_]+):/)?.[1] ?? "");
+  }
+
+  it("el 200 es el envelope, no una lista", () => {
+    // Falla con el YAML viejo: `propiedadesDeRespuesta` devolvía `[]` porque bajo el
+    // `schema:` no había un `properties:` sino un `type: array`, así que la
+    // aserción caía en la comprobación y no en un fallo de compilación.
+    expect(propiedadesDeRespuesta("/api/farmacias", "get", "200").sort()).toEqual([
+      "count",
+      "data",
+      "date",
+      "fetchedAt",
+      "source",
+    ]);
+  });
+
+  it("`data` es un array que apunta al esquema Farmacia", () => {
+    const esquema = bloqueDeEsquema("/api/farmacias", "get", "200");
+    expect(esquema.some((l) => l.trim() === "data:")).toBe(true);
+    expect(esquema.some((l) => l.trim() === "type: array")).toBe(true);
+    expect(esquema.some((l) => l.includes('$ref: "#/components/schemas/Farmacia"'))).toBe(
+      true
+    );
+  });
+
+  it("Farmacia declara exactamente las claves que emite el scraper", () => {
+    // El contraste es contra el parser de verdad, no contra una lista escrita aquí:
+    // una lista escrita en el test se contrastaría con el documento, que es
+    // justamente el bucle cerrado que hizo que esto se quedara roto.
+    const geojson = JSON.stringify({
+      features: [
+        {
+          geometry: { coordinates: [-2.673, 42.843] },
+          properties: {
+            titular1: "Farmacia de prueba",
+            idif: "010001",
+            direccion: "Calle Mayor 1",
+            municipio: "VITORIA-GASTEIZ",
+            cp: "01001",
+            telefono: "945 000 000",
+          },
+        },
+      ],
+    });
+    const emitidos = Object.keys(parseFarmaciasGeojson(geojson)[0]).sort();
+
+    expect(propiedadesDeEsquema("Farmacia").sort()).toEqual(emitidos);
+  });
+
+  it("ninguna clave documentada es una que el scraper no emita", () => {
+    // En sentido contrario, y con los nombres en castellano que tenía antes, que es
+    // donde el fallo se hacía más caro: `nombre` y `direccion` se leen parecido a
+    // `name` y `address`, así que un integrador que los viera no sospecharía.
+    const declaradas = propiedadesDeEsquema("Farmacia");
+    for (const fantasma of ["nombre", "direccion", "ciudad", "telefono", "horario"]) {
+      expect(declaradas).not.toContain(fantasma);
+    }
   });
 });
