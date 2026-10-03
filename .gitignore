@@ -31,7 +31,14 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+# La plantilla **sí** se versiona, y sin esta excepción no se podría: `.env*` se
+# la come también, y una plantilla ignorada no le sirve a nadie, porque nadie la
+# recibe al clonar. Es el fichero que dice qué variables existen, cuáles son
+# obligatorias y cuáles no deben llevar un valor real —que es la forma de que el
+# despliegue de la máquina de al lado no falle por una variable que nadie sabía
+# que existía—. Los valores van vacíos.
 .env*
+!.env.example
 
 # typescript
 *.tsbuildinfo

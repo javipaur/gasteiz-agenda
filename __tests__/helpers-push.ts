@@ -58,9 +58,19 @@ export function limpiarDbsDePrueba(): void {
 
 /** Una suscripción con la forma que valida `app/api/push/subscribe/route.ts`. */
 export function suscripcion(endpoint: string) {
+  // Las claves se derivan del endpoint en base64 porque la ruta las valida como
+  // base64: el helper dice "la forma que valida la ruta", y un
+  // `p256dh-${endpoint}` con `:` y `/` no la pasa. Sigue siendo determinista y
+  // único por endpoint, que es lo que necesitan los tests.
+  const semilla = Buffer.from(endpoint).toString("base64url");
   return {
     endpoint,
-    keys: { p256dh: `p256dh-${endpoint}`, auth: `auth-${endpoint}` },
+    keys: {
+      // 88 caracteres es lo que ocupa en base64url una clave p256dh de 65 bytes.
+      p256dh: (semilla + semilla).slice(0, 88),
+      // Y 24, una clave de autenticación de 16 bytes.
+      auth: semilla.slice(0, 24),
+    },
     addedAt: 1_700_000_000_000,
   };
 }

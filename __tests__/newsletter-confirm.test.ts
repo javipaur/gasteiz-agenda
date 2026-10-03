@@ -55,6 +55,22 @@ function pedir(url: string): Request {
   return new Request(`https://gasteizclick.test${url}`);
 }
 
+/**
+ * El mensaje del error, o la palabra clave si la llamada no lanzó.
+ *
+ * Hace falta porque lo que se compara es *qué* falla, no que falle: un `{}` y un
+ * `42` dan el mismo tipo de mensaje, y lo que distingue el caso bueno del malo es
+ * que el fichero quede byte a byte como estaba.
+ */
+function captur(fn: () => unknown): string {
+  try {
+    fn();
+    return "NO LANZÓ";
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
 /** A dónde manda la redirección, sin la base. */
 function destinoDe(res: Response): string {
   const location = res.headers.get("location");
@@ -451,17 +467,22 @@ describe("las filas que no tienen `confirmedAt`", () => {
     expect(guardada[0].confirmedAt).toBe(guardada[0].subscribedAt);
   });
 
-  it("un fichero que es JSON válido pero no una lista se lee como vacío", () => {
-    // Una escritura a medias puede dejar un `{}` o un `null` en el fichero. Antes
-    // eso pasaba tal cual al llamante y el `.find` de `addSubscriber` reventaba
-    // con un TypeError que no dice de qué viene. Con la migración hay que
-    // recorrer el valor, así que el `Array.isArray` deja de ser opcional.
+  it("un fichero que es JSON válido pero no es una lista se niega a borrarse", () => {
+    // Una escritura a medias puede dejar un `{}`, un `null` o un `42` en el
+    // fichero. El `Array.isArray` ya no es opcional desde que la migración tiene
+    // que recorrer el valor, pero la decisión cambió: antes esos contenidos se
+    // leían como lista vacía, y como `addSubscriber` hace `push` + sobrescribir,
+    // unaalta posterior **borraba el fichero entero** sin decir nada. Ahora lanzan,
+    // porque leer `[]` es exactamente la indistinción que causaba la pérdida.
     for (const contenido of ["{}", "null", '"un texto"', "42"]) {
       writeFileSync(destino, contenido, "utf-8");
       const { getAllSubscribers, addSubscriber } = db();
-      expect({ contenido, filas: getAllSubscribers() }).toEqual({ contenido, filas: [] });
-      expect(() => addSubscriber("nueva@ejemplo.test")).not.toThrow();
-      expect(getAllSubscribers()).toHaveLength(1);
+      expect(captur(() => getAllSubscribers())).toContain("en vez de una lista");
+      expect(captur(() => addSubscriber("nueva@ejemplo.test"))).toContain(
+        "en vez de una lista"
+      );
+      // Y el fichero sigue con lo que tenía, que es lo que había que preservar.
+      expect(readFileSync(destino, "utf-8")).toBe(contenido);
     }
   });
 

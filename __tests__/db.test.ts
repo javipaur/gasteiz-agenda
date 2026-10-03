@@ -106,18 +106,86 @@ describe("la ruta del fichero de suscriptores", () => {
     expect(getAllSubscribers().map((s) => s.email)).toEqual(["hola@ejemplo.test"]);
   });
 
-  it("un fichero corrupto no borra a los que ya había: se queda vacío", () => {
-    // `readSubscribers` ya tenía un `catch` que devuelve `[]`. El detalle que
-    // importa es que no lanza: una alta sobre un `subscribers.json` a medias no
-    // puede tumbar el endpoint de suscripción.
+  it("un fichero corrupto no borra a los que ya había: el alta falla y el fichero queda intacto", () => {
+    // Este test se llamaba así antes y **no cumplía lo que su nombre prometía**.
+    // Su cuerpo escribía un JSON inválido sobre un fichero sin suscriptores,
+    // daba de alta a alguien y comprobaba que quedaba una fila: es decir, fijaba
+    // exactamente el comportamiento destructivo. El `catch` de
+    // `readSubscribers` devolvía `[]`, y `addSubscriber` hacía `push` + sobrescribir
+    // el fichero entero, así que cualquier alta posterior a un truncate borraba a
+    // todos los que hubiera con sus tokens de baja, respondiendo `200 {ok:true}`.
+    //
+    // Lo que se fija ahora es la garantía que el nombre siempre quiso declarar:
+    // un fichero que no se puede leer **no se toca**, y quien lo intentaba se
+    // entera con un error en vez de con un borrado.
     const destino = join(dir, "roto.json");
-    writeFileSync(destino, "{ esto no es json", "utf-8");
+    const corrupto = '[{"email":"ada@ejemplo.test","active":true,';
+    writeFileSync(destino, corrupto, "utf-8");
     process.env.SUBSCRIBERS_PATH = destino;
 
     const { addSubscriber, getAllSubscribers } = cargarDb();
-    expect(getAllSubscribers()).toEqual([]);
+
+    // La lectura falla, y el error dice qué hacer.
+    expect(() => getAllSubscribers()).toThrow(/no contiene JSON válido/);
+    expect(() => addSubscriber("hola@ejemplo.test")).toThrow(/no contiene JSON válido/);
+
+    // Y sobre todo: el fichero está byte a byte como estaba. Esto es lo que
+    // faltaba, y es la diferencia entre «se rompió» y «se perdió».
+    expect(readFileSync(destino, "utf8")).toBe(corrupto);
+  });
+
+  it("un fichero con JSON válido que no es una lista tampoco se sobrescribe", () => {
+    // El otro camino del mismo bug: un `{}` que dejó una escritura a medias no es
+    // una lista vacía, y devolver `[]` para él volvía a abrir la misma puerta.
+    const destino = join(dir, "objeto.json");
+    writeFileSync(destino, '{"email":"ada@ejemplo.test"}', "utf-8");
+    process.env.SUBSCRIBERS_PATH = destino;
+
+    const { addSubscriber } = cargarDb();
+
+    expect(() => addSubscriber("hola@ejemplo.test")).toThrow(/en vez de una lista/);
+    expect(readFileSync(destino, "utf8")).toBe('{"email":"ada@ejemplo.test"}');
+  });
+
+  it("un fichero vacío no es corrupción: el alta funciona", () => {
+    // Al revés que el caso anterior, y por eso el caso anterior no puede ser el
+    // default. `ensureFichero` crea el fichero con `[]`, y dos altas
+    // simultáneas sobre uno recién creado pueden dejarlo vacío; eso no puede
+    // tumbar el alta.
+    const destino = join(dir, "vacio.json");
+    writeFileSync(destino, "", "utf-8");
+    process.env.SUBSCRIBERS_PATH = destino;
+
+    const { addSubscriber, getAllSubscribers } = cargarDb();
+
     expect(() => addSubscriber("hola@ejemplo.test")).not.toThrow();
-    expect(getAllSubscribers()).toHaveLength(1);
+    expect(getAllSubscribers().map((s) => s.email)).toEqual(["hola@ejemplo.test"]);
+  });
+
+  it("la escritura es atómica: no queda temporal, y sustituir un fichero existente funciona", () => {
+    // `renameSync` sustituye el destino si existe, también en Windows. Si no lo
+    // hiciera, la segunda escritura —que sí tiene que reemplazar un fichero con
+    // contenido— fallaría, y el fallo sería en local, en la máquina de quien
+    // desarrolla, no en producción.
+    const destino = join(dir, "atomica.json");
+    process.env.SUBSCRIBERS_PATH = destino;
+
+    const { addSubscriber, confirmSubscriber, getAllSubscribers } = cargarDb();
+
+    addSubscriber("ada@ejemplo.test");
+    confirmSubscriber(getAllSubscribers()[0].token);
+    addSubscriber("grace@ejemplo.test");
+
+    expect(readFileSync(destino, "utf8")).not.toContain(".tmp");
+
+    const enDisco = JSON.parse(readFileSync(destino, "utf8"));
+    expect(enDisco.map((s: { email: string }) => s.email)).toEqual([
+      "ada@ejemplo.test",
+      "grace@ejemplo.test",
+    ]);
+    // Y la que estaba activa antes de la segunda escritura sigue intacta: es lo
+    // que un rename atómico garantiza y un `writeFileSync` directo no.
+    expect(enDisco[0].active).toBe(true);
   });
 });
 

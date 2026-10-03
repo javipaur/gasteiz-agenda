@@ -74,21 +74,52 @@ function ensureFichero(): string {
   return destino;
 }
 
+/**
+ * Lee la lista, y **lanza si el fichero está corrupto**.
+ *
+ * Antes el `catch` del `JSON.parse` devolvía `[]`, y esa lista vacía era
+ * indistinguible de «no hay nadie». Con `addSubscriber` haciendo `push` y
+ * `writeSubscribers` sobrescribiendo el fichero entero, un `subscribers.json` a
+ * medias —un corte a mitad de un `writeFileSync`, un OOM, un disco lleno—
+ * significaba: el siguiente alta lee `[]`, añade una fila y **borra a todos los
+ * que hubiera, con sus tokens de baja**, y responde `200 {ok:true}`. Sin copia,
+ * sin aviso y sin log. `scripts/send-newsletter.ts` solo veía «0 suscriptores
+ * activos» y salía con código 0.
+ *
+ * Lanzar es lo correcto porque el fallo tiene que verse en el sitio que lo
+ * causa —el endpoint de alta o el cron— y no dos semanas después cuando alguien
+ * se queja de que dejó de recibir la agenda. El mensaje dice qué hacer, porque la
+ * respuesta no es «borra el fichero»: ese fichero contiene los tokens de baja, y
+ * sin ellos el enlace del último correo deja de dar de baja a nadie.
+ */
 function readSubscribers(): Subscriber[] {
   const destino = ensureFichero();
+  const crudo = fs.readFileSync(destino, "utf-8");
+  // `ensureFichero` crea el fichero con `[]`, así que vacío no es lo normal, pero
+  // dos altas simultáneas sobre un fichero recién creado pueden dejarlo así. No
+  // es corrupción y no debe tumbar el alta.
+  if (crudo.trim() === "") return [];
+
   let filas: unknown;
   try {
-    filas = JSON.parse(fs.readFileSync(destino, "utf-8"));
+    filas = JSON.parse(crudo);
   } catch {
-    return [];
+    throw new Error(
+      `${destino} no contiene JSON válido y no se ha modificado. ` +
+        `Ahí están los suscriptores y sus tokens de baja: arráncalo a mano antes de ` +
+        `volver a dar de alta a nadie, o bórralo si quieres empezar de cero.`
+    );
   }
-  // Un `subscribers.json` que contiene JSON válido pero no una lista —un `{}`
-  // que dejó una escritura a medias, por ejemplo— devolvía el valor tal cual y el
-  // `.find` de quien llamara reventaba con un TypeError que no dice de dónde
-  // viene. Con la migración de abajo hay que recorrerlo, así que el
-  // `Array.isArray` pasa a ser necesario de verdad.
-  if (!Array.isArray(filas)) return [];
-  return migrarConfirmedAt(destino, filas as Subscriber[]);
+  // Un `{}` que dejó una escritura a medias también es corrupción, no una lista
+  // vacía: devolver `[]` aquí habría vuelto a abrir la puerta de la que el
+  // `catch` de arriba salía.
+  if (!Array.isArray(filas)) {
+    throw new Error(
+      `${destino} contiene ${filas === null ? "null" : typeof filas} en vez de una lista, ` +
+        `y no se ha modificado. Arránlalo a mano o bórralo para empezar de cero.`
+    );
+  }
+  return migrarConfirmedAt(filas as Subscriber[]);
 }
 
 /**
@@ -116,7 +147,7 @@ function readSubscribers(): Subscriber[] {
  * llama en cada alta, cada confirmación y cada envío, y un despliegue con la
  * lista montada no puede estar reescribiendo el fichero en cada petición.
  */
-function migrarConfirmedAt(destino: string, filas: Subscriber[]): Subscriber[] {
+function migrarConfirmedAt(filas: Subscriber[]): Subscriber[] {
   let cambio = false;
   for (const fila of filas) {
     if (fila.confirmedAt === undefined) {
@@ -124,14 +155,44 @@ function migrarConfirmedAt(destino: string, filas: Subscriber[]): Subscriber[] {
       cambio = true;
     }
   }
-  if (cambio) {
-    fs.writeFileSync(destino, JSON.stringify(filas, null, 2), "utf-8");
-  }
+  if (cambio) writeSubscribers(filas);
   return filas;
 }
 
+/**
+ * Escribe la lista entera, y **atómicamente**.
+ *
+ * El `writeFileSync` directo dejaba el fichero a medias si el proceso moría en
+ * mitad —y con `readSubscribers` devolviendo `[]` ante un JSON truncado, esa
+ * mitad era indistinguible de una lista vacía y la siguiente escritura la
+ * borraba. Escribir a un temporal y renombrar hace que el destino solo exista en
+ * uno de los dos estados: el viejo entero, o el nuevo entero. Nunca los dos a
+ * medias.
+ *
+ * El temporal lleva el pid para que dos escrituras simultáneas en el mismo
+ * proceso —dos altas a la vez— no se pisen el fichero el uno al otro; el rename
+ * es atómico pero la escritura no.
+ *
+ * `renameSync` sustituye el destino si existe en Windows tanto como en POSIX: en
+ * Windows va por `MoveFileEx` con `MOVEFILE_REPLACE_EXISTING`, y el test de abajo
+ * lo comprueba reescribiendo un fichero que ya estaba, que es el caso que importa.
+ */
 function writeSubscribers(subscribers: Subscriber[]) {
-  fs.writeFileSync(ensureFichero(), JSON.stringify(subscribers, null, 2), "utf-8");
+  const destino = ensureFichero();
+  const temporal = `${destino}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(temporal, JSON.stringify(subscribers, null, 2), "utf-8");
+    fs.renameSync(temporal, destino);
+  } catch (error) {
+    // Un temporal huérfano no se limpia solo, y la siguiente escritura lo
+    // sobrescribiría, así que se intenta quitar sin tapar el error original.
+    try {
+      if (fs.existsSync(temporal)) fs.unlinkSync(temporal);
+    } catch {
+      /* el error que importa es el de la escritura, no el de limpiar */
+    }
+    throw error;
+  }
 }
 
 /**
