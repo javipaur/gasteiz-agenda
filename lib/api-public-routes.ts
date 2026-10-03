@@ -57,6 +57,23 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
     motivo: "la llama BusPageClient",
   },
 
+  // El logger del navegador. `lib/axiom/client.ts` monta
+  // `SimpleFetchTransport({input: "/api/log"})` desde un módulo `"use client"`, que
+  // consume `app/error.tsx`. El navegador no publica `API_KEY` y no puede mandarla,
+  // así que con esta ruta fuera de la lista el middleware respondía 401 y **todos
+  // los `console.warn` del cliente se descartaban en silencio**: el aviso se perdía
+  // justo en la página de error, que es donde más hace falta verlo.
+  //
+  // Es la única exención de la lista que se traga de cualquiera lo que mande, así
+  // que el techo de tamaño del cuerpo lo pone la ruta (`app/api/log/route.ts`) y no
+  // el middleware. Con la CORS abierta que llevan las públicas, quien puede escribir
+  // aquí es cualquier `<script>` de cualquier página.
+  {
+    path: "/api/log",
+    motivo:
+      "el logger del navegador no tiene la clave y sin esto sus avisos se pierden",
+  },
+
   // El newsletter. El alta viene del formulario, y confirmar y darse de baja son
   // enlaces que se abren en el navegador del destinatario desde su cliente de
   // correo: no hay componente cliente al que colgarles la clave.
