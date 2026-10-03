@@ -278,6 +278,46 @@ vistas sobre el agregado y las deja el registro. `/api/actividades/tours` sigue
 siendo un filtro por categoría, así que las fichas de Civitatis no entran ahí
 todavía; la ruta de Civitatis es aparte a propósito.
 
+### Fuentes con credencial: no, mientras sean de una persona
+
+El club **010 taldea** de Strava (`strava.com/clubs/2302100`, el "010" es el
+prefijo postal de Vitoria) publica eventos que serían de la Agenda. La decisión
+tomada es **no integrarlos**, y el motivo tiene tres partes, por orden de
+importancia.
+
+**No se puede ni comprobar que sirvan de algo.** Los eventos no están en el HTML
+público —0 apariciones de `event_date` o `group_event_start` en los 637 KB que
+devuelve `GET /clubs/2302100`; lo que hay son cadenas de traducción del bundle de
+JavaScript—. Y `og:description` de la página es literalmente *"Log in to see
+010 taldea"*. Es decir: **no hay forma de saber cuántos eventos tiene** sin
+autenticarse. Se estaría añadiendo una dependencia permanente para un dato cuyo
+tamaño se desconoce.
+
+**Sería la primera credencial que es de una persona y no del proyecto.** Las 28
+fuentes son públicas. La única credencial que hay, `MEC_TOKEN`, es compartida y
+está documentada como *no secreta* porque además se publica en el bundle de
+Kiosko Cultura. Un `access_token` de atleta es otra cosa: pertenece a una cuenta,
+y esa cuenta puede revocar la autorización, dejar el club, o simplemente cambiar
+de contraseña.
+
+**Y reintroduce el fallo que este repo acaba de eliminar.** Una fuente que
+devuelve `[]` porque el token ha muerto es indistinguible de un club sin
+eventos, que es exactamente el modo de fallo que se corrigió en `municipal`,
+`rula`, `farmacias` y `search`. `SourceEntry` no tiene ningún campo para
+declarar que una fuente es de las que necesitan credencial, y no se va a
+añadir uno para admitir un único club.
+
+Medido, por si hay que volver a mirarlo: `GET /api/v3/clubs/2302100/group_events`
+responde **401** sin token, y `robots.txt` de Strava tiene `Disallow: /api/` para
+`User-agent: *`. Es decir, **no se puede raspar**: la API oficial pide
+autenticación y el HTML no tiene los datos.
+
+Lo que sí se haría, si el club publica su calendario en su propia web o en
+redes, es entra por el camino normal: una fuente pública más, con fixture y
+test, como las otras 28. Si algún día eso deja de ser cierto —Strava es el único
+sitio donde están— y hay un valor demostrado, la decisión se revisa con el
+número delante, no con la intención.
+
 ### Fases que quedan
 
 **Nada.** Las cuatro fases están cerradas.
