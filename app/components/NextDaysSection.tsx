@@ -36,12 +36,27 @@ type DayGroup = {
   events: Evento[];
 };
 
-export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
+export default function NextDaysSection({
+  eventos,
+  ahora,
+}: {
+  eventos: Evento[];
+  /**
+   * El instante contra el que se construye la semana, en ms.
+   *
+   * Estaba dentro del `useMemo` con deps `[eventos]`, que es un memo impuro: la
+   * franja "Hoy–Domingo" se calculaba una vez y se quedaba congelada aunque la
+   * pestaña pasara la medianoche. El reloj llega como prop —igual que en
+   * `HeroSection` y en `app/culture/page.tsx`— para que el memo sea puro y sus
+   * deps no_INCLUDEAN el tiempo.
+   */
+  ahora: number;
+}) {
   const [selectedDay, setSelectedDay] = useState<number | null>(0);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const weekDays: DayGroup[] = useMemo(() => {
-    const today = new Date();
+    const today = new Date(ahora);
     today.setHours(0, 0, 0, 0);
     const groups: DayGroup[] = [];
 
@@ -70,7 +85,7 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
     for (const g of groups) g.count = g.events.length;
 
     return groups;
-  }, [eventos]);
+  }, [eventos, ahora]);
 
   const toggleDay = useCallback((idx: number) => {
     setSelectedDay((prev) => (prev === idx ? null : idx));
@@ -141,7 +156,10 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
           {!todaySelected && (
             <button
               onClick={() => { setSelectedDay(0); setCategoryFilter("all"); }}
-              className="h-9 px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
+              // `min-h-[44px]` en lugar de `h-9`: eran 36 px de alto. La fila de
+              // pestañas es la forma principal de elegir día, y 36 es justo lo
+              // que hace fallar un dedo gordo.
+              className="min-h-[44px] px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
             >
               Hoy
             </button>
@@ -149,7 +167,7 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
           {hasWeekend && !weekendSelected && (
             <button
               onClick={() => { setSelectedDay(weekendIdx); setCategoryFilter("all"); }}
-              className="group inline-flex items-center gap-2 h-9 px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
+              className="group inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
             >
               Este finde
               <span aria-hidden="true" className="text-xs transition-transform duration-300 group-hover:translate-x-0.5">→</span>
@@ -176,7 +194,7 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
                 role="tab"
                 aria-selected={isSelected}
                 aria-controls={`day-panel-${idx}`}
-                className={`flex-shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-full cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97] ${
+                className={`flex-shrink-0 inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.97] ${
                   isSelected
                     ? "bg-fg text-bg"
                     : "bg-bg-muted border border-border text-fg-muted hover:text-fg hover:border-border-hover"
@@ -217,7 +235,11 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
               </h3>
               <button
                 onClick={() => setSelectedDay(null)}
-                className="text-fg-subtle hover:text-fg-muted text-sm font-mono transition-colors duration-300 cursor-pointer"
+                // Sin relleno ni tamaño declarados medía 20×20. El `-my-2` compensa
+                // los 12 px de alto que añaden los 44 para que la fila no crezca:
+                // el área sensible sigue siendo de 44 y lo que se ve, el texto, se
+                // queda donde estaba.
+                className="min-w-[44px] min-h-[44px] px-2 -my-2 text-fg-subtle hover:text-fg-muted text-sm font-mono transition-colors duration-300 cursor-pointer"
                 aria-label="Cerrar panel"
               >
                 Cerrar
@@ -230,7 +252,7 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
                   <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
-                    className={`px-3 py-1 text-xs font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
+                    className={`min-w-[44px] min-h-[44px] px-3 font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
                       categoryFilter === cat
                         ? `${cat !== "all" && CATEGORY_FILLS[cat] ? "" : "bg-accent "}text-white`
                         : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
@@ -255,7 +277,9 @@ export default function NextDaysSection({ eventos }: { eventos: Evento[] }) {
                 <div className="relative aspect-[16/7] md:aspect-[2.4/1]">
                   <Image
                     src={featured.image!}
-                    alt={featured.title}
+                    /* `alt=""`: la imagen y el título comparten el `<a>` del destacado, así que con el
+                       `alt` puesto el lector anunciaba el evento dos veces. */
+                    alt=""
                     fill
                     sizes="(max-width: 1024px) 90vw, 960px"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"

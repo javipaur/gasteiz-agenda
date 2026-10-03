@@ -1,61 +1,51 @@
 "use client";
 
 import { InViewWrapper, EventCard } from "@/lib/shared";
-import { CATEGORY_COLORS } from "@/lib/categories";
-import { agendaSlug } from "@/lib/slug";
+import { BLANCA_COLORS, mapFiestaToCard } from "./blanca";
 import { blancaEditionYear } from "@/lib/blanca";
+import { localDateStr } from "@/lib/utils";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
 import SectionHead from "./SectionHead";
 
-const BLANCA_COLORS: Record<string, string> = {
-  ...CATEGORY_COLORS,
-  "Conciertos La Blanca": "#C94A3D",
-  "Niños en La Blanca": "#4A9C8C",
-  "Blusas y Neskak": "#0166bf",
-  "Cofradía de la Virgen Blanca": "#7a12e2",
-  "Deporte en La Blanca": "#7CB342",
-};
-
-/**
- * La Blanca todavía no pasa por el agregado: estas props son `FiestaBlanca` tal
- * como las devuelve el scraper, no `AgendaEvento`. Es una de las dos excepciones
- * a la regla de ESLint que prohíbe importar `eventSlug`.
- *
- * El slug sale de `agendaSlug`, que es la misma normalización que aplica
- * `normalizeRaw` en `lib/agenda.ts` —incluido el `trim` del título y el descarte
- * del `"#"`—, y también la que usa `app/fiestas-blanca/page.tsx` para su
- * JSON-LD. La tarjeta y el JSON-LD de la misma página no pueden salir con slugs
- * distintos porque ya no normalizan por su cuenta. El día que La Blanca venga del
- * agregador, `mapFiestaToCard` desaparece entero.
- */
-function mapFiestaToCard(f: FiestaBlanca) {
-  return {
-    id: f.id,
-    slug: agendaSlug(f),
-    title: f.title,
-    date: f.date,
-    image: f.image || undefined,
-    location: f.location || undefined,
-    link: f.url || undefined,
-    category: f.category || "Fiestas",
-    // El id del registro, no el título de la edición: `sourceLabel` solo sabe
-    // traducir ids, y una etiqueta con el año dentro se queda en crudo en la pill
-    // de cada tarjeta en cuanto la edición cambia.
-    source: "fiestas-blanca",
-    time: f.timeStart || undefined,
-  };
-}
 
 export default function FiestasBlancaSection({
   fiestas,
+  ahora,
 }: {
   fiestas: FiestaBlanca[];
+  /**
+   * El instante contra el que se decide qué fiestas quedan por pasar, en ms.
+   *
+   * Antes se leía `new Date()` **en el cuerpo del componente**, y eso eran dos fallos
+   * en una línea:
+   *
+   * 1. **Era una impureza en render.** El valor se calculaba en cada render y no
+   *    estaba en ninguno, así que era un valor nuevo en cada pasada sin que nada lo
+   *    pidiera: la lista podía quedar filtrada contra un momento distinto del que la
+   *    persona está mirando. En `HeroSection` y en `NextDaysSection` esto ya se había
+   *    resuelto con un prop, y el motivo de que fuera un `useMemo` allí y no aquí es
+   *    que allí el memo **podía devolver su valor cacheado para siempre**: leer el
+   *    reloj dentro de un memo es lo que hace que eso ocurra. Aquí el daño es menor —
+   *    la lista se recalcula— y sin embargo el mismo prop lo deja resuelto.
+   * 2. **Usaba UTC para una fecha local.** `new Date().toISOString().slice(0, 10)` es
+   *    el día **UTC**, y el día que ve la persona es el local: entre las 00:00 y las
+   *    01:59 de Europe/Madrid el primero ya ha cambiado y el segundo todavía no
+   *    (medido: el UTC cruza la medianoche a las 23:00Z en invierno y a las 22:00Z en
+   *    verano). Durante esas dos horas la sección descartaba la fiesta de hoy y
+   *    pintaba la de ayer.
+   *
+   * Lo que sustituye a `toISOString()` es `localDateStr`, la misma función que usa
+   * `NextDaysSection`, y no un `getFullYear()/getMonth()/getDate()` a mano: "el día
+   * que ve el usuario" tiene que tener una sola definición en el repo, porque
+   * cualquier otra es una copia que se puede separar.
+   */
+  ahora: number;
 }) {
   if (fiestas.length === 0) return null;
 
-  const upcoming = fiestas
-    .filter((f) => f.date >= new Date().toISOString().slice(0, 10))
-    .slice(0, 12);
+  const hoy = localDateStr(new Date(ahora));
+
+  const upcoming = fiestas.filter((f) => f.date >= hoy).slice(0, 12);
 
   if (upcoming.length === 0) return null;
 
@@ -64,7 +54,11 @@ export default function FiestasBlancaSection({
     new Date(`${s}T00:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
   const range =
     dates.length > 1 ? `${fmt(dates[0])} – ${fmt(dates[dates.length - 1])}` : "";
-  const year = blancaEditionYear(dates) ?? new Date().getFullYear();
+  // El año también sale del prop y no de un `new Date()` suelto: era el segundo reloj
+  // en el cuerpo de este mismo componente, y dejar uno solo para el año dejaría el
+  // componente a medio purificar —"a veces" el render es determinista, que es peor
+  // que no serlo.
+  const year = blancaEditionYear(dates) ?? new Date(ahora).getFullYear();
 
   return (
     <section className="py-16 md:py-20 px-5 sm:px-6">

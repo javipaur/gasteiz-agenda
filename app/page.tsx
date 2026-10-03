@@ -101,12 +101,24 @@ function FiestasSkeleton() {
 
 async function HeroWithData() {
   const eventos = await getCachedEventos();
-  return <HeroSection eventos={eventos} />;
+  // El instante se pasa como prop y no se lee dentro del componente. Es lo mismo
+  // que hace `app/culture/page.tsx` con su `eslint-disable react-hooks/purity`
+  // justificado: el reloj es del servidor, y leerlo en un `useMemo` del cliente
+  // produce un memo impuro que puede devolver su valor cacheado para siempre.
+  // La regla `react-hooks/purity` salta aquí, y es un falso positivo: esto es una
+  // página de servidor que se renderiza una vez por petición, así que no hay
+  // re-render de cliente contra el que el valor pueda quedarse viejo. Al pasarlo
+  // como prop, el `useMemo` del cliente queda puro, que es donde sí importaba:
+  // antes leía el reloj dentro del memo y podía devolver la cuenta cacheada
+  // indefinidamente. Mismo tratamiento que `app/culture/page.tsx`.
+  // eslint-disable-next-line react-hooks/purity
+  return <HeroSection eventos={eventos} ahora={Date.now()} />;
 }
 
 async function NextDaysWithData() {
   const eventos = await getCachedEventos();
-  return <NextDaysSection eventos={eventos} />;
+  // eslint-disable-next-line react-hooks/purity
+  return <NextDaysSection eventos={eventos} ahora={Date.now()} />;
 }
 
 async function TodayWithData() {
@@ -198,7 +210,20 @@ async function InfantilCarousel() {
 async function FiestasWithData() {
   if (!isBlancaSeason()) return null;
   const fiestas = await scrapeFiestasBlanca();
-  return <FiestasBlancaSection fiestas={fiestas} />;
+  // El instante se pasa como prop y no se lee dentro del componente, exactamente
+  // igual que en `HeroWithData` y en `NextDaysWithData` dos líneas más arriba. Antes
+  // `FiestasBlancaSection` leía `new Date()` en su propio cuerpo para decidir qué
+  // fiestas quedaban por pasar, y eso son dos fallos: un render impuro —el valor se
+  // recalcula en cada pasada sin que nada lo pida— y un día **UTC** usado como si
+  // fuera el día local, que entre las 00:00 y las 01:59 de Madrid descarta la fiesta
+  // de hoy y pinta la de ayer.
+  //
+  // La regla `react-hooks/purity` salta aquí y es un falso positivo por el mismo
+  // motivo que en las otras dos: esto es una página de servidor que se renderiza una
+  // vez por petición, así que no hay re-render de cliente contra el que el valor
+  // pueda quedarse viejo. El prop es lo que hace el render del cliente puro.
+  // eslint-disable-next-line react-hooks/purity
+  return <FiestasBlancaSection fiestas={fiestas} ahora={Date.now()} />;
 }
 
 export default async function HomeEventsPage() {
@@ -340,8 +365,13 @@ async function AtAGlanceWithData() {
 
 async function SocialProofWithData() {
   const eventos = await getCachedEventos();
-  // eslint-disable-next-line react-hooks/purity
-  const since = Date.now();
+  // Sin `since`. `SocialProof` ya no lleva `FreshnessBadge`: el badge mide
+  // `Date.now() - since`, así que un `since` tomado aquí sería el instante del
+  // render y la etiqueta daría "Actualizado hace 0 s" al abrir, subiendo luego
+  // mientras la pestaña siga abierta aunque los datos no cambien. El `since` de
+  // verdad es el `fetchedAt` que llega en la respuesta de la API, y eso sólo lo
+  // tienen `/farmacias` y `/bus`. Aquí la cifra honesta es la de "Diaria /
+  // actualización", que ya está en el propio componente.
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const horizon = new Date(today);
@@ -350,7 +380,5 @@ async function SocialProofWithData() {
     const d = new Date(e.date);
     return !isNaN(d.getTime()) && d >= today && d < horizon;
   }).length;
-  return (
-    <SocialProof eventCount={eventos.length} thisWeekCount={thisWeek} since={since} />
-  );
+  return <SocialProof eventCount={eventos.length} thisWeekCount={thisWeek} />;
 }

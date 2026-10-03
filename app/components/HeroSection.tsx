@@ -9,9 +9,30 @@ import { formatDate, shortTime } from "@/lib/utils";
 import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
 import type { Evento } from "@/lib/eventos";
 
-export default function HeroSection({ eventos }: { eventos: Evento[] }) {
+export default function HeroSection({
+  eventos,
+  ahora,
+}: {
+  eventos: Evento[];
+  /**
+   * El instante contra el que se cuenta la semana, en ms.
+   *
+   * Antes se leía `new Date()` **dentro** de los dos `useMemo`, y eso es un memo
+   * impuro: puede devolver su valor cacheado indefinidamente. La home tiene
+   * `revalidate = 300`, así que la cuenta "N planes esta semana" y el destacado
+   * se congelaban contra el día con el que se calculó el primer render —abrir la
+   * web a las 23:50 y dejarla abierta te dejaba el martes entero en lunes—. Por
+   * si fuera poco, `getPopularEvents` sin tercer argumento puntúa con su propio
+   * `new Date()`, o sea que el arreglo had de llegar por los dos caminos.
+   *
+   * `app/page.tsx` (servidor) pasa `Date.now()` como prop, igual que hace
+   * `app/culture/page.tsx` con su `eslint-disable react-hooks/purity` justificado.
+   * El prop es lo que hace el memo puro: sus deps no incluyen el reloj.
+   */
+  ahora: number;
+}) {
   const totalThisWeek = useMemo(() => {
-    const today = new Date();
+    const today = new Date(ahora);
     today.setHours(0, 0, 0, 0);
     const horizon = new Date(today);
     horizon.setDate(horizon.getDate() + 7);
@@ -19,9 +40,12 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
       const d = new Date(ev.date);
       return !isNaN(d.getTime()) && d >= today && d < horizon;
     }).length;
-  }, [eventos]);
+  }, [eventos, ahora]);
 
-  const destacado = useMemo(() => getPopularEvents(eventos, 1)[0] ?? null, [eventos]);
+  const destacado = useMemo(
+    () => getPopularEvents(eventos, 1, new Date(ahora))[0] ?? null,
+    [eventos, ahora]
+  );
 
   return (
     <section className="relative px-5 sm:px-6 pt-28 pb-10 md:pt-36 md:pb-14 overflow-hidden">
@@ -29,7 +53,7 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
       <div className="relative max-w-5xl mx-auto">
         <InViewWrapper eager>
           <p className="flex items-center gap-3 mb-6">
-            <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-lime text-[#0B0E14]">
+            <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-lime text-on-tint">
               {totalThisWeek > 0 ? `${totalThisWeek} planes esta semana` : "Agenda de la ciudad"}
             </span>
             <span aria-hidden="true" className="h-px w-10 bg-border" />
@@ -57,7 +81,6 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
           <InViewWrapper eager delay={0.1} className="hidden lg:block">
             <Link
               href={`/evento/${destacado.slug}`}
-              aria-label="Plan destacado"
               className="group double-bezel rounded-2xl p-4 flex items-center gap-4 card-hover"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -70,8 +93,8 @@ export default function HeroSection({ eventos }: { eventos: Evento[] }) {
                 <span
                   className="inline-flex items-center font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: CATEGORY_COLORS[normalizeCategory(destacado.category)] || "#7C8794",
-                    color: "#0B0E14",
+                    backgroundColor: CATEGORY_COLORS[normalizeCategory(destacado.category)] || "var(--fg-subtle)",
+                    color: "var(--on-tint)",
                   }}
                 >
                   {normalizeCategory(destacado.category)}
