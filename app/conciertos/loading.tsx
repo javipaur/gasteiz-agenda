@@ -1,6 +1,9 @@
+import LoadingStatus from "@/app/components/LoadingStatus";
+
 export default function ConciertosLoading() {
   return (
-    <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
+    <LoadingStatus label="Cargando los conciertos…">
+      <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <div className="mb-10">
         <div className="h-3 w-16 bg-surface rounded animate-pulse mb-3" />
         <div className="h-12 w-64 bg-surface rounded-xl animate-pulse mb-3" />
@@ -20,11 +23,12 @@ export default function ConciertosLoading() {
           <div className="h-px flex-1 bg-border" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+{[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="aspect-[4/3] bg-surface rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </LoadingStatus>
   );
 }

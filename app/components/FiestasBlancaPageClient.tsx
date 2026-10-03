@@ -3,23 +3,9 @@
 import { useState, useMemo } from "react";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
-import { CATEGORY_COLORS } from "@/lib/categories";
-import { agendaSlug } from "@/lib/slug";
+import { BLANCA_COLORS, mapFiestaToCard } from "./blanca";
 import { blancaEditionYear } from "@/lib/blanca";
 import type { FiestaBlanca } from "@/lib/sources/fiestas-blanca";
-
-const BLANCA_COLORS: Record<string, string> = {
-  ...CATEGORY_COLORS,
-  "Conciertos La Blanca": "#C94A3D",
-  "Niños en La Blanca": "#4A9C8C",
-  "Blusas y Neskak": "#0166bf",
-  "Cofradía de la Virgen Blanca": "#7a12e2",
-  "Deporte en La Blanca": "#7CB342",
-  Vaquillas: "#A67C52",
-  Fuegos: "#FF6900",
-  Teatro: "#A67C52",
-  Humor: "#C97B8C",
-};
 
 const DAY_NAMES = [
   "Domingo",
@@ -49,32 +35,6 @@ const MONTH_NAMES = [
 function formatDateLong(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
   return `${DAY_NAMES[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
-}
-
-/**
- * Mismo criterio que en `FiestasBlancaSection`: las props son `FiestaBlanca` del
- * scraper y no `AgendaEvento`, así que el slug sale de `agendaSlug`, la misma
- * normalización que aplica `normalizeRaw` (`lib/agenda.ts`) y que usa el JSON-LD
- * de `app/fiestas-blanca/page.tsx`. Es una de las dos excepciones a la regla de
- * ESLint que prohíbe importar `eventSlug`; las dos copias de `mapFiestaToCard` y
- * ese JSON-LD se borran cuando La Blanca venga del agregador.
- */
-function mapFiestaToCard(f: FiestaBlanca) {
-  return {
-    id: f.id,
-    slug: agendaSlug(f),
-    title: f.title,
-    date: f.date,
-    image: f.image || undefined,
-    location: f.location || undefined,
-    link: f.url || undefined,
-    category: f.category || "Fiestas",
-    // El id del registro, no el título de la edición: `sourceLabel` solo sabe
-    // traducir ids, y una etiqueta con el año dentro se queda en crudo en la pill
-    // de cada tarjeta en cuanto la edición cambia.
-    source: "fiestas-blanca",
-    time: f.timeStart || undefined,
-  };
 }
 
 export default function FiestasBlancaPageClient({
@@ -140,7 +100,11 @@ export default function FiestasBlancaPageClient({
   }, [filtered]);
 
   return (
-    <div className="min-h-screen">
+    // `100dvh` y no `100vh`: en móvil, `vh` es el alto del viewport con la barra de
+    // URL desplegada. Al desplazarse la barra se retira, el viewport crece y
+    // underneath queda un hueco del color del fondo. `dvh` sigue a la barra. Mismo
+    // motivo que `layout.tsx`, `error.tsx` y `not-found.tsx`.
+    <div className="min-h-[100dvh]">
       <section className="pt-32 md:pt-36 pb-8 px-5 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <InViewWrapper>
@@ -168,6 +132,9 @@ export default function FiestasBlancaPageClient({
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
+                    /* Los dos grupos de esta página son conmutables y su estado se
+                       comunicaba solo con el color de fondo. */
+                    aria-pressed={selectedCategory === cat}
                     className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-full border transition-all duration-300 ${
                       selectedCategory === cat
                         ? "bg-fg text-bg border-fg"
@@ -194,6 +161,7 @@ export default function FiestasBlancaPageClient({
                     <button
                       key={day}
                       onClick={() => setSelectedDay(day)}
+                      aria-pressed={selectedDay === day}
                       className={`px-3.5 py-2 text-xs rounded-full border transition-all duration-300 ${
                         selectedDay === day
                           ? "bg-accent text-white border-accent"

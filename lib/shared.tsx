@@ -110,9 +110,11 @@ export function EventCard({
 
   const aspectClass = size === "large" ? "aspect-[16/10]" : size === "compact" ? "aspect-[3/2]" : "aspect-[4/3]";
 
-  const handleShare = useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleShare = useCallback(async () => {
+    // Sin `preventDefault` ni `stopPropagation`: el botón ya no cuelga del `<a>` de
+    // la tarjeta, así que no hay enlace que anular ni evento que cortar. Antes
+    // hacían falta porque estaba dentro del ancla, que es justo lo que lo
+    // convertía en contenido interactivo dentro de un enlace.
     const shareData = {
       title: evento.title,
       text: `${evento.title}${evento.location ? ` en ${evento.location}` : ""}`,
@@ -127,111 +129,145 @@ export function EventCard({
   }, [evento, detailHref]);
 
   return (
-    <Link
-      href={detailHref}
-      className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98] active:bg-accent-subtle/40"
+    <div
+      className="group relative double-bezel-outer rounded-[1.25rem] p-1.5 block focus-within:outline-2 focus-within:outline-accent transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]"
     >
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
-        <div className={`${aspectClass} relative`}>
-          {evento.image ? (
-            <Image
-              src={evento.image}
-              alt={evento.title}
-              fill
-              priority={priority}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
-          ) : (
-            <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
-              <span className="font-display text-5xl text-accent/20">
-                {evento.title.charAt(0)}
-              </span>
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-          <div
-            className={`absolute top-3 left-3 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight ${relDay ? "bg-accent" : "bg-white/15"}`}
-            style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)" }}
-          >
-            <span className={`block font-mono text-[11px] uppercase tracking-wide ${relDay ? "text-white/90" : "text-white/70"}`}>
-              {relDay || month}
-            </span>
-            <span className="block font-display text-lg text-white">
-              {day}
-            </span>
-          </div>
-
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-            <FavoriteButton event={evento} size="sm" />
-            <button
-              onClick={handleShare}
-              aria-label="Compartir evento"
-              className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/50 flex items-center justify-center transition-all duration-300 active:scale-[0.92]"
-              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)" }}
-            >
-              <ShareIcon className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            {(showCategory || showSource) && (
-              <div className="flex items-center gap-1.5 mb-1.5">
-                {showCategory && evento.category && (
-                  <span
-                    className="e2e-cat-pill font-mono text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: catColor, color: "#0B0E14" }}
-                  >
-                    {evento.category}
-                  </span>
-                )}
-                {showSource && evento.source && (
-                  <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-white/50">
-                    {sourceLabel(evento.source)}
-                  </span>
-                )}
+        {/*
+          La tarjeta es un único `<Link>` y el favorito y el compartir viven **fuera**
+          de él, posicionados en absoluto sobre la esquina. El contenido de `a` no
+          puede ser interactivo: con los botones dentro, el HTML es inválido y el
+          nombre accesible de la tarjeta sale como "enlace con botón". Así los dos
+          siguen siendo alcanzables con Tab y con lector, y cada uno es un control.
+        */}
+        <Link
+          href={detailHref}
+          className="block focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <div className={`${aspectClass} relative`}>
+            {evento.image ? (
+              <Image
+                src={evento.image}
+                /* `alt=""` a propósito: la imagen y el título viven en el mismo
+                   `<a>`, así que con el `alt` puesto el lector oye el título dos
+                   veces. La imagen es decorativa respecto al texto que ya está al
+                   lado. */
+                alt=""
+                fill
+                priority={priority}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
+                <span className="font-display text-5xl text-accent/20">
+                  {evento.title.charAt(0)}
+                </span>
               </div>
             )}
-            <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
-              {evento.title}
-            </h3>
-            <div className="flex items-end justify-between gap-2">
-              <div className="min-w-0">
-                {evento.location && (
-                  <p className="font-mono text-xs text-white/70 flex items-center gap-1.5 truncate">
-                    {evento.rating && evento.rating > 0 && (
-                      <>
-                        <span className="flex items-center gap-0.5 text-amber-300" aria-label={`Valoración ${evento.rating} sobre 5`}>
-                          <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z" /></svg>
-                          {evento.rating.toFixed(1).replace(".", ",")}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                      </>
-                    )}
-                    <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
-                    {time && <span className="text-white shrink-0">{time}</span>}
-                    {time && evento.location && <span aria-hidden="true">·</span>}
-                    <span className="truncate">{evento.location}</span>
-                  </p>
-                )}
-                {!evento.location && time && (
-                  <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
-                    {time}
-                  </p>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+            <div
+              className={`absolute top-3 left-3 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight ${relDay ? "bg-accent" : "bg-white/15"}`}
+              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)" }}
+            >
+              <span className={`block font-mono text-[11px] uppercase tracking-wide ${relDay ? "text-white/90" : "text-white/70"}`}>
+                {relDay || month}
+              </span>
+              <span className="block font-display text-lg text-white">
+                {day}
+              </span>
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              {(showCategory || showSource) && (
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {showCategory && evento.category && (
+                    <span
+                      className="e2e-cat-pill font-mono text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                      style={{ backgroundColor: catColor, color: "#0B0E14" }}
+                    >
+                      {evento.category}
+                    </span>
+                  )}
+                  {showSource && evento.source && (
+                    <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-white/50">
+                      {sourceLabel(evento.source)}
+                    </span>
+                  )}
+                </div>
+              )}
+              <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                {evento.title}
+              </h3>
+              <div className="flex items-end justify-between gap-2">
+                <div className="min-w-0">
+                  {evento.location && (
+                    <p className="font-mono text-xs text-white/70 flex items-center gap-1.5 truncate">
+                      {evento.rating && evento.rating > 0 && (
+                        <>
+                          <span className="flex items-center gap-0.5 text-amber-300" aria-label={`Valoración ${evento.rating} sobre 5`}>
+                            <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z" /></svg>
+                            {evento.rating.toFixed(1).replace(".", ",")}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                        </>
+                      )}
+                      <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                      {time && <span className="text-white shrink-0">{time}</span>}
+                      {time && evento.location && <span aria-hidden="true">·</span>}
+                      <span className="truncate">{evento.location}</span>
+                    </p>
+                  )}
+                  {!evento.location && time && (
+                    <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                      {time}
+                    </p>
+                  )}
+                </div>
+                {evento.price && (
+                  <span className="shrink-0 font-mono text-[11px] text-white bg-white/15 backdrop-blur-md rounded-md px-1.5 py-0.5 border border-white/20 whitespace-nowrap">
+                    {evento.price}
+                  </span>
                 )}
               </div>
-              {evento.price && (
-                <span className="shrink-0 font-mono text-[11px] text-white bg-white/15 backdrop-blur-md rounded-md px-1.5 py-0.5 border border-white/20 whitespace-nowrap">
-                  {evento.price}
-                </span>
-              )}
             </div>
           </div>
-        </div>
+        </Link>
       </div>
-    </Link>
+
+      {/*
+        `top-[1.125rem] right-[1.125rem]` y no `top-3 right-3` porque el contenedor
+        posicionado es el marco exterior, que lleva `p-1.5`: 6 px de marco más los
+        12 px de antes. Es el mismo píxel de antes, dicho de otra forma.
+      */}
+      <div className="absolute top-[1.125rem] right-[1.125rem] z-10 flex items-center gap-1.5">
+        <FavoriteButton event={evento} size="sm" />
+        {/*
+          `min-w/min-h-[44px]` y no `w-9 h-9`, por dos motivos que apuntan al mismo
+          sitio. El primero es el mínimo táctil: 36×36 está por debajo de los 44×44
+          que piden las HIG de iOS y Material de Android. El segundo es la pareja:
+          el `FavoriteButton` de al lado ya mide 44, y dos botones deOverlay con
+          tamaños distintos se leen como un error de maquetación aunque los dos
+          fueran válidos.
+
+          El círculo visible sigue siendo de 36 (`rounded-full` con `p-2` sobre el
+          contenido), así que **la foto se ve igual**: lo que crece es el área
+          pulsable, que es lo que no se ve y es lo que importa. Por eso no lleva
+          `w-`/`h-` fijos sino `min-`, y por eso el grupo no reserva más sitio: el
+          contenedor es `absolute`, así que el crecimiento no desplaza la maquetación.
+        */}
+        <button
+          onClick={handleShare}
+          aria-label="Compartir evento"
+          className="min-w-[44px] min-h-[44px] p-2 rounded-full bg-black/30 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/50 flex items-center justify-center transition-all duration-300 active:scale-[0.92]"
+          style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)" }}
+        >
+          <ShareIcon className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   );
 }

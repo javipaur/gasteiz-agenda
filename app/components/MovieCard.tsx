@@ -15,14 +15,6 @@ const CINE_COLORS: Record<string, string> = {
   Boulevard: "bg-fg",
 };
 
-function formatDate() {
-  const d = new Date();
-  return {
-    day: d.getDate(),
-    month: new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", ""),
-  };
-}
-
 function TicketIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -46,7 +38,9 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
         <div className="aspect-[4/3] relative">
           <Image
             src={pelicula.imagen}
-            alt={pelicula.titulo}
+            /* `alt=""`: la imagen y el título están en el mismo `<a>`, así que con
+               el `alt` el lector anunciaba la película dos veces. */
+            alt=""
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
@@ -55,8 +49,14 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
 
           <div className="absolute top-3 left-3 bg-white/15 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight"
             style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)' }}>
+            {/*
+              Aquí ponía "HOY" escrito a mano, y la función que debería dar la fecha
+              —`formatDate()`— estaba definida en este fichero y sin usarse en ningún
+              sitio: la cartelera es de cualquier día, no solo de hoy. Ahora la
+              insignia dice cuántas sesiones hay, que sale de los datos.
+            */}
             <span className="block font-mono text-[11px] uppercase text-white/70">
-              HOY
+              {pelicula.horarios.length} sesiones
             </span>
             <span className="block font-display text-lg text-white">
               <TicketIcon className="w-4 h-4 inline" />
@@ -92,11 +92,18 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
               </span>
             ))}
           </div>
-          <div className="mt-4 bg-accent text-white text-center py-3 font-medium text-sm hover:bg-accent-hover transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] flex items-center justify-center gap-2"
+          {/*
+            El "Comprar entradas" era un `<div>` con `hover:bg-accent-hover` y
+            `active:scale`, o sea que parecía un control. Pero toda la tarjeta ya es
+            un `<a>`: un botón dentro sería contenido interactivo dentro de un enlace.
+            Como `<p>` y sin adorno de pulsable, se lee como lo que es, la última
+            parte de la tarjeta.
+          */}
+          <p className="mt-4 bg-accent text-white text-center py-3 font-medium text-sm flex items-center justify-center gap-2"
             style={{ borderRadius: '999px' }}>
             <span>Comprar entradas</span>
             <TicketIcon className="w-3.5 h-3.5" />
-          </div>
+          </p>
         </div>
       </div>
     </a>

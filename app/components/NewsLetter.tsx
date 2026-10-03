@@ -20,6 +20,8 @@ function CheckIcon({ className }: { className?: string }) {
   );
 }
 
+const ERROR_ID = "newsletter-error";
+
 export default function Newsletter() {
   const { email, setEmail, website, setWebsite, status, message, submit } =
     useNewsletterSubscribe();
@@ -92,6 +94,15 @@ export default function Newsletter() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Tu email"
+                    /*
+                      `aria-label` y no solo `placeholder`: el placeholder desaparece
+                      en cuanto se escribe y no es un nombre accesible confiable. Hay
+                      inputs del repo que ya lo llevan así (`HeroSearch`, `Header`,
+                      `BusPageClient`) y este se había quedado sin ninguno.
+                    */
+                    aria-label="Tu correo electrónico"
+                    aria-invalid={status === "error"}
+                    aria-describedby={status === "error" ? ERROR_ID : undefined}
                     required
                     autoComplete="email"
                     className="flex-1 sm:w-56 px-4 py-2.5 rounded-lg bg-white/15 border border-white/25 text-white placeholder:text-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/50 transition-all duration-300 font-body text-sm"
@@ -117,7 +128,14 @@ export default function Newsletter() {
                   </button>
                 </div>
                 {message && status === "error" && (
-                  <p className="flex items-center gap-1.5 text-xs text-white/90">
+                  // `role="alert"` para que el lector lo anuncie al aparecer — un
+                  // `<p>` más es texto que se pasa por alto — y `id` para que el
+                  // campo pueda apuntar a él con `aria-describedby`.
+                  <p
+                    id={ERROR_ID}
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-white/90"
+                  >
                     {message}
                   </p>
                 )}

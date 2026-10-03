@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useRef, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Utensils, MapPin, CalendarDays, ExternalLink, Star } from "lucide-react";
@@ -28,6 +28,36 @@ const TABS: { key: Tab; label: string }[] = [
 export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props) {
   const [tab, setTab] = useState<Tab>("sitios");
   const [barrio, setBarrio] = useState<string>("all");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  /**
+   * Teclado de `tablist`, el mismo que hace `NextDaysSection`.
+   *
+   * Declarar `role="tablist"` y `role="tab"` sin esto es peor que no declararlos: el
+   * lector entra en modo "pestañas" esperando que las flechas muevan la selección y
+   * se las encuentra mudas. Con activación automática hace falta una sola parada de
+   * Tab en el grupo, y por eso cada tab lleva `tabIndex` explícito.
+   */
+  const onTabsKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const total = TABS.length;
+      const actual = TABS.findIndex((t) => t.key === tab);
+      let siguiente: number;
+      if (e.key === "ArrowRight") siguiente = (actual + 1) % total;
+      else if (e.key === "ArrowLeft") siguiente = (actual - 1 + total) % total;
+      else if (e.key === "Home") siguiente = 0;
+      else if (e.key === "End") siguiente = total - 1;
+      else return;
+      e.preventDefault();
+      setTab(TABS[siguiente]!.key);
+      // El foco va en `requestAnimationFrame` porque el `<button>` destino no está
+      // enfocado hasta que React repinta con el nuevo `tabIndex`.
+      requestAnimationFrame(() => tabRefs.current[siguiente]?.focus());
+    },
+    [tab]
+  );
+
+  const panelId = (clave: Tab) => `gastronomia-panel-${clave}`;
 
   const barrios = useMemo(
     () => Array.from(new Set(sitios.map((s) => s.barrio))).sort(),
@@ -39,9 +69,17 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
     [sitios, barrio]
   );
 
+  /**
+   * El rango de precio se leía como "€€", que no dice nada, y el "Precio" estaba en
+   * un `aria-label` sobre un `<span>` genérico: `aria-label` solo está definido para
+   * elementos con rol, así que muchos lectores lo ignoraban y el nombre se quedaba
+   * en los signos. Con un `<span class="sr-only">` al lado del visible, el texto se
+   * lee siempre y los signos siguen siendo lo que se ve.
+   */
   const precio = (p: Sitio["rangoPrecio"]) => (
-    <span className="font-mono text-xs text-amber" aria-label={`Precio ${p}`}>
-      {p}
+    <span className="font-mono text-xs text-amber">
+      <span aria-hidden="true">{p}</span>
+      <span className="sr-only">Precio {p}</span>
     </span>
   );
 
@@ -63,14 +101,28 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
       </InViewWrapper>
 
       <InViewWrapper delay={0.1}>
-        <div className="flex gap-2 mb-4 flex-wrap" role="tablist" aria-label="Secciones de gastronomía">
+        {/*
+          Los chips de barrio y las pestañas de sección medían 20 y 36 px de alto: por
+          debajo del mínimo táctil de 44. Es la fila por la que se elige qué se ve
+          en la página, así que el fallo se nota en el móvil, que es donde se usa.
+        */}
+        <div
+          className="flex gap-2 mb-4 flex-wrap"
+          role="tablist"
+          aria-label="Secciones de gastronomía"
+          onKeyDown={onTabsKeyDown}
+        >
           {TABS.map((t) => (
             <button
               key={t.key}
+              ref={(el) => { tabRefs.current[TABS.indexOf(t)] = el; }}
               role="tab"
+              id={`gastronomia-tab-${t.key}`}
               aria-selected={tab === t.key}
+              aria-controls={panelId(t.key)}
+              tabIndex={tab === t.key ? 0 : -1}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
+              className={`min-h-[44px] px-4 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 tab === t.key
                   ? `${SECTION_TINT.gastronomia.active}`
                   : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
@@ -86,7 +138,7 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
             <button
               onClick={() => setBarrio("all")}
               aria-pressed={barrio === "all"}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer ${
+              className={`min-w-[44px] min-h-[44px] px-3 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer ${
                 barrio === "all"
                   ? "bg-amber-soft text-amber"
                   : "bg-bg-muted text-fg-subtle hover:text-fg-muted"
@@ -98,8 +150,8 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
               <button
                 key={b}
                 onClick={() => setBarrio(b)}
-                aria-pressed={barrio === b}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer ${
+                aria-pressed={b === barrio}
+                className={`min-w-[44px] min-h-[44px] px-3 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer ${
                   barrio === b
                     ? "bg-amber-soft text-amber"
                     : "bg-bg-muted text-fg-subtle hover:text-fg-muted"
@@ -113,14 +165,19 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
       </InViewWrapper>
 
       {tab === "sitios" && (
-        filteredSitios.length === 0 ? (
-          <EmptyState
-            icon={<Utensils size={20} />}
-            title="Sin resultados"
-            hint="Prueba con otro barrio."
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div
+          id={panelId("sitios")}
+          role="tabpanel"
+          aria-labelledby="gastronomia-tab-sitios"
+        >
+          {filteredSitios.length === 0 ? (
+            <EmptyState
+              icon={<Utensils size={20} />}
+              title="Sin resultados"
+              hint="Prueba con otro barrio."
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredSitios.map((sitio, index) => (
               <InViewWrapper key={sitio.slug} delay={Math.min(index * 0.04, 0.4)}>
                 <article className="group double-bezel-outer rounded-2xl p-1.5 h-full">
@@ -172,12 +229,18 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                 </article>
               </InViewWrapper>
             ))}
-          </div>
-        )
+            </div>
+          )}
+        </div>
       )}
 
       {tab === "rutas" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div
+          id={panelId("rutas")}
+          role="tabpanel"
+          aria-labelledby="gastronomia-tab-rutas"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-5"
+        >
           {rutas.map((ruta, index) => (
             <InViewWrapper key={ruta.slug} delay={Math.min(index * 0.04, 0.4)}>
               <article className="double-bezel rounded-2xl p-5 h-full">
@@ -218,14 +281,19 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
       )}
 
       {tab === "agenda" && (
-        eventos.length === 0 ? (
-          <EmptyState
-            icon={<CalendarDays size={20} />}
-            title="No hay eventos gastronómicos estos días"
-            hint="Vuelve pronto: publicamos la agenda a diario."
-          />
-        ) : (
-          <ul className="space-y-3">
+        <div
+          id={panelId("agenda")}
+          role="tabpanel"
+          aria-labelledby="gastronomia-tab-agenda"
+        >
+          {eventos.length === 0 ? (
+            <EmptyState
+              icon={<CalendarDays size={20} />}
+              title="No hay eventos gastronómicos estos días"
+              hint="Vuelve pronto: publicamos la agenda a diario."
+            />
+          ) : (
+            <ul className="space-y-3">
             {eventos.map((ev) => {
               const { day, month } = formatDate(ev.date);
               return (
@@ -254,8 +322,9 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                 </li>
               );
             })}
-          </ul>
-        )
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

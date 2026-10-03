@@ -77,6 +77,8 @@ export default function SportPageClient({
             <button
               key={cat.key}
               onClick={() => setFilter(cat.key)}
+              /* La categoría activa solo se distinguía por el color de fondo. */
+              aria-pressed={filter === cat.key}
               className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 filter === cat.key
                   ? "bg-accent text-white"
@@ -109,69 +111,80 @@ export default function SportPageClient({
                 key={evento.title + evento.date + index}
                 delay={Math.min(index * 0.04, 0.4)}
               >
-                <Link
-                  href={`/evento/${evento.slug}`}
-                  className="group double-bezel-outer rounded-[1.25rem] p-1.5 block focus-visible:outline-2 focus-visible:outline-accent"
-                >
-                  <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
-                    <div className="aspect-[4/3] relative">
-                      {imageUrl ? (
-                        <Image
-                          src={imageUrl}
-                          alt={evento.title}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
-                          <span className="font-display text-6xl text-accent/20">
-                            {evento.title.charAt(0)}
+                <div className="group relative double-bezel-outer rounded-[1.25rem] p-1.5 block transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-1 focus-within:outline-2 focus-within:outline-accent">
+                  {/*
+                    El favorito es hermano del `<Link>`, no hijo suyo. El contenido
+                    de un `a` no puede ser interactivo: dentro, el HTML es inválido
+                    y el enlace se anuncia como "enlace con botón".
+                  */}
+                  <Link
+                    href={`/evento/${evento.slug}`}
+                    className="block focus-visible:outline-2 focus-visible:outline-accent"
+                  >
+                    <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
+                      <div className="aspect-[4/3] relative">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            /* `alt=""`: la imagen y el título comparten `<a>`, así
+                               que con el `alt` el lector oye el título dos veces. */
+                            alt=""
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 w-full h-full bg-accent-subtle flex items-center justify-center">
+                            <span className="font-display text-6xl text-accent/20">
+                              {evento.title.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                        <div className="absolute top-3 left-3 bg-white/15 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight"
+                          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)' }}>
+                          <span className="block font-mono text-[11px] uppercase text-white/70">
+                            {new Intl.DateTimeFormat("es", { month: "short" }).format(new Date(evento.date)).toUpperCase().replace(".", "")}
+                          </span>
+                          <span className="block font-display text-lg text-white">
+                            {new Date(evento.date).getDate()}
                           </span>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                      <div className="absolute top-3 left-3 bg-white/15 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight"
-                        style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)' }}>
-                        <span className="block font-mono text-[11px] uppercase text-white/70">
-                          {new Intl.DateTimeFormat("es", { month: "short" }).format(new Date(evento.date)).toUpperCase().replace(".", "")}
-                        </span>
-                        <span className="block font-display text-lg text-white">
-                          {new Date(evento.date).getDate()}
-                        </span>
-                      </div>
-                      <div className="absolute top-3 right-3">
-                        <FavoriteButton
-                          event={{
-                            id: evento.id,
-                            slug: evento.slug,
-                            title: evento.title,
-                            date: evento.date,
-                            image: evento.image,
-                            location: evento.location,
-                            link: evento.link,
-                          }}
-                        />
-                      </div>
-
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <span className="font-mono text-[11px] uppercase tracking-wider text-accent bg-accent/20 px-2 py-0.5 inline-block mb-2 rounded">
-                          {evento.category}
-                        </span>
-                        <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
-                          {evento.title}
-                        </h3>
-                        {evento.location && (
-                          <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
-                            {evento.location}
-                          </p>
-                        )}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-accent bg-accent/20 px-2 py-0.5 inline-block mb-2 rounded">
+                            {evento.category}
+                          </span>
+                          <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                            {evento.title}
+                          </h3>
+                          {evento.location && (
+                            <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />
+                              {evento.location}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  </Link>
+
+                  {/* 6 px de marco (`p-1.5`) + los 12 px de la esquina de antes. */}
+                  <div className="absolute top-[1.125rem] right-[1.125rem] z-10">
+                    <FavoriteButton
+                      event={{
+                        id: evento.id,
+                        slug: evento.slug,
+                        title: evento.title,
+                        date: evento.date,
+                        image: evento.image,
+                        location: evento.location,
+                        link: evento.link,
+                      }}
+                    />
                   </div>
-                </Link>
+                </div>
               </InViewWrapper>
             );
           })}

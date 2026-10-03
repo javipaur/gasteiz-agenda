@@ -1,5 +1,4 @@
 import { InViewWrapper } from "@/lib/shared";
-import FreshnessBadge from "./FreshnessBadge";
 
 function Stat({ value, label, detail }: { value: string; label: string; detail: string }) {
   return (
@@ -16,11 +15,9 @@ function Stat({ value, label, detail }: { value: string; label: string; detail: 
 export default function SocialProof({
   eventCount,
   thisWeekCount,
-  since,
 }: {
   eventCount: number;
   thisWeekCount: number;
-  since: number;
 }) {
   if (eventCount <= 0) return null;
 
@@ -30,15 +27,26 @@ export default function SocialProof({
         <InViewWrapper>
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
             <div className="max-w-md">
-              <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-violet text-[#0B0E14] mb-6">
+              <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-violet text-on-tint mb-6">
                 Cifras
               </span>
+              {/* Aquí no va `FreshnessBadge`, y antes iba.
+                  El badge cuenta `Date.now() - since`, así que necesita un
+                  `since` que sea la edad de los **datos**. En `/farmacias` y
+                  `/bus` esa fecha viene de la respuesta de la API y la etiqueta
+                  dice la verdad; en la home se le pasaba el instante del render,
+                  o sea `since = now`, y eso producía dos mentiras: "Actualizado
+                  hace 0 s" al abrir y una cuenta que sube mientras la pestaña
+                  siga abierta, aunque la agenda no haya cambiado.
+
+                  No se sustituye por otra marca: `getProximosEventos()` no
+                  devuelve de cuándo son los eventos y `lib/cache.ts` no expone la
+                  fecha de su fichero, así que no hay un `since` real que pasar sin
+                  tocar `lib/`. Lo que sí es cierto y está dos líneas más abajo,
+                  en la cifra "Diaria / actualización", es lo que se queda. */}
               <h2 className="font-display text-3xl md:text-4xl font-black uppercase tracking-[-0.03em] text-fg leading-tight">
                 Gasteiz Click en cifras
               </h2>
-              <div className="mt-4">
-                <FreshnessBadge since={since} />
-              </div>
             </div>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-10">
               <Stat

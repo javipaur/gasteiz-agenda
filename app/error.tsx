@@ -35,7 +35,13 @@ export default function GlobalError({
         Algo ha salido mal
       </h1>
       <p className="text-fg-muted text-base max-w-md mb-8 leading-relaxed">
-        Ha habido un problema al cargar los eventos. Inténtalo de nuevo o vuelve al inicio.
+        {/*
+          Este es el error boundary **raíz**: también cubre `/privacidad`,
+          `/aviso-legal`, `/docs` y `/bus`, donde no hay eventos que cargar. Decir
+          "ha habido un problema al cargar los eventos" afirma algo falso sobre la
+          página que se está viendo.
+        */}
+        Ha habido un problema al cargar esta página. Inténtalo de nuevo o vuelve al inicio.
       </p>
       <div className="flex gap-3">
         <button

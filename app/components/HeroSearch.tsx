@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatDate } from "@/lib/utils";
 import { InViewWrapper } from "@/lib/shared";
+import ShortcutHint from "./ShortcutHint";
 
 type SearchHit = {
   slug: string;
@@ -23,6 +24,14 @@ function SearchIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/**
+ * Ids del widget, para que el input pueda declarar qué lista gobierna y los
+ * resultados qué son. Un `id` escrito a mano en dos sitios es un `id` que algún día
+ * se desincroniza sin que nada se queje.
+ */
+const PANEL_ID = "hero-search-panel";
+const LISTA_ID = "hero-search-lista";
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -118,27 +127,62 @@ export default function HeroSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.trim().length >= 2 && setOpen(true)}
+          onKeyDown={(e) => {
+            // Escape cierra el panel. `Header.tsx` —que es la otra mitad de este
+            // widget— ya lo hacía: sin esto, el panel de resultados solo se cerraba
+            // con clic fuera o enviando el formulario, y quien navega con teclado se
+            // queda con el panel abierto.
+            if (e.key === "Escape") {
+              setOpen(false);
+              setResults([]);
+            }
+          }}
           placeholder="¿Qué te gustaría hacer? Busca un plan…"
           aria-label="Buscar eventos"
+          /*
+            El input declara la relación con el panel. `aria-haspopup` y
+            `aria-expanded` no tienen a quién aplicarse de forma fiable sin un rol
+            que los admita, así que se declara `role="combobox"` explícitamente.
+          */
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={LISTA_ID}
+          aria-autocomplete="list"
           className="w-full pl-13 pr-16 py-4 rounded-full bg-bg-elevated border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/15 transition-all duration-300 font-body text-base"
         />
-        <kbd className="absolute right-5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 font-mono text-[10px] text-fg-subtle border border-border rounded-md px-1.5 py-0.5 bg-bg-muted">
-          ⌘K
-        </kbd>
+        <ShortcutHint className="absolute right-5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 font-mono text-[10px] text-fg-subtle border border-border rounded-md px-1.5 py-0.5 bg-bg-muted" />
 
         {open && (
-          <div className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn">
+          // `aria-live`: los resultados llegan por `fetch` y sin una región viva no
+          // se entera nadie hasta que navega dentro del panel.
+          // `aria-busy`: mientras se pide, el anuncio tiene que esperar a que haya
+          // algo que decir.
+          <div
+            id={PANEL_ID}
+            aria-live="polite"
+            aria-busy={searching}
+            className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn"
+          >
             {searching && results.length === 0 ? (
               <p className="px-4 py-3.5 font-mono text-xs text-fg-subtle">Buscando…</p>
             ) : results.length > 0 ? (
               <>
-                <ul>
+                {/*
+                  El `role="listbox"` va en el contenedor de los resultados, no en el
+                  panel: así el enlace "Ver todos los resultados" es hermano de la
+                  lista y no un hijo que no es una opción. Cada `<button>` es la
+                  opción —`role="option"`— y sigue siendo pulsable y alcanzable con
+                  Tab, que es lo que ya era.
+                */}
+                <ul id={LISTA_ID} role="listbox" aria-label="Resultados de la búsqueda">
                   {results.slice(0, 7).map((hit) => {
                     const { day, month } = formatDate(hit.date);
                     return (
                       <li key={hit.slug}>
                         <button
                           type="button"
+                          role="option"
+                          aria-selected={false}
                           onClick={() => goToHit(hit.slug)}
                           className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted transition-colors duration-200 cursor-pointer"
                         >

@@ -82,7 +82,7 @@ export default function ThemeToggle() {
     <div
       role="group"
       aria-label="Seleccionar tema"
-      className="inline-flex items-center gap-0.5 rounded-full bg-white/10 p-1"
+      className="inline-flex items-center rounded-full bg-white/10"
     >
       {options.map(({ value, label, Icon }) => (
         <button
@@ -92,10 +92,17 @@ export default function ThemeToggle() {
           aria-label={label}
           aria-pressed={choice === value}
           title={label}
-          className={`flex items-center justify-center w-8 h-7 rounded-full transition-all duration-300 cursor-pointer ${
+          // `min-w/min-h-[44px]` y no `w-8 h-7`: eran 32×28, el control más
+          // pequeño del repo y el que más cuesta de acertar con el pulgar — y
+          // elegir el tema equivocado se nota, porque cambia la luz de toda la
+          // página. El relleno `p-1` del grupo y el `gap-0.5` se han ido con él:
+          // a 44 px por botón los tres ocupan 132 y el `gap` sólo añadía hueco.
+          // `rounded-full` sobre el grupo, en vez de sobre cada botón, mantiene
+          // la cápsula sin bordes dobles en los extremos.
+          className={`flex items-center justify-center min-w-[44px] min-h-[44px] transition-colors duration-300 cursor-pointer ${
             choice === value
-              ? "bg-white/20 text-white"
-              : "text-white/40 hover:text-white/70 hover:bg-white/5"
+              ? "rounded-full bg-white/20 text-white"
+              : "rounded-full text-white/40 hover:text-white/70 hover:bg-white/5"
           }`}
         >
           <Icon className="w-4 h-4" />

@@ -2,6 +2,8 @@
 
 import { useNewsletterSubscribe } from "@/lib/useNewsletterSubscribe";
 
+const ERROR_ID = "subscribe-error";
+
 function ArrowIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -72,6 +74,11 @@ export default function SubscribeForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Tu email"
+                  /* `aria-label` y no solo `placeholder`: el placeholder desaparece
+                     al escribir y no es un nombre accesible confiable. */
+                  aria-label="Tu correo electrónico"
+                  aria-invalid={status === "error"}
+                  aria-describedby={status === "error" ? ERROR_ID : undefined}
                   required
                   autoComplete="email"
                   className="flex-1 sm:w-64 px-4 py-2.5 rounded-lg bg-white/15 border border-white/25 text-white placeholder:text-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/50 transition-all duration-300 font-body text-sm"
@@ -97,7 +104,13 @@ export default function SubscribeForm() {
                 </button>
               </div>
               {message && status === "error" && (
-                <p className="flex items-center gap-1.5 text-xs text-white/90">
+                // `role="alert"` para que se anuncie al aparecer, y `id` para que el
+                // campo lo señale con `aria-describedby`.
+                <p
+                  id={ERROR_ID}
+                  role="alert"
+                  className="flex items-center gap-1.5 text-xs text-white/90"
+                >
                   {message}
                 </p>
               )}

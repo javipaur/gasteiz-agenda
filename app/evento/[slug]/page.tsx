@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { getEventoBySlug } from "@/lib/agenda";
 import {
   JsonLd,
-  SITE_NAME,
   breadcrumbJsonLd,
   eventDisplayDate,
   eventToJsonLd,
@@ -309,7 +308,13 @@ export default async function EventoDetallePage({ params }: PageProps) {
         >
           Ver agenda completa de Vitoria-Gasteiz
         </Link>
-        <p className="sr-only">{SITE_NAME}</p>
+        {/*
+          Aquí iba un `<p className="sr-only">{SITE_NAME}</p>`: un párrafo con solo el
+          nombre del sitio y ningún contexto, que se anuncia como texto suelto al
+          final del artículo. El nombre del sitio ya está en la cabecera, en el
+          breadcrumb y en el título del documento; un `sr-only` no lo hace más
+          accesible, lo hace más ruidoso.
+        */}
       </footer>
 
       {evento.link && (

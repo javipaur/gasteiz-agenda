@@ -52,6 +52,10 @@ export default function MoviesPageClient({ peliculas }: { peliculas: Pelicula[] 
             <button
               key={cine.key}
               onClick={() => setFilter(cine.key)}
+              /* El grupo es conmutable y el único rastro de cuál está puesto era el
+                 color de fondo. `aria-pressed` es lo que lo dice; el mismo
+                 componente, `MoodFilter`, ya lo hacía en su fila de ambientaciones. */
+              aria-pressed={filter === cine.key}
               className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 filter === cine.key
                   ? "bg-accent text-white"

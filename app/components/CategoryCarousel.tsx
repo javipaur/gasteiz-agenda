@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { InViewWrapper, EventCard, type EventCardEvento } from "@/lib/shared";
 import SectionHead from "./SectionHead";
+import { comportamientoDeDesplazamiento } from "./motion";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -37,7 +38,7 @@ export default function CategoryCarousel({
   function scrollBy(dir: 1 | -1) {
     const el = scrollerRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: "smooth" });
+    el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: comportamientoDeDesplazamiento() });
   }
 
   if (events.length === 0) return null;
@@ -65,14 +66,18 @@ export default function CategoryCarousel({
                 <button
                   onClick={() => scrollBy(-1)}
                   aria-label="Anterior"
-                  className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer disabled:opacity-40"
+                  // `size-11` en vez de `size-9`: las flechas del riel medían 36×36
+                  // y son el único modo de desplazar el carril sin usar la rueda o
+                  // arrastrar, o sea justo el gesto que se hace con un dedo sobre
+                  // una imagen en movimiento.
+                  className="grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer disabled:opacity-40"
                 >
                   <ArrowIcon className="w-4 h-4 rotate-180" />
                 </button>
                 <button
                   onClick={() => scrollBy(1)}
                   aria-label="Siguiente"
-                  className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
+                  className="grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
                 >
                   <ArrowIcon className="w-4 h-4" />
                 </button>

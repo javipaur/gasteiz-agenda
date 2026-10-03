@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { comportamientoDeDesplazamiento } from "./motion";
 
 export default function ScrollToTop() {
   const [visible, setVisible] = useState(false);
@@ -15,7 +16,7 @@ export default function ScrollToTop() {
 
   return (
     <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      onClick={() => window.scrollTo({ top: 0, behavior: comportamientoDeDesplazamiento() })}
       aria-label="Volver arriba"
       className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-[var(--z-toast)] w-11 h-11 rounded-full bg-surface border border-border shadow-lg flex items-center justify-center text-fg-muted hover:text-accent hover:border-accent/30 transition-all duration-300 active:scale-[0.92] md:bottom-6 md:right-6"
       style={{

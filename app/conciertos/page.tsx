@@ -4,8 +4,9 @@ import ConciertosPageClient from "../components/ConciertosPageClient";
 import { getConciertosEventos } from "@/lib/conciertos";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 
+// Sin la marca en el `title`: la plantilla de `app/layout.tsx` ya la añade.
 export const metadata = {
-  title: "Conciertos en Vitoria-Gasteiz · Gasteiz Click",
+  title: "Conciertos en Vitoria-Gasteiz",
   description:
     "Conciertos y música en vivo en Vitoria-Gasteiz: Jimmy Jazz, HellDorado, Musikaze y más.",
   alternates: { canonical: "/conciertos" },

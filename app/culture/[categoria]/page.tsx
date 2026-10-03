@@ -88,6 +88,10 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
               <Link
                 key={c.slug}
                 href={`/culture/${c.slug}`}
+                /* Es una navegación de enlaces, no un filtro de botones: lo que
+                   corresponde es `aria-current="page"`. Sin él, la categoría activa
+                   se distinguía solo por el color de fondo. */
+                aria-current={c.slug === categoria ? "page" : undefined}
                 className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
                   c.slug === categoria
                     ? "bg-accent text-white"

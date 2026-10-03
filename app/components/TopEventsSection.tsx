@@ -7,6 +7,7 @@ import { InViewWrapper } from "@/lib/shared";
 import { formatDate, shortTime } from "@/lib/utils";
 import type { Evento } from "@/lib/eventos";
 import SectionHead from "./SectionHead";
+import { comportamientoDeDesplazamiento } from "./motion";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -26,7 +27,7 @@ export default function TopEventsSection({
   function scrollBy(dir: 1 | -1) {
     const el = scrollerRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: "smooth" });
+    el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: comportamientoDeDesplazamiento() });
   }
 
   if (events.length < 4) return null;
@@ -46,14 +47,16 @@ export default function TopEventsSection({
               <button
                 onClick={() => scrollBy(-1)}
                 aria-label="Anterior"
-                className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
+                // `size-11` en vez de `size-9`: eran 36×36 y son el único modo de
+                // desplazar este riel sin rueda ni arrastre.
+                className="grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
               >
                 <ArrowIcon className="w-4 h-4 rotate-180" />
               </button>
               <button
                 onClick={() => scrollBy(1)}
                 aria-label="Siguiente"
-                className="grid size-9 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
+                className="grid size-11 place-items-center rounded-full border border-border bg-surface text-fg-muted hover:text-accent hover:border-accent/40 transition-all duration-300 active:scale-[0.92] cursor-pointer"
               >
                 <ArrowIcon className="w-4 h-4" />
               </button>
@@ -79,7 +82,9 @@ export default function TopEventsSection({
                     {evento.image ? (
                       <Image
                         src={evento.image}
-                        alt={evento.title}
+                        /* `alt=""`: la imagen y el título comparten el `<a>` de la tarjeta, así que con el
+                           `alt` puesto el lector anunciaba el evento dos veces. */
+                        alt=""
                         fill
                         sizes="180px"
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"

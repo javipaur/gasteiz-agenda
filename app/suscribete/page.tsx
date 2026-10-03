@@ -18,7 +18,8 @@ import { LogoMark } from "@/app/components/LogoMark";
 import SubscribeForm from "@/app/components/SubscribeForm";
 
 export const metadata: Metadata = {
-  title: "Suscríbete a la newsletter · Gasteiz Click",
+  // Sin la marca: la plantilla de `app/layout.tsx` ya añade " | Gasteiz Click".
+  title: "Suscríbete a la newsletter",
   description:
     "Recibe cada semana, en un solo email, los mejores planes de Vitoria-Gasteiz: conciertos, teatro, exposiciones, cine, deporte y planes familiares. Gratis y sin spam.",
   alternates: { canonical: "/suscribete" },

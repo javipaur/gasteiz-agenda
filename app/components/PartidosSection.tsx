@@ -20,7 +20,14 @@ function formatearDia(fecha: string | null): string {
   }).format(d);
 }
 
-async function PartidoCard({ partido }: { partido: Partido }) {
+/**
+ * síncrona a propósito. Era `async` sin un solo `await` dentro, y eso no es
+ * decorativo: un componente `async` no se puede renderizar en el cliente, así que
+ * el `alt` de los escudos —que había que revisar— no se podía comprobar con un
+ * test de componente. `export default async function PartidosSection` sí necesita
+ * serlo, porque llama a `getProximosPartidos`.
+ */
+function PartidoCard({ partido }: { partido: Partido }) {
   return (
     <article className="rounded-2xl border border-border bg-surface p-5 flex flex-col gap-3 card-hover h-full">
       <div className="flex items-center justify-between gap-2">
@@ -33,8 +40,10 @@ async function PartidoCard({ partido }: { partido: Partido }) {
       <div className="flex items-center justify-between gap-2 my-1">
         <div className="flex flex-col items-center gap-1 w-20">
           {partido.local.url ? (
+            // `alt=""`: el escudo va justo al lado del nombre del equipo en el mismo
+            // bloque, así que con el `alt` ese nombre se oía dos veces seguidas.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={partido.local.url} alt={partido.local.nombre} className="h-9 w-9 object-contain" />
+            <img src={partido.local.url} alt="" className="h-9 w-9 object-contain" />
           ) : (
             <span className="h-9 w-9 rounded-full bg-surface-hover flex items-center justify-center text-xs font-bold">
               {partido.local.nombre.slice(0, 1)}
@@ -45,8 +54,9 @@ async function PartidoCard({ partido }: { partido: Partido }) {
         <span className="text-fg-subtle font-mono text-sm">vs</span>
         <div className="flex flex-col items-center gap-1 w-20">
           {partido.visitante.url ? (
+            // `alt=""` por lo mismo que en el local: el nombre está al lado.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={partido.visitante.url} alt={partido.visitante.nombre} className="h-9 w-9 object-contain" />
+            <img src={partido.visitante.url} alt="" className="h-9 w-9 object-contain" />
           ) : (
             <span className="h-9 w-9 rounded-full bg-surface-hover flex items-center justify-center text-xs font-bold">
               {partido.visitante.nombre.slice(0, 1)}

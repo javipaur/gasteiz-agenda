@@ -21,7 +21,7 @@ export default function SectionHead({
         {tag && (
           <span
             className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full"
-            style={{ backgroundColor: color ?? "var(--accent)", color: "#0B0E14" }}
+            style={{ backgroundColor: color ?? "var(--accent)", color: "var(--on-tint)" }}
           >
             {tag}
           </span>

@@ -20,11 +20,28 @@ function HeartIcon({ filled, className }: { filled: boolean; className?: string 
   );
 }
 
+/**
+ * La caja ya no depende del tamaño.
+ *
+ * `sm` medía 36×36 y `md` 44×44. Se degradan los dos a la misma caja de 44 porque
+ * `sm` es el botón de favorito que se pinta encima de la imagen de cada tarjeta,
+ * y es el control que más se toca con el pulgar sin querer: 36 px es la zona en la
+ * que el navegador amplió el área de acierto y no lo dice en la interfaz. Además,
+ * el botón de compartir que tiene al lado en `lib/shared.tsx` sigue en 36, así que
+ * bajarlo además dejaba la pareja desigual.
+ *
+ * `size` sigue declarándose porque lo que sí cambia entre `sm` y `md` es el icono.
+ */
+const caja = {
+  sm: "w-11 h-11",
+  md: "w-11 h-11",
+} as const;
+
 export default function FavoriteButton({ event, className = "", size = "md" }: Props) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const toast = useToast();
   const fav = isFavorite(event.id);
-  const box = size === "sm" ? "w-9 h-9" : "w-11 h-11";
+  const box = caja[size];
   const icon = size === "sm" ? "w-4 h-4" : "w-[18px] h-[18px]";
 
   return (

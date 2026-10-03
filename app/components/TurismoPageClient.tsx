@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Landmark,
@@ -41,6 +41,37 @@ const ICONS: Record<string, () => React.ReactNode> = {
 
 export default function TurismoPageClient({ queVer, rutas, info, visitas }: Props) {
   const [tab, setTab] = useState<Tab>("ver");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  /**
+   * Teclado de `tablist`, el mismo que hace `NextDaysSection`.
+   *
+   * Declarar `role="tablist"` y `role="tab"` sin esto es peor que no declararlos: el
+   * lector entra en modo "pestañas" esperando que las flechas muevan la selección y
+   * se las encuentra mudas. Con activación automática —mover la flecha cambia de
+   * pestaña— hace falta una sola parada de Tab en todo el grupo, y por eso cada tab
+   * lleva `tabIndex` explícito en vez de relies del botón.
+   */
+  const onTabsKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const total = TABS.length;
+      const actual = TABS.findIndex((t) => t.key === tab);
+      let siguiente: number;
+      if (e.key === "ArrowRight") siguiente = (actual + 1) % total;
+      else if (e.key === "ArrowLeft") siguiente = (actual - 1 + total) % total;
+      else if (e.key === "Home") siguiente = 0;
+      else if (e.key === "End") siguiente = total - 1;
+      else return;
+      e.preventDefault();
+      setTab(TABS[siguiente]!.key);
+      // El foco va en `requestAnimationFrame` porque el `<button>` destino no está
+      // enfocado hasta que React repinta con el nuevo `tabIndex`.
+      requestAnimationFrame(() => tabRefs.current[siguiente]?.focus());
+    },
+    [tab]
+  );
+
+  const panelId = (clave: Tab) => `turismo-panel-${clave}`;
 
   return (
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
@@ -60,12 +91,21 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
       </InViewWrapper>
 
       <InViewWrapper delay={0.1}>
-        <div className="flex gap-2 mb-8 flex-wrap" role="tablist" aria-label="Secciones de turismo">
+        <div
+          className="flex gap-2 mb-8 flex-wrap"
+          role="tablist"
+          aria-label="Secciones de turismo"
+          onKeyDown={onTabsKeyDown}
+        >
           {TABS.map((t) => (
             <button
               key={t.key}
+              ref={(el) => { tabRefs.current[TABS.indexOf(t)] = el; }}
               role="tab"
+              id={`turismo-tab-${t.key}`}
               aria-selected={tab === t.key}
+              aria-controls={panelId(t.key)}
+              tabIndex={tab === t.key ? 0 : -1}
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 tab === t.key
@@ -80,7 +120,12 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
       </InViewWrapper>
 
       {tab === "ver" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div
+          id={panelId("ver")}
+          role="tabpanel"
+          aria-labelledby="turismo-tab-ver"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
           {queVer.map((item, index) => (
             <InViewWrapper key={item.slug} delay={Math.min(index * 0.04, 0.4)}>
               <article className="group double-bezel-outer rounded-2xl p-1.5 h-full">
@@ -144,7 +189,12 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
       )}
 
       {tab === "rutas" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div
+          id={panelId("rutas")}
+          role="tabpanel"
+          aria-labelledby="turismo-tab-rutas"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-5"
+        >
           {rutas.map((ruta, index) => (
             <InViewWrapper key={ruta.slug} delay={Math.min(index * 0.04, 0.4)}>
               <article className="double-bezel rounded-2xl p-5 h-full flex flex-col">
@@ -193,14 +243,25 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
 
       {tab === "visitas" && (
         visitas.length === 0 ? (
-          <EmptyState
-            icon={<CalendarDays size={20} />}
-            title="No hay visitas guiadas estos días"
-            hint="Puede que en otras categorías de la agenda encuentres tu plan."
-            action={{ href: "/culture", label: "Ver agenda cultural" }}
-          />
+          <div
+            id={panelId("visitas")}
+            role="tabpanel"
+            aria-labelledby="turismo-tab-visitas"
+          >
+            <EmptyState
+              icon={<CalendarDays size={20} />}
+              title="No hay visitas guiadas estos días"
+              hint="Puede que en otras categorías de la agenda encuentres tu plan."
+              action={{ href: "/culture", label: "Ver agenda cultural" }}
+            />
+          </div>
         ) : (
-          <ul className="space-y-3">
+          <ul
+            id={panelId("visitas")}
+            role="tabpanel"
+            aria-labelledby="turismo-tab-visitas"
+            className="space-y-3"
+          >
             {visitas.map((ev) => {
               const { day, month } = formatDate(ev.date);
               return (
@@ -234,7 +295,7 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
       )}
 
       {tab === "info" && (
-        <div>
+        <div id={panelId("info")} role="tabpanel" aria-labelledby="turismo-tab-info">
           <p className="text-lg text-fg-muted max-w-2xl mb-8">{info.intro}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {info.bloques.map((bloque) => (

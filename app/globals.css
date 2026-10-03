@@ -37,6 +37,7 @@
   --violet-wash: rgba(123, 77, 255, 0.12);
   --amber-wash: rgba(255, 179, 0, 0.10);
   --lime-wash: rgba(155, 255, 87, 0.10);
+  --blue-wash: rgba(77, 123, 255, 0.10);
   --sec-accent: var(--accent-ink);
   --sec-hot: #FF8B90;
   --sec-violet: #B9A1FF;
@@ -52,6 +53,23 @@
   --sec-lime-fill: #7ADB39;
   --sec-green-fill: var(--sec-lime-fill);
   --sec-blue-fill: #5B78E8;
+
+  /* Estado de error: "Cancelado", avisos de fallo de red. Es un color de estado
+     y no un acento, así que **no** sigue a la estación (`data-accent`): un
+     estado que se vuelve verde en verano deja de leerse como estado. Los tres
+     valores están medidos en `__tests__/contraste-estado.test.ts`, que los
+     calcula contra el `--surface` y el `--bg` de cada tema: el rojo de Tailwind
+     `red-500` (#EF4444) daba 3,62:1 sobre superficie clara y el mínimo es 4,5:1,
+     y eso no se ve leyendo la clase. */
+  --danger: #FF7A7A;
+
+  /* Tinta encima de un relleno saturado (pills de categoría, chips de sección).
+     No tiene override por tema a propósito: es el color que hace de "hueco"
+     dentro de una mancha de color, no texto sobre una superficie. Como token
+     separado de `--bg` evita dos cosas —el mismo hex escrito a mano en nueve
+     sitios, y la tentación de sustituirlo por `var(--bg)`, que en tema claro es
+     casi blanco y dejaría el texto de las pills ilegible sobre el relleno. */
+  --on-tint: #0B0E14;
 }
 
 :root[data-theme="light"] {
@@ -103,6 +121,15 @@
   --sec-lime-fill: #68B82E;
   --sec-green-fill: var(--sec-lime-fill);
   --sec-blue-fill: #3357D6;
+  /* Verde azulado muy oscuro para que siga pasando AA sobre blanco. El valor de
+     tema oscuro (`#FF7A7A`) sobre `--surface` claro daría 2,9:1: los colores que
+     están hechos para leerse sobre un fondo oscuro no sobreviven a un fondo
+     blanco, y por eso este token necesita override en claro. */
+  --danger: #B3261E;
+  /* `--blue` claro es #3357D6, así que el lavado se deriva de ahí y no del
+     `rgba(74,124,156,…)` que había escrito a mano, que no correspondía a ningún
+     token y por eso no se adaptaba a la luz. */
+  --blue-wash: rgba(51, 87, 214, 0.08);
 }
 
 @media (prefers-color-scheme: light) {
@@ -155,6 +182,8 @@
     --sec-lime-fill: #68B82E;
     --sec-green-fill: var(--sec-lime-fill);
     --sec-blue-fill: #3357D6;
+    --danger: #B3261E;
+    --blue-wash: rgba(51, 87, 214, 0.08);
   }
 }
 
@@ -340,6 +369,10 @@
   --color-sec-blue-fill: var(--sec-blue-fill);
   --color-sec-green-fill: var(--sec-green-fill);
   --color-sec-amber-fill: var(--sec-amber-fill);
+  /* Estado y tinta sobre relleno. Sin esto habría que escribir `text-[#0B0E14]`
+     en cada pill, que es justo lo que se quería quitar. */
+  --color-danger: var(--danger);
+  --color-on-tint: var(--on-tint);
 
   --font-display: var(--font-archivo), system-ui, sans-serif;
   --font-body: var(--font-archivo), system-ui, sans-serif;

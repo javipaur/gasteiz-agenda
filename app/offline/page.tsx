@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Sin conexión | Gasteiz Click",
+  // Sin la marca: la plantilla de `app/layout.tsx` ya añade " | Gasteiz Click".
+  title: "Sin conexión",
   robots: { index: false, follow: false },
 };
 

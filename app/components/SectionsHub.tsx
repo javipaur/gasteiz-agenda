@@ -108,7 +108,13 @@ export default async function SectionsHub() {
       href: "/movies",
       desc: "Cartelera en Vitoria",
       tint: "bg-blue/10 border-blue/20",
-      wash: "radial-gradient(420px 160px at 90% -20%, rgba(74,124,156,0.08), transparent 60%)",
+      // Estos dos lavados sí tienen token. Los otros seis hermanos usan
+      // `var(--teal-wash)`, `var(--accent-wash)`… y estos dos llevaban un
+      // `rgba(…)` escrito a mano que no correspondía a ningún token: el de Cine
+      // era un azul acero que no era `--blue` en ninguno de los dos temas, y el
+      // de Deporte, un verde que no era `--green`. Sin override no se adaptaban
+      // a la luz, y se notaba más al pasarlos de uno al otro.
+      wash: "radial-gradient(420px 160px at 90% -20%, var(--blue-wash), transparent 60%)",
       icon: Clapperboard,
       count: counts.cine,
       unit: " películas",
@@ -138,7 +144,7 @@ export default async function SectionsHub() {
       href: "/deporte",
       desc: "Running, trail, eventos",
       tint: "bg-green/10 border-green/20",
-      wash: "radial-gradient(420px 160px at 90% -20%, rgba(43,107,74,0.08), transparent 60%)",
+      wash: "radial-gradient(420px 160px at 90% -20%, var(--lime-wash), transparent 60%)",
       icon: Trophy,
       count: counts.deporte,
       unit: " esta semana",
@@ -237,9 +243,19 @@ export default async function SectionsHub() {
                 <>
                   <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: wash }} />
                   <div className="relative flex items-start justify-between gap-2">
+                    {/*
+                      La tinta de dentro del cuadro va en `--on-tint`, no en `--bg`. Los
+                      dos tienen el mismo valor en tema oscuro, pero `--bg` en claro es
+                      casi blanco y dejaría el icono invisible sobre el relleno de color;
+                      y estaba escrito dos veces, en la clase y en el `style`, que es
+                      como pasa cuando nadie sabe cuál de los dos manda.
+                    */}
                     <span
-                      className="grid size-11 place-items-center rounded-xl text-[#0B0E14] shadow-lg transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5"
-                      style={{ backgroundColor: CATEGORY_COLORS[label] || "var(--accent)", color: "#0B0E14" }}
+                      className="grid size-11 place-items-center rounded-xl text-on-tint shadow-lg transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5"
+                      style={{
+                        backgroundColor: CATEGORY_COLORS[label] || "var(--accent)",
+                        color: "var(--on-tint)",
+                      }}
                     >
                       <Icon size={18} strokeWidth={1.75} />
                     </span>

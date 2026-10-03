@@ -154,6 +154,9 @@ export default function CulturePageClient({
             <button
               key={cat.key}
               onClick={() => handleCategoryChange(cat.key)}
+              /* La categoría activa solo se distinguía por el color de fondo; con
+                 `aria-pressed` el lector y quien usa el teclado lo saben. */
+              aria-pressed={filter === cat.key}
               className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 filter === cat.key
                   ? "bg-accent text-white"
@@ -171,6 +174,8 @@ export default function CulturePageClient({
               <button
                 key={pill.key}
                 onClick={() => setSourceFilter(pill.key)}
+                /* Segundo grupo conmutable de la misma página: mismo motivo. */
+                aria-pressed={sourceFilter === pill.key}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 cursor-pointer ${
                   sourceFilter === pill.key
                     ? "bg-accent text-white"
@@ -237,7 +242,7 @@ export default function CulturePageClient({
                 delay={Math.min(index * 0.04, 0.4)}
               >
                 <div
-                  className="group double-bezel-outer rounded-2xl p-1.5 block"
+                  className="group relative double-bezel-outer rounded-2xl p-1.5 block focus-within:outline-2 focus-within:outline-accent"
                   style={{
                     animation: `fadeIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) ${
                       Math.min(index * 0.04, 0.4)
@@ -245,6 +250,13 @@ export default function CulturePageClient({
                   }}
                 >
                   <div className="double-bezel rounded-xl overflow-hidden">
+                  {/*
+                    El favorito vive **fuera** del `<Link>`: el contenido de un `a`
+                    no puede ser interactivo, y con el botón dentro el nombre
+                    accesible de la tarjeta salía como "enlace con botón". Sigue
+                    siendo un botón alcanzable con Tab, y en el mismo píxel de antes
+                    (6 px de marco + 12 px de la esquina).
+                  */}
                   <Link
                     href={`/evento/${evento.slug}`}
                     className="block focus-visible:outline-2 focus-visible:outline-accent"
@@ -253,7 +265,10 @@ export default function CulturePageClient({
                       {imageUrl ? (
                         <Image
                           src={imageUrl}
-                          alt={evento.title}
+                          /* `alt=""`: la imagen y el título están en el mismo
+                             `<a>`, así que con el `alt` el lector oye el título
+                             dos veces. Es decorativa respecto al texto de al lado. */
+                          alt=""
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
@@ -276,19 +291,6 @@ export default function CulturePageClient({
                           {new Date(evento.date).getDate()}
                         </span>
                       </div>
-                      <div className="absolute top-3 right-3">
-                        <FavoriteButton
-                          event={{
-                            id: evento.id,
-                            slug: evento.slug,
-                            title: evento.title,
-                            date: evento.date,
-                            image: evento.image,
-                            location: evento.location,
-                            link: evento.link,
-                          }}
-                        />
-                      </div>
 
                       <div className="absolute bottom-0 left-0 right-0 p-4">
                         <span className="font-mono text-[11px] uppercase tracking-wider text-accent bg-accent/20 px-2 py-0.5 inline-block mb-2 rounded">
@@ -308,6 +310,20 @@ export default function CulturePageClient({
                       </div>
                     </div>
                   </Link>
+
+                  <div className="absolute top-[1.125rem] right-[1.125rem] z-10">
+                    <FavoriteButton
+                      event={{
+                        id: evento.id,
+                        slug: evento.slug,
+                        title: evento.title,
+                        date: evento.date,
+                        image: evento.image,
+                        location: evento.location,
+                        link: evento.link,
+                      }}
+                    />
+                  </div>
 
                   {evento.link && (
                     <div className="p-4 bg-surface">

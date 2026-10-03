@@ -45,13 +45,16 @@ export default function AtAGlanceStrip({
         <div className="flex gap-2 flex-wrap px-5 pb-4">
           {CHIPS.map((c) => {
             const cat = normalizeCategory(c.cat);
-            const color = CATEGORY_COLORS[cat] || "#7C8794";
+            // Sin categoría en el registro: se cae al sutil, que es un token y el mismo
+            // valor en los dos temas. Escrito a mano, ese mismo gris se dodgeaba
+            // cualquier cambio de paleta sin que nadie lo notara.
+            const color = CATEGORY_COLORS[cat] || "var(--fg-subtle)";
             return (
               <Link
                 key={c.href}
                 href={c.href}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-transform duration-300 hover:-translate-y-0.5"
-                style={{ backgroundColor: color, color: "#0B0E14" }}
+                style={{ backgroundColor: color, color: "var(--on-tint)" }}
               >
                 {c.label}
               </Link>

@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { Phone, MapPin, Clock, Loader2, RefreshCw } from "lucide-react";
 import FreshnessBadge from "./FreshnessBadge";
 import type { FarmaciaGuardia } from "@/lib/sources/farmacias";
-import { formatDate } from "@/lib/utils";
 
 // El Leaflet sólo se carga en el cliente (window)
 const MapaFarmacias = dynamic(
@@ -23,12 +22,23 @@ function MapSkeleton() {
 
 function FechaDebito({ iso }: { iso: string }) {
   const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const ok = !isNaN(date.getTime());
-  return <>{ok ? formatDate(date.toISOString()) : iso}</>;
+  const fecha = new Date(y, m - 1, d);
+  if (isNaN(fecha.getTime())) return <>{iso}</>;
+  // El mes se saca con `Intl` y no con `formatDate` a propósito, por dos razones.
+  // Una: `formatDate` devuelve `{ day, month }`, no una cadena, y usado como hijo
+  // hace que React lance "Objects are not valid as a React child" — con lo que
+  // `/farmacias` caía en el error boundary en cuanto la API devolvía una fecha,
+  // que es justo cuando hay algo que enseñar. Dos: `new Date("2026-10-03")` es
+  // medianoche **UTC** por norma, así que en cualquier huso negativo `formatDate`
+  // habría enseñado el día anterior.
+  const mes = new Intl.DateTimeFormat("es", { month: "short" })
+    .format(fecha)
+    .toUpperCase()
+    .replace(".", "");
+  return <>{`${fecha.getDate()} ${mes}`}</>;
 }
 
-export default function FarmaciasPageClient() {
+export default function FarmaciasPageClient({ ahora }: { ahora: number }) {
   const [farmacias, setFarmacias] = useState<FarmaciaGuardia[]>([]);
   const [fecha, setFecha] = useState("");
   const [fetchedAt, setFetchedAt] = useState(0);
@@ -84,9 +94,13 @@ export default function FarmaciasPageClient() {
   );
 
   const hoy = useMemo(() => {
-    const d = new Date();
+    // El reloj venía de `new Date()` dentro del memo con deps `[]`, o sea que
+    // "hoy" se calculaba una vez al montar y no volvía a cambiar nunca: la
+    // guardia se quedaba en el día que se abrió la página. Llega como prop por
+    // el mismo motivo que en `HeroSection` y `NextDaysSection`.
+    const d = new Date(ahora);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
+  }, [ahora]);
 
   const seleccionada = farmacias.find((f) => f.id === selectedId) || null;
 
@@ -112,7 +126,7 @@ export default function FarmaciasPageClient() {
       </p>
 
       {error && (
-        <p className="text-sm text-red-500 bg-red-500/5 border border-red-500/20 rounded-xl px-4 py-3 mb-5" role="alert">
+        <p className="text-sm text-danger bg-danger/5 border border-danger/20 rounded-xl px-4 py-3 mb-5" role="alert">
           {error}
           <button onClick={load} className="ml-3 underline font-medium cursor-pointer">
             Reintentar
@@ -178,14 +192,26 @@ export default function FarmaciasPageClient() {
           ) : (
             <ul className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
               {farmacias.map((f) => (
-                <li key={f.id}>
+                <li
+                  key={f.id}
+                  className={`rounded-2xl border transition-all duration-300 ${
+                    selectedId === f.id
+                      ? "border-accent/40 bg-accent-subtle/30 shadow-md shadow-accent/10"
+                      : "border-border bg-surface hover:border-accent/25 hover:shadow-md hover:shadow-accent/5"
+                  }`}
+                >
+                  {/*
+                    El botón selecciona y el teléfono es un `<a>` hermano, no un hijo.
+                    El contenido de un `button` no puede ser interactivo: con el
+                    enlace dentro, el HTML era inválido y hacía falta un
+                    `stopPropagation` en el `onClick` del `<a>` para que no se
+                    seleccionara la farmacia. Sin anidado no hace falta, y el enlace
+                    vuelve a ser un enlace.
+                  */}
                   <button
                     onClick={() => setSelectedId(f.id === selectedId ? null : f.id)}
-                    className={`w-full text-left rounded-2xl border p-4 transition-all duration-300 cursor-pointer ${
-                      selectedId === f.id
-                        ? "border-accent/40 bg-accent-subtle/30 shadow-md shadow-accent/10"
-                        : "border-border bg-surface hover:border-accent/25 hover:shadow-md hover:shadow-accent/5"
-                    }`}
+                    aria-pressed={selectedId === f.id}
+                    className="w-full text-left p-4 cursor-pointer"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h3 className="font-display text-sm font-semibold text-fg">{f.name}</h3>
@@ -195,10 +221,13 @@ export default function FarmaciasPageClient() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-fg-muted mb-2">
+                    <p className="text-xs text-fg-muted">
                       {f.shortAddress || f.address || f.neighborhood}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                  </button>
+
+                  {(f.horarios && f.horarios !== "-") || f.phone ? (
+                    <div className="px-4 pb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                       {f.horarios && f.horarios !== "-" && (
                         <span className="inline-flex items-center gap-1 text-xs text-fg-muted">
                           <Clock size={12} aria-hidden="true" />
@@ -208,7 +237,6 @@ export default function FarmaciasPageClient() {
                       {f.phone && (
                         <a
                           href={`tel:${f.phone.replace(/[^\d+]/g, "")}`}
-                          onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:text-accent-hover transition-colors duration-300"
                         >
                           <Phone size={12} aria-hidden="true" />
@@ -216,12 +244,13 @@ export default function FarmaciasPageClient() {
                         </a>
                       )}
                     </div>
-                    {f.lat && f.lng && (
-                      <p className="mt-2 text-[10px] text-fg-muted tabular-nums hidden">
-                        {f.lat}, {f.lng}
-                      </p>
-                    )}
-                  </button>
+                  ) : null}
+
+                  {f.lat && f.lng && (
+                    <p className="mt-2 px-4 pb-4 text-[10px] text-fg-muted tabular-nums hidden">
+                      {f.lat}, {f.lng}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

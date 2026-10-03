@@ -1,6 +1,9 @@
+import LoadingStatus from "@/app/components/LoadingStatus";
+
 export default function HomeLoading() {
   return (
-    <div className="px-5 sm:px-6 pt-28 pb-16 md:pt-36 md:pb-24 max-w-7xl mx-auto">
+    <LoadingStatus label="Cargando la agenda de hoy…">
+      <div className="px-5 sm:px-6 pt-28 pb-16 md:pt-36 md:pb-24 max-w-7xl mx-auto">
       <div className="mb-6">
         <div className="h-3 w-32 bg-bg-muted rounded animate-pulse" />
       </div>
@@ -36,7 +39,8 @@ export default function HomeLoading() {
             </div>
           </div>
         ))}
+</div>
       </div>
-    </div>
+    </LoadingStatus>
   );
 }

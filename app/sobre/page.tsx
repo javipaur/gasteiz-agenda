@@ -4,7 +4,11 @@ import Link from "next/link";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Sobre Gasteiz Click · Metodología y fuentes",
+  // La marca se quita del título, no del subtítulo del cuerpo: aquí no
+  // describe la página, es el nombre del sitio, y la plantilla de
+  // `app/layout.tsx` ya lo añade. Dejarla daba "Sobre Gasteiz Click ·
+  // Metodología y fuentes | Gasteiz Click".
+  title: "Metodología y fuentes de la agenda",
   description:
     "Gasteiz Click es la agenda cultural de Vitoria-Gasteiz: conciertos, teatro, cine, deporte y planes familiares, actualizados cada día a partir de fuentes oficiales y verificadas.",
   alternates: { canonical: "/sobre" },

@@ -14,8 +14,10 @@ function RowPartido({ partido, index }: { partido: Partido; index: number }) {
       <span className="font-mono text-xs text-fg-subtle w-5">{index + 1}</span>
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {partido.local.url && (
+          // `alt=""`: el escudo va justo al lado del nombre del equipo en la misma
+          // fila, así que con el `alt` ese nombre se oía dos veces seguidas.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={partido.local.url} alt={partido.local.nombre} className="h-6 w-6 object-contain shrink-0" />
+          <img src={partido.local.url} alt="" className="h-6 w-6 object-contain shrink-0" />
         )}
         <span className="text-sm truncate">{partido.local.nombre}</span>
         <span className="text-xs text-fg-subtle">vs</span>

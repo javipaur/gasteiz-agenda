@@ -297,7 +297,7 @@ export default function BusPageClient() {
               value={query}
               onChange={(e) => onChangeQuery(e.target.value)}
               placeholder="Ej. Catedral, Florida, Europa…"
-              className="w-full h-13 pl-11 pr-10 rounded-2xl bg-surface border border-border text-fg placeholder:text-fg-muted focus:outline-2 focus:outline-accent focus:border-accent/40 transition-all duration-300 text-base py-3"
+              className="w-full h-13 pl-11 pr-12 rounded-2xl bg-surface border border-border text-fg placeholder:text-fg-muted focus:outline-2 focus:outline-accent focus:border-accent/40 transition-all duration-300 text-base py-3"
               aria-label="Buscar parada"
               inputMode="search"
             />
@@ -309,7 +309,12 @@ export default function BusPageClient() {
                   setResultados(null);
                   setBuscado(false);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 grid size-7 place-items-center rounded-full text-fg-subtle hover:text-fg hover:bg-bg-muted transition-colors duration-300 cursor-pointer"
+                // `size-7` eran 28×28 para una X que se limpia con el pulgar mientras se
+                // está escribiendo. Ahora es 44×44, que es lo que cabe en el alto del
+                // campo (`h-13` son 52) y por eso el `right-1` baja de 12 a 4 px: a 12
+                // se salía del campo. El `pr-12` del input compensa el ancho para
+                // que el texto no llegue debajo.
+                className="absolute right-1 top-1/2 -translate-y-1/2 grid size-11 place-items-center rounded-full text-fg-subtle hover:text-fg hover:bg-bg-muted transition-colors duration-300 cursor-pointer"
                 aria-label="Limpiar búsqueda"
               >
                 <X size={14} />
@@ -338,7 +343,7 @@ export default function BusPageClient() {
           )}
 
           {error && (
-            <p className="text-sm text-red-500 bg-red-500/5 border border-red-500/20 rounded-xl px-4 py-3 mb-4" role="alert">
+            <p className="text-sm text-danger bg-danger/5 border border-danger/20 rounded-xl px-4 py-3 mb-4" role="alert">
               {error}
             </p>
           )}
@@ -475,8 +480,16 @@ export default function BusPageClient() {
                               </p>
                             )}
                           </div>
+                          {/*
+                            "Cancelado" es información de estado, no decoración: con
+                            el rojo 500 de la escala de Tailwind, un usuario con
+                            deuteranopía no lo distinguía de nada y en una pantalla a
+                            pleno sol tampoco. `--danger` está medido contra
+                            `--surface` en los dos temas
+                            (`__tests__/contraste-estado.test.ts`).
+                          */}
                           {l.caducada ? (
-                            <span className="shrink-0 text-xs font-semibold text-red-500">Cancelado</span>
+                            <span className="shrink-0 text-xs font-semibold text-danger">Cancelado</span>
                           ) : (
                             <span
                               className={`shrink-0 text-sm font-bold tabular-nums ${

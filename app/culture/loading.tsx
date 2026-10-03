@@ -1,3 +1,5 @@
+import LoadingStatus from "@/app/components/LoadingStatus";
+
 function SkeletonCard() {
   return (
     <div className="rounded-[1.25rem] overflow-hidden bg-surface border border-border animate-pulse">
@@ -14,7 +16,8 @@ function SkeletonCard() {
 
 export default function CultureLoading() {
   return (
-    <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
+    <LoadingStatus label="Cargando la agenda cultural…">
+      <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
       <header className="mb-12">
         <div className="h-4 w-20 bg-bg-muted rounded mb-3 animate-pulse" />
         <div className="h-10 w-64 bg-bg-muted rounded mb-3 animate-pulse" />
@@ -29,9 +32,10 @@ export default function CultureLoading() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <SkeletonCard key={i} />
+<SkeletonCard key={i} />
         ))}
       </div>
-    </div>
+      </div>
+    </LoadingStatus>
   );
 }

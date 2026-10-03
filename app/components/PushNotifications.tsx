@@ -126,7 +126,14 @@ export default function PushNotifications() {
 
   return (
     <section className="mt-10 px-5 sm:px-6">
-      <div className="max-w-2xl mx-auto border border-line rounded-2xl p-5 flex items-center justify-between gap-4">
+      {/*
+        `border-border`, no `border-line`. En `app/globals.css` los tokens de borde
+        son `--border` y `--border-hover`, que Tailwind v4 publica como
+        `border-border` y `border-border-hover`: `border-line` no se generaba, así
+        que el marco no salía — sin error, sin aviso, y sin forma de saber desde el
+        código que faltaba.
+      */}
+      <div className="max-w-2xl mx-auto border border-border rounded-2xl p-5 flex items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-semibold text-fg tracking-[-0.01em]">
             Avisos de eventos
@@ -146,7 +153,7 @@ export default function PushNotifications() {
           <button
             onClick={disable}
             disabled={busy}
-            className="shrink-0 px-5 py-2.5 rounded-full font-body text-sm font-medium border border-line text-fg hover:bg-bg-elevated transition-colors duration-300 disabled:opacity-50"
+            className="shrink-0 px-5 py-2.5 rounded-full font-body text-sm font-medium border border-border text-fg hover:bg-bg-elevated transition-colors duration-300 disabled:opacity-50"
           >
             {busy ? "…" : "Desactivar"}
           </button>

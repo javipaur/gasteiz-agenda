@@ -9,6 +9,7 @@ import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
 import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
+import ShortcutHint from "./ShortcutHint";
 import { LogoMark } from "./LogoMark";
 
 type SearchHit = {
@@ -29,6 +30,54 @@ const navItems = [
   { name: "Deporte", href: "/deporte" },
   { name: "Turismo", href: "/turismo" },
   { name: "Gastronomía", href: "/gastronomia" },
+];
+
+/** Id estable del panel, para que el botón pueda apuntarlo con `aria-controls`. */
+const CATEGORIAS_PANEL_ID = "categorias-panel";
+
+/**
+ * Los enlaces del desplegable, agrupados. Salen de una constante y no de cuatro
+ * listas escritas dentro del JSX porque, al dejar de ser un `role="menu"`, cada
+ * grupo tiene que ser una `<ul>` con su `<li>` y su etiqueta: montarlo a mano cuatro
+ * veces era la forma más fácil de que una se quedara sin lista.
+ */
+const GRUPOS_CATEGORIAS: { titulo: string; enlaces: { label: string; href: string }[] }[] = [
+  {
+    titulo: "Música",
+    enlaces: [
+      { label: "Conciertos", href: "/conciertos" },
+      { label: "Jimmy Jazz", href: "/conciertos" },
+      { label: "VAM Cultura", href: "/conciertos" },
+    ],
+  },
+  {
+    titulo: "Cultura",
+    enlaces: [
+      { label: "Teatro", href: "/culture/teatro" },
+      { label: "Exposiciones", href: "/culture/exposiciones" },
+      { label: "Agenda cultural", href: "/culture/agenda" },
+    ],
+  },
+  {
+    titulo: "Ocio",
+    enlaces: [
+      { label: "Cartelera", href: "/movies" },
+      { label: "Planes familiares", href: "/kids" },
+      { label: "Fiestas La Blanca", href: "/fiestas-blanca" },
+      { label: "Turismo", href: "/turismo" },
+      { label: "Gastronomía", href: "/gastronomia" },
+      { label: "Bus y tranvía", href: "/bus" },
+      { label: "Farmacias", href: "/farmacias" },
+    ],
+  },
+  {
+    titulo: "Activo",
+    enlaces: [
+      { label: "Deporte", href: "/deporte" },
+      { label: "Senderismo", href: "/deporte" },
+      { label: "Carreras", href: "/deporte" },
+    ],
+  },
 ];
 
 function getVisibleNavItems() {
@@ -101,6 +150,7 @@ export default function Header() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
+  const categoriasBotonRef = useRef<HTMLButtonElement>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   useEffect(() => {
@@ -226,7 +276,13 @@ export default function Header() {
       }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setCategoriesOpen(false);
+      if (e.key !== "Escape") return;
+      setCategoriesOpen(false);
+      // Escape con el foco dentro del panel desmontaba el panel y el foco caía a
+      // `document.body`, así que el siguiente Tab reiniciaba desde el principio
+      // del documento. El disclosure se cierra, pero quien lo cierra sigue siendo
+      // el botón: el foco vuelve a él, que es donde se puede volver a abrir.
+      categoriasBotonRef.current?.focus();
     }
     if (categoriesOpen) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -296,8 +352,10 @@ export default function Header() {
             <nav className="hidden md:flex items-center gap-0.5 mx-2" aria-label="Navegación principal">
               <div ref={categoriesRef} className="relative">
                 <button
+                  ref={categoriasBotonRef}
                   onClick={() => setCategoriesOpen((v) => !v)}
                   aria-expanded={categoriesOpen}
+                  aria-controls={CATEGORIAS_PANEL_ID}
                   aria-haspopup="true"
                   className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer inline-flex items-center gap-1.5 ${
                     categoriesOpen
@@ -317,70 +375,42 @@ export default function Header() {
 
                 {categoriesOpen && (
                   <div
+                    id={CATEGORIAS_PANEL_ID}
                     className="absolute left-0 top-full mt-2 w-[420px] rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn"
-                    role="menu"
                   >
+                    {/*
+                      Sin `role="menu"` ni `role="menuitem"`, a propósito. El patrón
+                      ARIA de menú exige teclado de menú —flechas, Home/End y
+                      `tabIndex`— y aquí no lo hay: con los roles puestos, el lector
+                      entra en modo navegación de menú, Tab deja de recorrer los
+                      enlaces y las flechas no mueven nada. Es una lista de enlaces
+                      de navegación, y declarándola como lista cada enlace sale
+                      alcanzable con Tab y se anuncia como enlace.
+                    */}
                     <div className="grid grid-cols-2 gap-y-1 p-2">
-                      <div>
-                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
-                          Música
-                        </p>
-                        {[
-                          { label: "Conciertos", href: "/conciertos" },
-                          { label: "Jimmy Jazz", href: "/conciertos" },
-                          { label: "VAM Cultura", href: "/conciertos" },
-                        ].map((l) => (
-                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
-                            {l.label}
-                          </Link>
-                        ))}
-                      </div>
-                      <div>
-                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
-                          Cultura
-                        </p>
-                        {[
-                          { label: "Teatro", href: "/culture/teatro" },
-                          { label: "Exposiciones", href: "/culture/exposiciones" },
-                          { label: "Agenda cultural", href: "/culture/agenda" },
-                        ].map((l) => (
-                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
-                            {l.label}
-                          </Link>
-                        ))}
-                      </div>
-                      <div>
-                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
-                          Ocio
-                        </p>
-                        {[
-                          { label: "Cartelera", href: "/movies" },
-                          { label: "Planes familiares", href: "/kids" },
-                          { label: "Fiestas La Blanca", href: "/fiestas-blanca" },
-                          { label: "Turismo", href: "/turismo" },
-                          { label: "Gastronomía", href: "/gastronomia" },
-                          { label: "Bus y tranvía", href: "/bus" },
-                          { label: "Farmacias", href: "/farmacias" },
-                        ].map((l) => (
-                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
-                            {l.label}
-                          </Link>
-                        ))}
-                      </div>
-                      <div>
-                        <p className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle">
-                          Activo
-                        </p>
-                        {[
-                          { label: "Deporte", href: "/deporte" },
-                          { label: "Senderismo", href: "/deporte" },
-                          { label: "Carreras", href: "/deporte" },
-                        ].map((l) => (
-                          <Link key={l.label} href={l.href} onClick={() => setCategoriesOpen(false)} className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200" role="menuitem">
-                            {l.label}
-                          </Link>
-                        ))}
-                      </div>
+                      {GRUPOS_CATEGORIAS.map((grupo) => (
+                        <div key={grupo.titulo}>
+                          <p
+                            id={`${CATEGORIAS_PANEL_ID}-${grupo.titulo.toLowerCase()}`}
+                            className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"
+                          >
+                            {grupo.titulo}
+                          </p>
+                          <ul aria-labelledby={`${CATEGORIAS_PANEL_ID}-${grupo.titulo.toLowerCase()}`}>
+                            {grupo.enlaces.map((l) => (
+                              <li key={l.label}>
+                                <Link
+                                  href={l.href}
+                                  onClick={() => setCategoriesOpen(false)}
+                                  className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200"
+                                >
+                                  {l.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -438,14 +468,17 @@ export default function Header() {
                     aria-label="Buscar eventos"
                   />
                   <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle pointer-events-none" />
-                  <kbd
-                    aria-hidden="true"
+                  {/*
+                    `ShortcutHint` y no el texto fijo: el atajo se acepta con
+                    `metaKey` **o** `ctrlKey`, así que en Windows y Linux es
+                    `Ctrl K`. Escribir `⌘K` a pelo hacía que el cartel describiera
+                    una tecla que no existe en esa máquina.
+                  */}
+                  <ShortcutHint
                     className={`absolute right-2 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-border bg-surface font-mono text-[10px] text-fg-subtle pointer-events-none transition-opacity duration-300 ${
                       searchQuery ? "opacity-0" : "opacity-100"
                     }`}
-                  >
-                    ⌘K
-                  </kbd>
+                  />
                 </div>
                 {searchOpen && (
                   <div className="absolute left-auto right-0 top-full mt-2 w-[calc(100%+4rem)] max-w-sm rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn">

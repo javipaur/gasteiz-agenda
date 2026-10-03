@@ -154,6 +154,9 @@ export default function MoodFilter({
                     <button
                       key={cine}
                       onClick={() => setCineFilter(cine)}
+                      /* Igual que las ambientaciones de arriba: la selección se
+                         anunciaba solo con el color. */
+                      aria-pressed={cineFilter === cine}
                       className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                         cineFilter === cine
                           ? "bg-accent text-white"

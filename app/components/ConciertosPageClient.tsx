@@ -127,6 +127,8 @@ export default function ConciertosPageClient({ eventos }: { eventos: Evento[] })
             <button
               key={v.key}
               onClick={() => setVenueFilter(v.key)}
+              /* La selección solo se distinguía por el color de fondo. */
+              aria-pressed={venueFilter === v.key}
               className={`px-4 py-2 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer rounded-full ${
                 venueFilter === v.key
                   ? "bg-accent text-white"
@@ -198,7 +200,14 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
   return (
     <InViewWrapper delay={Math.min(index * 0.04, 0.4)}>
       <div className="group double-bezel-outer rounded-[1.25rem] p-1.5 block">
-        <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
+        <div className="double-bezel relative rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
+          {/*
+            El favorito es hermano del `<Link>`, no hijo. El contenido de un `a` no
+            puede ser interactivo: dentro, el HTML es inválido y la tarjeta se
+            anuncia como "enlace con botón". Sigue siendo un botón alcanzable con
+            Tab, y `top-3 right-3` sobre este mismo contenedor da el mismo píxel de
+            antes, porque el marco del `div` que lo contiene es el que ya estaba.
+          */}
           <Link
             href={`/evento/${evento.slug}`}
             className="block focus-visible:outline-2 focus-visible:outline-accent"
@@ -207,7 +216,9 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
             {evento.image ? (
               <Image
                 src={evento.image}
-                alt={evento.title}
+                /* `alt=""`: la imagen y el título comparten `<a>`, así que con el
+                   `alt` el lector oye el título dos veces. */
+                alt=""
                 fill
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
@@ -238,20 +249,6 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
               </div>
             )}
 
-            <div className="absolute top-3 right-3">
-              <FavoriteButton
-                event={{
-                  id: evento.id,
-                  slug: evento.slug,
-                  title: evento.title,
-                  date: evento.date,
-                  image: evento.image,
-                  location: evento.location,
-                  link: evento.link,
-                }}
-              />
-            </div>
-
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <span className="font-mono text-[11px] uppercase tracking-wider text-white/60 mb-1.5 inline-block">
                 {recintoLabel(evento)}
@@ -268,6 +265,20 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
             </div>
           </div>
           </Link>
+
+          <div className="absolute top-3 right-3 z-10">
+            <FavoriteButton
+              event={{
+                id: evento.id,
+                slug: evento.slug,
+                title: evento.title,
+                date: evento.date,
+                image: evento.image,
+                location: evento.location,
+                link: evento.link,
+              }}
+            />
+          </div>
 
           {evento.link && (
             <div className="p-4 bg-surface">

@@ -116,12 +116,18 @@ export default function AddToCalendar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      {/*
+        El nombre accesible tiene que **contener** el texto que se ve (WCAG 2.5.3):
+        el enlace ponía "Añadir a Google Calendar" y dentro decía "Añadir al
+        calendario", así que quien usa el comando de voz buscando lo que ve no
+        encuentra nada.
+      */}
       <a
         href={googleUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border bg-bg-elevated text-sm font-medium text-fg hover:border-accent hover:text-accent transition-colors duration-300 active:scale-[0.98]"
-        aria-label="Añadir a Google Calendar"
+        aria-label="Añadir al calendario en Google Calendar"
       >
         <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <rect x="2.5" y="4" width="15" height="13" rx="2" />
