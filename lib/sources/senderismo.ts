@@ -37,7 +37,14 @@ export async function scrapeSenderismo(): Promise<Actividad[]> {
     return cache;
   }
 
-  const resp = await fetch(URL, { headers: { "User-Agent": "Mozilla/5.0" } });
+  const resp = await fetch(URL, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+    // El plazo no es decoración: `lib/agenda.ts:90` espera a las 28 fuentes con
+    // `Promise.allSettled`, y eso solo vuelve cuando han vuelto todas. Un sitio que
+    // acepta la conexión y no contesta se la lleva por delante, y con ella la home,
+    // `/agenda` y `/api/v1/events`.
+    signal: AbortSignal.timeout(20000),
+  });
   if (!resp.ok) {
     if (cache) return cache;
     return [];

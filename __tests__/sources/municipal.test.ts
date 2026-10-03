@@ -77,12 +77,27 @@ describe("scrapeMunicipalCalendar", () => {
     }
   });
 
-  it("returns an empty array when the API returns an error", async () => {
+  it("propaga el fallo HTTP en vez de devolver una lista vacía", async () => {
+    // Devolver `[]` es indistinguible de "hoy no hay nada", y esta es la fuente
+    // de `priority: 0`, la que gana todos los dedupes: un 502 del Ayuntamiento
+    // vaciaba la agenda municipal entera con HTTP 200 y sin una sola línea de
+    // log, porque `agenda.ts` solo registra `scraping_failed` en las promesas que
+    // **rechazan**. Por eso propaga, igual que `scrapeBuscametasInscripciones`.
     mockFetchWith([
-      { match: /vitoria-gasteiz\.org/, content: "", status: 500 },
+      { match: /vitoria-gasteiz\.org/, content: "", status: 502 },
     ]);
 
-    const events = await scrapeMunicipalCalendar();
-    expect(events).toEqual([]);
+    await expect(scrapeMunicipalCalendar()).rejects.toThrow(/502/);
+  });
+
+  it("el estado del fallo viaja en el mensaje, no solo el texto", async () => {
+    // `agenda.ts:107` loguea `result.reason.message`. Sin el estado, un 502 y un
+    // 404 salen igual en el panel y no hay forma de saber si es caída del
+    // Ayuntamiento o un cambio de URL.
+    mockFetchWith([
+      { match: /vitoria-gasteiz\.org/, content: "", status: 404 },
+    ]);
+
+    await expect(scrapeMunicipalCalendar()).rejects.toThrow(/404/);
   });
 });

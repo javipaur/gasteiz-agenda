@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { localDateKey } from "@/lib/slug";
 
 export interface EntradiumEvent {
   title: string;
@@ -32,10 +33,45 @@ function strip(value: string): string {
   return (value || "").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * El día de hoy **local**, que es lo que ve la persona.
+ *
+ * Dos horas al día estos dos no son lo mismo, y la culpa es del huso:
+ *
+ *     instante (Z)          toISOString()   día local Madrid
+ *     2027-03-15T22:30Z     2027-03-15     2027-03-15   (invierno, +01:00)
+ *     2027-03-15T23:30Z     2027-03-15     2027-03-16   <-- difieren
+ *     2027-07-15T22:30Z     2027-07-15     2027-07-16   <-- difieren
+ *
+ * Medido en `TZ=Europe/Madrid`. La ventana es de **dos horas** en invierno y en
+ * verano —de 00:00 a 01:59 locales— porque son las dos horas en las que el día local
+ * ya ha cambiado y el del prefijo ISO todavía no: el primero en cruzar es el UTC, a
+ * las 23:00Z en invierno y a las 22:00Z en verano.
+ *
+ * El resto del fichero ya no usa `toISOString()` para esto: la fecha de una etiqueta
+ * se construye a **mediodía UTC** y se formatea con las partes en UTC, y el filtro
+ * usa esto de aquí. Lo que queda con el patrón viejo son los dos sitios de abajo.
+ */
+function hoyLocal(): string {
+  // `localDateKey` y no un `getFullYear()/getMonth()/getDate()` a mano: es la misma
+  // función que usa `lib/agenda.ts` para la clave de dedupe, así que "el día que ve
+  // el usuario" tiene una sola definición en el repo y no dos que se puedan separar.
+  return localDateKey(new Date().toISOString());
+}
+
 function parseDate(label: string): string {
-  // "Varias fechas": evento recurrente en curso → se fija al día actual
+  // "Varias fechas": evento recurrente en curso → se fija al día actual.
+  //
+  // Antes era `new Date().toISOString().slice(0, 10)`, que entre las 00:00 y las
+  // 01:59 de Madrid es **ayer**. Y eso no era un detalle de una etiqueta: el
+  // `date` devuelto es el que filtra `lib/agenda.ts` con `new Date(ev.date) >= hoy`,
+  // así que un evento recurrente que empezaba esta madrugada se fechaba en el día
+  // anterior y **no aparecía en la agenda, en la home ni en el digest** hasta que
+  // pasaban las dos. Para un "Varias fechas" el día es lo único que hay, así que
+  // durante esas dos horas la agenda no tenía ninguna cita recurrente de las que sí
+  // se anuncian, y nadie veía por qué.
   if (/varias\s*(fechas?|d[ií]as)|several dates/i.test(label)) {
-    return new Date().toISOString().slice(0, 10);
+    return hoyLocal();
   }
 
   // Formato visto: "26 sep" (año actual salvo fechas ya pasadas)
@@ -49,12 +85,37 @@ function parseDate(label: string): string {
   if (!day || monthIdx === -1) return "";
 
   const month = monthIdx + 1;
-  const date = new Date(year, month - 1, day);
+  const iso = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  // **Mediodía UTC**, y no medianoche local: es el patrón de
+  // `lib/sources/miniature.ts:137` y está aquí por un motivo concreto. Antes se
+  // construía con `new Date(year, month-1, day)` —medianoche **local**— y se
+  // devolvía con `date.toISOString().slice(0, 10)`, que es el día **UTC**. En
+  // Europe/Madrid la medianoche local son las 22:00 o las 23:00 del día anterior,
+  // de modo que el cambio de día pasaba primero y **todos** los eventos salían un
+  // día antes: "26 sep" → `2027-09-25`, "15 oct" → `2026-10-14`, "1 nov" →
+  // `2026-10-31`.
+  //
+  // No era solo una fecha fea. `lib/agenda.ts:164` filtra con
+  // `new Date(ev.date) >= hoy`, así que un concierto del sábado aparecía el
+  // viernes y desaparecía de la agenda, de la home y del digest durante el día
+  // real — y el del día en sí se filtraba entero, porque quedaba fechado en
+  // ayer. Y como el slug lleva la fecha dentro, tampoco casaba con la ficha.
+  //
+  // A las 12:00 UTC el día local y el UTC son el mismo y quedan doce horas de
+  // margen en las dos direcciones, así que el día no puede cambiar por el cambio
+  // de hora ni al pasar un mes.
+  const date = new Date(`${iso}T12:00:00Z`);
+
   // Si ya pasó (salvo enero/diciembre cerca del fin de año) asumo año siguiente
   if (date.getTime() < Date.now() && month >= 6) {
-    date.setFullYear(year + 1);
+    date.setUTCFullYear(year + 1);
   }
-  return date.toISOString().slice(0, 10);
+
+  // Se formatea con las partes **en UTC** y no con `toISOString()` sobre un
+  // objeto local: el día ya está fijado a mediodía UTC, así que leerlo en UTC es
+  // lo que hace que la cadena devuelta y el día que el usuario ve sean el mismo.
+  return `${date.getUTCFullYear()}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
@@ -72,7 +133,24 @@ export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
   const html = await res.text();
   const $ = cheerio.load(html);
   const events: EntradiumEvent[] = [];
-  const today = new Date().toISOString().slice(0, 10);
+  // Local y no con `toISOString().slice(0, 10)`. **Medido, no supuesto**, porque el
+  // síntoma va en la dirección contraria al que se espera y por eso no se ve: entre
+  // las 00:00 y las 01:59 locales el prefijo ISO está **un día por detrás**, así que
+  // `date < today` se quedaba corto y no descartaba nada. Con el filtro viejo, a las
+  // 00:30 del día 16:
+  //
+  //     fecha        viejo        nuevo
+  //     2027-03-14   descarta     descarta
+  //     2027-03-15   deja         descarta   <-- ayer local se colaba
+  //     2027-03-16   deja         deja
+  //
+  // No es un bug de un día suelto: son los eventos del día anterior los que se
+  // cuelan, y en una fuente que publica sobre todo lo que viene, la lista de "hoy y
+  // siguientes" empezaba siempre con el programa de ayer. La fecha que produce
+  // `parseDate` es **local** —la etiqueta "26 sep" es el 26 de septiembre en el
+  // calendario de quien la lee—, así que compararla contra un día UTC no tiene
+  // sentido ni siquiera "a veces".
+  const today = hoyLocal();
 
   $("a.event-card").each((_, el) => {
     const card = $(el);

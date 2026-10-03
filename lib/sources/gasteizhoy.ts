@@ -78,9 +78,13 @@ function extractListImages(html: string): Map<string, string> {
 }
 
 export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
+  // Las dos peticiones comparten `Promise.all`, así que el plazo va en las dos: si
+  // a una se le olvidara, la otra lo compensaría y el conjunto seguiría colgando.
+  // El de `?view=list` es además opcional —es la que trae las imágenes—, y por eso
+  // lleva su propio `catch`: que se caiga esa no puede tumbar el calendario.
   const [calendarRes, listRes] = await Promise.all([
-    fetch(BASE_URL, { next: { revalidate: 3600 } }),
-    fetch(`${BASE_URL}?view=list`, { next: { revalidate: 3600 } }).catch(() => null),
+    fetch(BASE_URL, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(20000) }),
+    fetch(`${BASE_URL}?view=list`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(20000) }).catch(() => null),
   ]);
 
   const calendarHtml = await calendarRes.text();

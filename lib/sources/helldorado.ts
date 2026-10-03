@@ -41,12 +41,21 @@ async function scrapeEventPage(url: string): Promise<{ date: string; image: stri
       signal: AbortSignal.timeout(10000),
       next: { revalidate: 86400 },
     });
-    if (!res.ok) return { date: "", image: "", description: "" };
+    // El aviso importa más desde que la fecha ya no tiene reserva: si la ficha
+    // falla, el evento no se descarta con una fecha inventada sino que **no
+    // aparece**, y sin esto la única señal sería una cartelera más corta.
+    if (!res.ok) {
+      console.warn(`[helldorado] la ficha ${url} respondio ${res.status}`);
+      return { date: "", image: "", description: "" };
+    }
     const html = await res.text();
     const $ = cheerio.load(html);
 
     const dateText = $(".elementor-element-81becb8 .elementor-heading-title").text().trim();
     const date = parseSpanishDate(dateText) || "";
+    if (!date) {
+      console.warn(`[helldorado] la ficha ${url} no trae fecha legible: "${dateText}"`);
+    }
 
     const img = $(".elementor-element-6a1c479 img").first().attr("src") || "";
     const image = img.startsWith("http") ? img : img ? `https://helldorado.net${img}` : "";
@@ -54,7 +63,8 @@ async function scrapeEventPage(url: string): Promise<{ date: string; image: stri
     const desc = $(".elementor-element-6ee8671 .elementor-widget-text-editor").text().trim().slice(0, 200);
 
     return { date, image, description: desc };
-  } catch {
+  } catch (error) {
+    console.warn(`[helldorado] fallo la ficha ${url}: ${error instanceof Error ? error.message : String(error)}`);
     return { date: "", image: "", description: "" };
   }
 }
@@ -70,7 +80,14 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
         signal: AbortSignal.timeout(15000),
         next: { revalidate: 3600 },
       });
-      if (!res.ok) break;
+      // Antes: `break` a secas. Un 500 en la página 1 devolvía `[]` sin decir
+      // nada, y uno en la página 2 se quedaba con media cartelera sin decir nada
+      // tampoco. Los dos son indistinguibles de "la sala no tiene nada", que es lo
+      // único que el `[]` de esta función significaba.
+      if (!res.ok) {
+        console.warn(`[helldorado] la pagina ${page} respondio ${res.status}, se corta la paginacion`);
+        break;
+      }
       const data: any[] = await res.json();
       if (!data.length) break;
       allEvents.push(...data.map((e) => ({
@@ -81,7 +98,8 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
       })));
       const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1", 10);
       if (page >= totalPages) break;
-    } catch {
+    } catch (error) {
+      console.warn(`[helldorado] fallo la pagina ${page}: ${error instanceof Error ? error.message : String(error)}`);
       break;
     }
   }
@@ -94,7 +112,18 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
       const { date, image, description } = await scrapeEventPage(e.link);
       return {
         title: e.title,
-        date: date || e.postDate,
+        // **Sin fecha de reserva.** Antes era `date || e.postDate`, y `postDate` es
+        // el día en que se publicó el artículo en el WordPress, no el día del
+        // concierto: si la ficha de detalle fallaba, el evento salía en la agenda
+        // el día que se anunció. Eso incumple en silencio la norma que decidió
+        // este proyecto —"una fuente sin fecha no entra en el registro", la misma
+        // que sacó a Civitatis y Kora fuera del agregado—, y además metía el día
+        // equivocado en el slug, que entonces no casaba con la ficha de detalle.
+        //
+        // Sin reserva, un evento sin fecha se queda sin fecha y el filtro de abajo
+        // lo descarta: la lista es más corta, pero ninguno de los que están
+        // tiene un día inventado.
+        date,
         image,
         location: "Helldorado",
         link: e.link,

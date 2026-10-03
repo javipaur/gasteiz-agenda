@@ -38,7 +38,14 @@ export async function fetchEuskadiPage(page: number): Promise<{
   totalItems: number;
 }> {
   const url = `${EUSKADI_BASE}?_elements=${ELEMENTS}&_page=${page}&municipalityNoraCode=46&provinceNoraCode=1`;
-  const res = await fetch(url, { next: { revalidate: 3600 } });
+  const res = await fetch(url, {
+    next: { revalidate: 3600 },
+    // `revalidate` cachea la respuesta cuando llega; no dice nada de cuánto se
+    // espera a que llegue. Sin plazo, una de las cinco páginas que pagina este
+    // scraper basta para que `Promise.allSettled` en `lib/agenda.ts` no vuelva
+    // nunca y la agenda entera se quede esperando.
+    signal: AbortSignal.timeout(20000),
+  });
   if (!res.ok) return { items: [], totalItems: 0 };
   const data = await res.json();
   return {

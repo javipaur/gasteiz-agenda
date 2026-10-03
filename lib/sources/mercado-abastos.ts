@@ -131,6 +131,10 @@ export async function scrapeMercadoAbastos(): Promise<EventoConFecha[]> {
   try {
     const resp = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, "Accept": "application/json" },
+      // El `catch` de abajo ya sabe qué hacer si esto falla; lo que no puede es
+      // esperar sin límite a que falle. `Promise.allSettled` en `lib/agenda.ts`
+      // solo vuelve cuando han vuelto las 28.
+      signal: AbortSignal.timeout(20000),
     });
     if (!resp.ok) {
       console.error(`[mercado-abastos] HTTP ${resp.status}, se devuelve la cache`);

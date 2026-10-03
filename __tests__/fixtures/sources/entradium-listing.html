@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  Entradium, home móvil (`https://m.entradium.com/es`). written a mano con el
+  markup que `lib/sources/entradium.ts` realmente lee, porque esta fuente no tenía
+  fixture ni test — que es justo por lo que el bug de la fecha sobrevivió: sin un
+  test que mire el día, `parseDate` puede devolver el anterior y no hay nada que lo
+  note.
+
+  Las etiquetas de fecha no llevan año ("26 sep") y el scraper lo deduce, así que
+  el test **no** fija el año completo: fija el día, que es lo que se rompía. Ver
+  `__tests__/sources/entradium.test.ts`.
+-->
+<html lang="es">
+  <body>
+    <main>
+      <a class="event-card" href="/es/events/concierto-de-prueba/123456">
+        <picture>
+          <img srcset="https://cdn.entradium.com/img/concierto.jpg?w=800 800w">
+        </picture>
+        <div class="date"><span>26 sep</span></div>
+        <h3 class="event-title">Concierto de prueba</h3>
+        <div class="event-venue">Vitoria-Gasteiz</div>
+        <div class="price">Desde 12</div>
+      </a>
+
+      <!-- Fuera de Vitoria-Gasteiz: el scraper lo descarta por recinto. -->
+      <a class="event-card" href="/es/events/otro-concierto/654321">
+        <picture>
+          <img srcset="https://cdn.entradium.com/img/otro.jpg?w=800 800w">
+        </picture>
+        <div class="date"><span>15 oct</span></div>
+        <h3 class="event-title">Concierto en Bilbao</h3>
+        <div class="event-venue">Bilbao</div>
+        <div class="price">Desde 20</div>
+      </a>
+    </main>
+  </body>
+</html>

@@ -120,7 +120,22 @@ export async function fetchMunicipalCalendar(
     // solo una.
     signal: AbortSignal.timeout(20000),
   });
-  if (!res.ok) return [];
+  // Propaga, y no devuelve `[]`. Un `return []` aquí se comía el fallo entero:
+  // `lib/agenda.ts` usa `Promise.allSettled`, así que una fuente que **resuelve**
+  // con lista vacía es indistinguible de una que no publica nada, y su
+  // `logger.warn("scraping_failed")` solo se dispara en las promesas que
+  // **rechazan**. Con `priority: 0` —la que gana todos los dedupes— eso dejaba la
+  // agenda municipal vacía, cacheada 5 min en `agenda-all`, con HTTP 200 y sin
+  // una sola línea de log. Rechazando, el 502 llega al panel como
+  // `scraping_failed` y el resto de la agenda sigue saliendo, que es justo lo que
+  // `Promise.allSettled` garantiza para las demás.
+  //
+  // El patrón es el de `buscametas.ts:55`, y el estado va en el mensaje porque
+  // `agenda.ts:107` loguea `reason.message` y nada más: sin él, un 502 y un 404
+  // son la misma línea.
+  if (!res.ok) {
+    throw new Error(`municipal calendar returned ${res.status}`);
+  }
   const data = await res.json();
 
   return Object.values(data || {})

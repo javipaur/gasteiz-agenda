@@ -32,7 +32,11 @@ export async function scrapeBuscametasCalendario(): Promise<BuscametasEvento[]> 
   const response = await axios.post(
     "https://www.buscametas.com/modulos/calendario/fuentes/get_eventos.php",
     data,
-    { headers: data.getHeaders() }
+    // `timeout` de axios, no `signal`: es axios quien cancela, y un POST multipart
+    // sin plazo es el mismo agujero que los demás —`Promise.allSettled` en
+    // `lib/agenda.ts` no vuelve hasta que vuelven las 28 fuentes. 20000 es el
+    // plazo que ya usan los otros seis.
+    { headers: data.getHeaders(), timeout: 20000 }
   );
 
   return transformarEventos((response.data as { eventos: any[] }).eventos);

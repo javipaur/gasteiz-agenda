@@ -2,7 +2,68 @@ import * as cheerio from "cheerio";
 
 const VAM_API = "https://app.vamcultura.es/functions/getPublicEvents";
 
-const imageCache = new Map<string, string | undefined>();
+/**
+ * La caché de `og:image` es un `Map` a nivel de módulo, o sea que **dura lo que
+ * dura el proceso** del servidor de Next. Antes de esto no tenía ni TTL ni tope:
+ *
+ * - Un `og:image` viejo se servía para siempre. Si el sitio cambiaba la imagen de
+ *   un evento, la agenda seguía con la anterior, y como `enrichWithImages` corre en
+ *   cada `scrapeVamEvents` —que entra en `agenda-all` cada 5 minutos— la imagen
+ *   rancia se repinta indefinidamente. Solo un reinicio lo arreglaba.
+ * - El `Map` crecía sin límite: una entrada por cada enlace distinto que aparece en
+ *   el catálogo, y el catálogo rota eventos nuevos cada semana.
+ *
+ * **Lo que no pasaba, y conviene no dar por hecho:** las entradas negativas —las
+ * que guardaban `undefined` cuando el `fetch` fallaba— no se leían nunca, porque el
+ * guard era `if (cached !== undefined)` y un `undefined` guardado equivale a no
+ * tener entrada. O sea que un 503 no dejaba imágenes sin imagen para siempre; lo
+ * que dejaba era una entrada muerta por cada URL fallida. Aun así no se guardan:
+ * una entrada que no se va a leer no tiene por qué ocupar sitio, y quitarlas es lo
+ * que hace que el tope de tamaño signifique algo.
+ *
+ * El TTL es de una hora porque es una foto de una cartelera que cambia cada
+ * semana, y `next: { revalidate: 86400 }` ya da la capa de abajo. El tope de 200
+ * cubre de sobra el catálogo completo —el que más se ha visto son 13 eventos en
+ * Vitoria— y existe para que un proceso de días no acumule entradas para siempre.
+ */
+const IMAGE_CACHE_TTL_MS = 60 * 60 * 1000;
+const IMAGE_CACHE_MAX = 200;
+
+type ImageCacheEntry = { url: string; expira: number };
+
+const imageCache = new Map<string, ImageCacheEntry>();
+
+/**
+ * Vacía la caché de imágenes del módulo.
+ *
+ * La usan los tests, que si no comparten la primera respuesta entre casos, y
+ * sirve para forzar un re scrape desde código. Es la misma puerta que exportan
+ * `mercado-abastos.ts`, `civitatis.ts` y `kora.ts`, que este scraper no tenía.
+ */
+export function invalidateVamImages(): void {
+  imageCache.clear();
+}
+
+function leerImagenCacheada(url: string): string | undefined {
+  const entrada = imageCache.get(url);
+  if (!entrada) return undefined;
+  if (Date.now() >= entrada.expira) {
+    imageCache.delete(url);
+    return undefined;
+  }
+  return entrada.url;
+}
+
+function guardarImagenCacheada(clave: string, url: string): void {
+  // El `Map` de JavaScript mantiene el orden de inserción y `keys()` los devuelve en
+  // ese orden, así que el primero es el más antiguo y basta con borrar el primero
+  // que salga. Con `size >= MAX` y no con `size > MAX` para no llegar a `MAX + 1`.
+  if (imageCache.size >= IMAGE_CACHE_MAX) {
+    const masAntigua = imageCache.keys().next();
+    if (!masAntigua.done) imageCache.delete(masAntigua.value);
+  }
+  imageCache.set(clave, { url, expira: Date.now() + IMAGE_CACHE_TTL_MS });
+}
 
 const DEFAULT_EVENT_IMAGE =
   "https://opendata.euskadi.eus//contenidos/evento/2026070810071363/es_def/images/22.jpg";
@@ -32,7 +93,7 @@ function resolveImageUrl(raw: string | null | undefined): string | undefined {
 }
 
 async function fetchOgImage(url: string): Promise<string | undefined> {
-  const cached = imageCache.get(url);
+  const cached = leerImagenCacheada(url);
   if (cached !== undefined) return cached;
 
   try {
@@ -44,10 +105,13 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
       signal: AbortSignal.timeout(8000),
       next: { revalidate: 86400 },
     });
-    if (!res.ok) {
-      imageCache.set(url, undefined);
-      return undefined;
-    }
+    // Y los fallos **no** se guardan. Antes se guardaba `undefined`, que ocupaba
+    // una entrada para siempre sin poder servirse nunca, porque el guard de
+    // lectura comprobaba `!== undefined`. Lo que se hace es no escribir nada: el
+    // siguiente intento vuelve a pedir la ficha, que es lo único que puede hacer que
+    // aparezca. Tampoco se cachea el "200 sin imagen", que puede ser una página que
+    // se pinta con JavaScript y que un despliegue posterior sí trae con `og:image`.
+    if (!res.ok) return undefined;
 
     const html = await res.text();
     const $ = cheerio.load(html);
@@ -61,7 +125,7 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
       const absolute = ogImage.startsWith("http")
         ? ogImage
         : new URL(ogImage, url).href;
-      imageCache.set(url, absolute);
+      guardarImagenCacheada(url, absolute);
       return absolute;
     }
 
@@ -72,14 +136,14 @@ async function fetchOgImage(url: string): Promise<string | undefined> {
       const absolute = firstImg.startsWith("http")
         ? firstImg
         : new URL(firstImg, url).href;
-      imageCache.set(url, absolute);
+      guardarImagenCacheada(url, absolute);
       return absolute;
     }
 
-    imageCache.set(url, undefined);
     return undefined;
   } catch {
-    imageCache.set(url, undefined);
+    // Un error de red o un plazo agotado sí puede ser pasajero: no se guarda nada
+    // para que el siguiente `scrapeVamEvents` vuelva a intentarlo.
     return undefined;
   }
 }
@@ -139,6 +203,10 @@ async function fetchAllVamEvents(): Promise<any[]> {
     },
     body: "{}",
     next: { revalidate: 3600 },
+    // Es la petición grande del scraper —trae todo el catálogo de eventos—, y sin
+    // plazo una Function de Azure que acepta y no contesta deja la agenda entera
+    // esperando en `Promise.allSettled`.
+    signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) return [];
   const data = await res.json();

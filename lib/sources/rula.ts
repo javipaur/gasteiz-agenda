@@ -58,13 +58,27 @@ export async function scrapeRula(): Promise<RulaEvent[]> {
   // que rotar la variable no exija reiniciar nada.
   const token = process.env.MEC_TOKEN;
 
-  // Sin token el API responde 500, asi que mejor no gastar la descarga: se avisa
-  // y la fuente se queda vacia. El resto de la agenda sigue saliendo.
+  // Sin token el API responde 500, asi que mejor no gastar los 6,5 MB de la
+  // descarga. El resto de la agenda sigue saliendo.
+  //
+  // **Rechaza en vez de devolver `[]`, y el motivo es la caché.** Esta entrada del
+  // registro declara `cacheTtlMs` de 2 h porque Rula baja 6,5 MB por petición, y
+  // `lib/cache.ts` escribe lo que el scraper resuelva. Con `return []`, la ausencia
+  // de token se cacheaba como si fuera un resultado: cambiar `MEC_TOKEN` en Dokploy
+  // no recalculaba nada y recuperar la fuente exigía 2 h o un redeploy, cuando el
+  // `README` promete exactamente lo contrario —"es deliberado, para que rotar el
+  // token sea cambiar una variable y no editar código"—. Con la promesa a pelo esa
+  // promesa era falsa.
+  //
+  // `fetchAndStore` solo escribe **después** de que el `fetcher` resuelva, así que
+  // rechazar es lo que deja la ausencia de token sin cachear, sin tocar
+  // `lib/cache.ts`. Y `Promise.allSettled` en `lib/agenda.ts` recoge el rechazo, lo
+  // loguea como `scraping_failed` con `source: "rula"` y sigue con las otras 27
+  // fuentes: la fuente caerse sola no puede tumbar la agenda.
   if (!token) {
-    console.warn(
+    throw new Error(
       "[rula] MEC_TOKEN no esta definido: La Genterula no se consulta. Define la variable para incluirla."
     );
-    return [];
   }
 
   const res = await fetch(`${MEC_API}?limit=500`, {
