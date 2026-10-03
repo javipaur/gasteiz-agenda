@@ -3,5 +3,9 @@ nixPkgs = ["nodejs_22"]
 
 [variables]
 NODE_OPTIONS = "--experimental-sqlite"
+# Un contenedor Node sin TZ corre en UTC, así que PUSH_DIGEST_HOUR=9 disparaba a
+# las 11:00 en horario de verano. La zona la pone el despliegue; el código la lee
+# con Europe/Madrid por defecto (`lib/scheduler.ts`), y por eso van las dos cosas.
+TZ = "Europe/Madrid"
 AXIOM_TOKEN = "@axiom_token"
 AXIOM_DATASET = "gasteiz-agenda"
