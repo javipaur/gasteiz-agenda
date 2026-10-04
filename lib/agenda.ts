@@ -31,6 +31,37 @@ export type AgendaEvento = {
   rating?: number;
 };
 
+/**
+ * Cómo se construyó el agregado que hay en caché ahora mismo.
+ *
+ * Existe porque `aggregate` usa `Promise.allSettled`: si 15 de 28 scrapers fallan,
+ * lo único que sale es un `logger.warn` y el agregado se devuelve más corto. Quien
+ * lo consume —la web, la API, el digest del push— no tiene forma de distinguir
+ * "hoy hay 400 eventos" de "hoy solo han respondido 13 fuentes". Un motor de
+ * búsqueda que llamara a esta API contestaría con la mitad de la agenda y con
+ * toda la confianza, que es exactamente el modo de fallo que este repo ya corrigió
+ * una vez en `municipal`, `rula`, `farmacias` y `search`: una lista vacía que no
+ * dice que está vacía.
+ *
+ * Con esto, quien lo sirva puede decirlo. `sources` se llama así y no `fuentes`
+ * porque el resto del identificador está en castellano y la mitad de los campos de
+ * `AgendaEvento` lo están también; el nombre inglés es el que usa la documentación
+ * de MCP para este tipo de dato.
+ */
+export type AgendaMeta = {
+  /** Cuándo se construyó el agregado, en ISO. Es la construcción, no la lectura. */
+  scrapedAt: string;
+  /** Cuántas fuentes hay en el registro que se han consultado. */
+  sourcesTotal: number;
+  /** Cuántas han respondido, aunque sea con lista vacía. */
+  sourcesOk: number;
+  /** Las que no han respondido, con el motivo. */
+  sourcesFallidas: { id: string; error: string }[];
+};
+
+/** Lo que se guarda en la caché `agenda-all`. */
+type AgendaCacheada = { eventos: AgendaEvento[]; meta: AgendaMeta };
+
 function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
   const title = (raw.title || "").trim();
   if (!title || title === "Sin título") return null;
@@ -92,7 +123,17 @@ function dedupeKey(ev: AgendaEvento): string {
   return `${ev.title.toLowerCase().trim()}|${localDateKey(ev.date)}`;
 }
 
-export async function aggregate(entries: readonly SourceEntry[]): Promise<AgendaEvento[]> {
+/**
+ * El agregado, y junto a él cómo se construyó.
+ *
+ * El que hay dos funciones y no una con un parámetro `conMeta` es para no tocar los
+ * quince tests que llaman a `aggregate` esperando un array, y porque la firma corta
+ * es la que se usa en el 99% de los sitios. Quien necesite saber si el agregado está
+ * completo llama a esta.
+ */
+export async function aggregateConMeta(
+  entries: readonly SourceEntry[]
+): Promise<{ eventos: AgendaEvento[]; meta: AgendaMeta }> {
   // Regla de desempate, en este orden y sin excepciones:
   //   1. menor `priority` gana
   //   2. a igual prioridad, gana el que va antes en SOURCE_REGISTRY
@@ -105,21 +146,22 @@ export async function aggregate(entries: readonly SourceEntry[]): Promise<Agenda
     ordered.map((e) => {
       // Solo las fuentes que declaran `cacheTtlMs` tienen capa propia. Las demás
       // las cubre el `agenda-all` de 5 min de abajo, y meterlas aquí sin que lo
-      // pidan sería cambiarle el ritmo de frescura a 27 fuentes por el problema
-      // de una.
+      // pidan sería cambiarle el ritmo de frescura a 27 fuentes por el problema de
+      // una.
       if (!e.cacheTtlMs) return e.run();
       return getCachedOrFetch(`source:${e.id}`, e.cacheTtlMs, e.run);
     })
   );
 
   const collected: AgendaEvento[] = [];
+  const sourcesFallidas: { id: string; error: string }[] = [];
   settled.forEach((result, i) => {
     const entry = ordered[i];
     if (result.status === "rejected") {
-      logger.warn("scraping_failed", {
-        source: entry.id,
-        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-      });
+      const error =
+        result.reason instanceof Error ? result.reason.message : String(result.reason);
+      logger.warn("scraping_failed", { source: entry.id, error });
+      sourcesFallidas.push({ id: entry.id, error });
       return;
     }
     for (const raw of result.value) {
@@ -129,6 +171,7 @@ export async function aggregate(entries: readonly SourceEntry[]): Promise<Agenda
   });
 
   const byKey = new Map<string, AgendaEvento>();
+
   for (const ev of collected) {
     const key = dedupeKey(ev);
     const winner = byKey.get(key);
@@ -151,40 +194,83 @@ export async function aggregate(entries: readonly SourceEntry[]): Promise<Agenda
   // gana, que es la que más se fía de la ficha. Antes se filtraban aquí mismo,
   // solo que únicamente para La Blanca; sin este filtro un concierto anulado
   // aparece en pantalla igual que uno que va a celebrarse, porque no hay badge
-  // de cancelado en ninguna tarjeta y lo único que leería el campo es el
+  // de cancelado en ninguna tarjeta y lo único que leería el campo sería el
   // JSON-LD, que además declara lo contrario de lo que ve el usuario.
-  return [...byKey.values()]
+  const eventos = [...byKey.values()]
     .filter((ev) => !ev.cancelled)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return {
+    eventos,
+    meta: {
+      // El instante de la **construcción**, que es lo que se guarda en la caché. Si
+      // se tomara al leer, un `agenda-all` de cinco minutos daría siempre "ahora" y
+      // el campo no diría nada.
+      scrapedAt: new Date().toISOString(),
+      sourcesTotal: ordered.length,
+      sourcesOk: ordered.length - sourcesFallidas.length,
+      sourcesFallidas,
+    },
+  };
 }
 
-async function fetchAllAgenda(): Promise<AgendaEvento[]> {
-  return aggregate(SOURCE_REGISTRY);
+export async function aggregate(
+  entries: readonly SourceEntry[]
+): Promise<AgendaEvento[]> {
+  return (await aggregateConMeta(entries)).eventos;
+}
+
+async function fetchAllAgenda(): Promise<AgendaCacheada> {
+  return aggregateConMeta(SOURCE_REGISTRY);
+}
+
+/**
+ * El valor cacheado de `agenda-all`.
+ *
+ * **La clave lleva versión a propósito.** La caché de `lib/cache.ts` es un fichero
+ * JSON en `tmpdir()`, así que sobrevive a un reinicio de Node y en Dokploy
+ * sobrevive entre peticiones. Cambiar la forma del valor sin cambiar la clave
+ * haría que el primer hit tras el despliegue leyera el fichero viejo —un array
+ * pelado— y `cacheada.eventos` sería `undefined`, con un TypeError en la home.
+ * Subir a `v2` es más barato que guardar un `typeof` y una rama por cada lectura.
+ */
+async function getAgendaCacheada(): Promise<AgendaCacheada> {
+  return getCachedOrFetch<AgendaCacheada>("agenda-all-v2", 5 * 60 * 1000, fetchAllAgenda);
 }
 
 export async function getAgendaEventos(options?: {
   days?: number;
   includePast?: boolean;
 }): Promise<AgendaEvento[]> {
-  let eventos = await getCachedOrFetch<AgendaEvento[]>(
-    "agenda-all",
-    5 * 60 * 1000,
-    fetchAllAgenda
-  );
+  const { eventos } = await getAgendaCacheada();
+  let lista = eventos;
 
   if (!options?.includePast) {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    eventos = eventos.filter((ev) => new Date(ev.date) >= hoy);
+    lista = lista.filter((ev) => new Date(ev.date) >= hoy);
   }
 
   if (options?.days) {
     const limit = new Date();
     limit.setDate(limit.getDate() + options.days);
-    eventos = eventos.filter((ev) => new Date(ev.date) <= limit);
+    lista = lista.filter((ev) => new Date(ev.date) <= limit);
   }
 
-  return eventos;
+  return lista;
+}
+
+/**
+ * Cómo se construyó el agregado que se está sirviendo ahora, sin refetch.
+ *
+ * Comparte la clave `agenda-all-v2` con `getAgendaEventos`, así que leer la salud no
+ * dispara un scrape que no dispara ya la agenda. Es lo que hace este par de
+ * funciones coherente: preguntar "¿están las 28 fuentes?" no puede ser más caro que
+ * cargar la home.
+ */
+export async function getAgendaSalud(): Promise<AgendaMeta> {
+  const { meta } = await getAgendaCacheada();
+  return meta;
 }
 
 export function findBySlug(
@@ -192,6 +278,43 @@ export function findBySlug(
   slug: string
 ): AgendaEvento | undefined {
   return eventos.find((ev) => ev.slug === slug);
+}
+
+/**
+ * Los eventos agrupados por el día que ve el usuario, en orden de día.
+ *
+ * Vive aquí y no dentro de la página porque **la clave es el punto entero de este
+ * fichero**: agrupar por `toISOString().slice(0, 10)` es agrupar por el día UTC, y
+ * en Europe/Madrid la medianoche local son las 22:00 o las 23:00 del día
+ * anterior. `scrapeSenderismo` emite exactamente eso —`new Date(y, m-1,
+ * d).toISOString()`— así que con la clave UTC **todas las salidas de senderismo, y
+ * todo evento entre las 00:00 y las 02:00, aparecían bajo el encabezado del día
+ * anterior**: la página seleccionaba bien el mes, con getters locales, y luego
+ * mostraba cada evento un día antes de la fecha que el usuario ve en la tarjeta.
+ *
+ * No es que el día estuviera mal en un sitio y bien en otro: `dedupeKey` de este
+ * mismo fichero ya usa `localDateKey` desde hace tiempo, con un comentario que
+ * explica por qué. Aquí la regla simplemente no se aplicó.
+ *
+ * Ordena las claves, y no confía en que le lleguen ordenadas. `aggregate` las
+ * entrega por fecha, así que copiar ese orden sería dejar una precondición
+ * invisible: el mismo grupo con la misma información saldría reordenado según quién
+ * llame, y eso se descubre en la pantalla y no en un test. La clave es `YYYY-MM-DD`
+ * —de ancho fijo y lexicográficamente creciente—, así que ordenar por cadena es
+ * ordenar por fecha. Una fecha ilegible va a `"sin-fecha"`, que empieza por "s" y
+ * queda al final.
+ */
+export function agruparPorDiaLocal(
+  eventos: readonly AgendaEvento[]
+): Map<string, AgendaEvento[]> {
+  const porDia = new Map<string, AgendaEvento[]>();
+  for (const ev of eventos) {
+    const clave = localDateKey(ev.date);
+    const grupo = porDia.get(clave);
+    if (grupo) grupo.push(ev);
+    else porDia.set(clave, [ev]);
+  }
+  return new Map([...porDia.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
 export async function getEventoBySlug(

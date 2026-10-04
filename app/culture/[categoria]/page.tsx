@@ -16,6 +16,21 @@ function isValidCategoria(slug: string): slug is CulturaCategoriaSlug {
   return CULTURA_CATEGORIAS.some((c) => c.slug === slug);
 }
 
+/**
+ * Cuántas tarjetas se pintan antes de dejar de hacerlo.
+ *
+ * Es un tope de **render**, no de datos: el encabezado de la página enseña el
+ * recuento real, y lo que hay debajo son los más próximos. Con la constante a mano
+ * el número aparece en el `slice` y en el texto del enlace, y no pueden separarse.
+ */
+const MAXIMO_EN_PAGINA = 60;
+
+/** El mes en curso en el formato de `app/agenda/[mes]`, que es `YYYY-MM`. */
+function mesEnCurso(): string {
+  const hoy = new Date();
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function TicketIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -105,8 +120,9 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
         </header>
 
         {eventos.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {eventos.slice(0, 60).map((evento) => {
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {eventos.slice(0, MAXIMO_EN_PAGINA).map((evento) => {
               const d = new Date(evento.date);
               const fecha = isNaN(d.getTime())
                 ? ""
@@ -147,7 +163,38 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
                 </div>
               );
             })}
-          </div>
+            </div>
+
+            {/*
+              El recorte de arriba es un tope de render, no un tope de datos: el
+              encabezado dice el número real, así que sin esto la página prometería
+              70 eventos y enseñaría 60 con la lista cerrada. Es el mismo motivo por
+              el que `/conciertos` enseña el recuento sin recortar y da una pill de
+              recinto para ver el resto.
+
+              La salida es `/agenda/{mes}`, que es donde está la lista completa y por
+              día. No se inventan paginación ni un botón de "cargar más" para esto:
+              una página de categoría que muestra los 60 próximos y enlaza al mes es
+              más fácil de entender que una con tres páginas que nadie recorre.
+            */}
+            {eventos.length > MAXIMO_EN_PAGINA && (
+              <div className="mt-12 text-center">
+                <p className="text-fg-muted text-sm mb-5">
+                  Esta página muestra los {MAXIMO_EN_PAGINA} más próximos de{" "}
+                  {eventos.length}. Los demás están en la agenda del mes.
+                </p>
+                <Link
+                  href={`/agenda/${mesEnCurso()}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors"
+                >
+                  Ver los {eventos.length} en la agenda
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 7h8M7 3l4 4-4 4" />
+                  </svg>
+                </Link>
+              </div>
+            )}
+          </>
         ) : (
           <div className="rounded-2xl border border-border bg-surface p-10 text-center">
             <p className="text-fg-muted text-sm">

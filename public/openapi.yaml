@@ -51,6 +51,90 @@ tags:
     description: Suscripción al newsletter
 
 paths:
+  /api/v1/salud:
+    get:
+      tags: [events]
+      summary: Si el agregado que se sirve está completo
+      security: []
+      description: |
+        Dice cuándo se construyó el agregado que hay en caché, cuántas de las 28 fuentes
+        han respondido y cuáles no. Léelo **antes** de fiarte de un listado.
+
+        Existe porque el agregador usa `Promise.allSettled`: si 13 de 28 scrapers caen, la
+        agenda se sirve más corta con HTTP 200 y ningún error. Sin esta ruta, un cliente no
+        tiene forma de distinguir "hoy hay 400 eventos" de "hoy solo han respondido 13
+        fuentes", y un modelo de lenguaje te contestaría con la mitad de la agenda y con
+        toda la confianza.
+
+        Solo lee la caché de cinco minutos, así que no dispara scraping ni por muchas
+        peticiones que se hagan a la vez.
+      responses:
+        "200":
+          description: Estado del agregado en caché
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required:
+                      [scrapedAt, sourcesTotal, sourcesOk, sourcesFallidas, completa, fuentes]
+                    properties:
+                      scrapedAt:
+                        type: string
+                        format: date-time
+                        description: Cuándo se construyó el agregado, no cuándo se leyó
+                        example: "2026-10-04T08:12:31.004Z"
+                      sourcesTotal:
+                        type: integer
+                        description: Cuántas fuentes hay en el registro
+                        example: 28
+                      sourcesOk:
+                        type: integer
+                        description: Cuántas han respondido, aunque sea con lista vacía
+                        example: 27
+                      completa:
+                        type: boolean
+                        description: Si no ha caído ninguna fuente
+                        example: false
+                      sourcesFallidas:
+                        type: array
+                        description: Las fuentes que no han respondido, con el motivo
+                        items:
+                          type: object
+                          required: [id, error]
+                          properties:
+                            id:
+                              type: string
+                              example: rula
+                            error:
+                              type: string
+                              example: "la Genterula returned 500"
+                      fuentes:
+                        type: array
+                        description: Todas las fuentes del registro, Responde o no
+                        items:
+                          type: object
+                          required: [id, label]
+                          properties:
+                            id:
+                              type: string
+                              example: municipal-teatros
+                            label:
+                              type: string
+                              example: Ayuntamiento
+                            group:
+                              type: string
+                              example: municipal
+        "503":
+          description: La agenda no está disponible en este momento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpstreamUnavailable"
+
   /api/v1/events:
     get:
       tags: [events]

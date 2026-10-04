@@ -90,6 +90,17 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
     motivo: "enlace de baja que llega por email",
   },
 
+  // El estado del agregado. Es pública porque su consumidor natural es un motor de
+  // búsqueda o una IA que se conecta desde fuera y no tiene la clave, que es
+  // justo a quien le sirve: poder comprobar si los datos son completos antes de
+  // contestarle a alguien. La ruta solo lee la caché `agenda-all-v2`, así que no
+  // dispara scraping; el trabajo ya está hecho cuando alguien carga la home.
+  {
+    path: "/api/v1/salud",
+    motivo:
+      "un cliente externo necesita poder comprobar si la agenda esta completa antes de usarla",
+  },
+
   // Las cines, una a una. `/api/cines` es la lista y las otras dos son las
   // carteleras; el OpenAPI las publica para clientes móviles, que no tienen la
   // clave. Se escriben las tres en vez de dejar `/api/cines` como prefijo

@@ -387,12 +387,13 @@ describe("la autenticación que promete el documento", () => {
     }
   });
 
-  it("el documento cubre siete de las diez públicas del código, y se sabe cuáles tres no", () => {
-    // Las que faltan —`/api/search`, `/api/vgbus` y `/api/push/subscribe`— no se
-    // documentan hoy. Este test no las exige: documentarlas significa inventar
-    // tres esquemas, que es otra decisión. Lo que fija es que la lista siga
-    // siendo esa, para que si alguien añade una cuarta ruta pública sin
-    // documentarla, la deuda se vea en el nombre en vez de pasar desapercibida.
+  it("el documento cubre ocho de las doce públicas del código, y se sabe cuáles cuatro no", () => {
+    // Las que faltan —`/api/search`, `/api/vgbus`, `/api/push/subscribe` y
+    // `/api/fiestas-blanca`— no se documentan hoy. Este test no las exige:
+    // documentarlas significa inventar sus esquemas, que es otra decisión. Lo que
+    // fija es que la lista siga siendo esa, para que si alguien añade una quinta
+    // ruta pública sin documentarla, la deuda se vea en el nombre en vez de pasar
+    // desapercibida.
     expect(PUBLICAS_DOCUMENTADAS.sort()).toEqual([
       "/api/cines",
       "/api/cines/boulevard",
@@ -401,6 +402,7 @@ describe("la autenticación que promete el documento", () => {
       "/api/newsletter/confirm",
       "/api/newsletter/subscribe",
       "/api/newsletter/unsubscribe",
+      "/api/v1/salud",
     ]);
   });
 });
@@ -498,16 +500,31 @@ describe("las respuestas que el middleware produce de verdad", () => {
     }
   });
 
-  it("ninguna operación pública declara 401 ni 503", () => {
-    // Al revés: una ruta que no pide clave no puede recibir un 401, y el 503
-    // tampoco, porque el middleware devuelve antes de mirar el entorno. Se
-    // comprueba en las diez, no en tres.
+  it("ninguna operación pública declara 401, ni el 503 de configuración perdida", () => {
+    // El `401` está prohibido siempre y sin excepción: una ruta que no pide clave no
+    // puede recibirlo, porque el middleware devuelve antes de mirar nada.
+    //
+    // El `503` solo se prohíbe cuando es **el del middleware** —el que sale cuando
+    // `API_KEY` no está en el entorno—, y se reconoce por la referencia a
+    // `responses/ServiceMisconfigured`. Un `503` del propio handler es otra cosa: es
+    // lo que responde `/api/search` cuando la capa de caché no se puede leer, y es un
+    // código que el cliente sabe reintentar. Prohibirlo aquí mezclaba los dos, y la
+    // mezcla no se había visto porque ninguna ruta pública documentada declaraba un
+    // `503` todavía: `/api/search` lo tiene en el código pero no en el documento.
+    //
+    // Lo que no vale es declaran ambos en la misma operación: un `503` que Puede ser
+    // de configuración perdida y no lo dice es el contrato que este test busca.
     const conEstadoDeAuth: string[] = [];
     for (const ruta of rutasDocumentadas().filter(isPublicApiRoute)) {
       for (const operacion of operacionesDe(ruta)) {
+        const bloque = bloqueDeOperacion(ruta, operacion);
         const codigos = codigosDeRespuesta(ruta, operacion);
-        if (codigos.includes("401") || codigos.includes("503")) {
+        if (codigos.includes("401")) {
           conEstadoDeAuth.push(`${ruta} ${operacion} -> ${codigos.join(",")}`);
+          continue;
+        }
+        if (codigos.includes("503") && bloque.some((l) => l.includes("responses/ServiceMisconfigured"))) {
+          conEstadoDeAuth.push(`${ruta} ${operacion} -> 503 de configuracion perdida`);
         }
       }
     }
@@ -573,14 +590,18 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 40 rutas: 11 públicas y 29 protegidas", () => {
+  it("la política entera son 41 rutas: 12 públicas y 29 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
+    //
+    // La duodécima pública es `/api/v1/salud`, que se añadió para que un cliente
+    // externo pueda comprobar si el agregado está completo antes de usarlo. Va
+    // documentada más abajo, en "el estado del agregado".
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 40, publicas: 11, protegidas: 29 });
+    }).toEqual({ total: 41, publicas: 12, protegidas: 29 });
   });
 });
 

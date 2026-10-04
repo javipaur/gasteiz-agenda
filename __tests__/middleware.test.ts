@@ -343,10 +343,12 @@ const ESPERADAS: Record<string, string> = {
   "/api/cines": "documentada en openapi.yaml para apps móviles",
   "/api/cines/boulevard": "documentada en openapi.yaml para apps móviles",
   "/api/cines/florida": "documentada en openapi.yaml para apps móviles",
+  "/api/v1/salud":
+    "un cliente externo necesita poder comprobar si la agenda esta completa antes de usarla",
 };
 
 describe("la lista de rutas públicas", () => {
-  it("son exactamente estas once, y ninguna más", () => {
+  it("son exactamente estas doce, y ninguna más", () => {
     const enCodigo = PUBLIC_API_ROUTES.map((r) => r.path).sort();
     expect(enCodigo).toEqual(Object.keys(ESPERADAS).sort());
   });

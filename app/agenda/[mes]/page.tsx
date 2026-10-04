@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAgendaEventos } from "@/lib/agenda";
+import { getAgendaEventos, agruparPorDiaLocal } from "@/lib/agenda";
 import { JsonLd, breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -64,15 +64,19 @@ export default async function AgendaMesPage({ params }: PageProps) {
 
   const { year, month } = parsed;
 
-  const todos = await getAgendaEventos({ includePast: true });
+  // Sin `includePast`. Antes se pedía y luego se volvía a filtrar por fecha en la
+  // línea siguiente, con el mismo criterio que ya aplica `getAgendaEventos()` por
+  // defecto —`>= hoy a las 00:00`—, así que el `includePast: true` no hacía nada y
+  // la comparación era una segunda copia de una regla que vive en otro fichero.
+  // Lo que **no** se puede prometer aquí es un archivo: la mayoría de los scrapers
+  // filtran el pasado ellos mismos, así que los meses pasados están vacíos aunque
+  // no los filtremos. Por eso la página no se llama "Archivo" y `prev` no baja de
+  // este mes.
+  const todos = await getAgendaEventos();
   const eventos = todos
     .filter((ev) => {
       const d = new Date(ev.date);
-      return (
-        d.getFullYear() === year &&
-        d.getMonth() + 1 === month &&
-        d >= new Date(new Date().setHours(0, 0, 0, 0))
-      );
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -81,12 +85,15 @@ export default async function AgendaMesPage({ params }: PageProps) {
   const prev = { url: monthUrl(prevDate.getFullYear(), prevDate.getMonth() + 1), label: mesLabel(prevDate.getFullYear(), prevDate.getMonth() + 1) };
   const next = { url: monthUrl(nextDate.getFullYear(), nextDate.getMonth() + 1), label: mesLabel(nextDate.getFullYear(), nextDate.getMonth() + 1) };
 
-  const porDia = new Map<string, typeof eventos>();
-  for (const ev of eventos) {
-    const key = new Date(ev.date).toISOString().slice(0, 10);
-    if (!porDia.has(key)) porDia.set(key, []);
-    porDia.get(key)!.push(ev);
-  }
+  // Un enlace "anterior" hacia un mes que está vacío es un enlace que no lleva a
+  // ninguna parte. El mes en curso sí se puede ver, así que el límite es "no bajar
+  // del mes actual", no "no mostrar el anterior".
+  const mesActual = new Date();
+  const mesDeEstaPagina = year * 12 + (month - 1);
+  const hayAnterior =
+    mesDeEstaPagina > mesActual.getFullYear() * 12 + mesActual.getMonth();
+
+  const porDia = agruparPorDiaLocal(eventos);
 
   return (
     <>
@@ -109,7 +116,9 @@ export default async function AgendaMesPage({ params }: PageProps) {
         <header className="mb-10">
           <div className="flex items-center gap-2 mb-3">
             <span aria-hidden="true" className="inline-block h-5 w-[3px] rounded-full bg-accent" />
-            <span className="font-display italic text-accent text-sm">Archivo · Agenda</span>
+            <span className="font-display italic text-accent text-sm">
+              Agenda por mes
+            </span>
           </div>
           <h1 className="font-display text-4xl md:text-5xl text-fg mb-3 tracking-[-0.02em]">
             Eventos · {mesLabel(year, month)}
@@ -122,15 +131,21 @@ export default async function AgendaMesPage({ params }: PageProps) {
         </header>
 
         <nav aria-label="Navegación entre meses" className="flex items-center gap-3 mb-12">
-          <Link
-            href={prev.url}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-muted border border-border text-sm text-fg-muted hover:text-fg hover:border-accent/30 transition-all duration-300"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 4l-6 6 6 6" />
-            </svg>
-            {prev.label}
-          </Link>
+          {hayAnterior ? (
+            <Link
+              href={prev.url}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-muted border border-border text-sm text-fg-muted hover:text-fg hover:border-accent/30 transition-all duration-300"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 4l-6 6 6 6" />
+              </svg>
+              {prev.label}
+            </Link>
+          ) : (
+            <span className="font-mono text-xs uppercase tracking-[0.15em] text-fg-subtle px-4 py-2">
+              Mes en curso
+            </span>
+          )}
           <Link
             href={next.url}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-muted border border-border text-sm text-fg-muted hover:text-fg hover:border-accent/30 transition-all duration-300 ml-auto"
