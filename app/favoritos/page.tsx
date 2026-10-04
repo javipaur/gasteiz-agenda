@@ -2,6 +2,7 @@
 
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { EventCard } from "@/lib/shared";
+import { partirFavoritos } from "@/lib/favoritos";
 import PushNotifications from "@/app/components/PushNotifications";
 import Link from "next/link";
 
@@ -16,9 +17,15 @@ function HeartIcon({ className }: { className?: string }) {
 export default function FavoritosPage() {
   const { favorites, count } = useFavorites();
 
-  const sorted = [...favorites].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  // Los que ya no. No es una idea bonita, y la razón es el 404: la
+  // mayoría de los scrapers filtran el pasado ellos mismos, así que el día que el
+  // evento ocurre desaparece del agregado y `/evento/[slug]` deja de resolverlo
+  // aunque siga guardado en `localStorage`. El favorito no se rompía: se quedaba
+  // apuntando a una página que ya no existe. La regla está en `lib/favoritos.ts`,
+  // que es pura y se testea en `node`; el `new Date() < new Date()` a mano aquí
+  // compararía instantes y no días, y un evento de la madrugada salía como futuro
+  // un día y como pasado al siguiente.
+  const { futuros, pasados } = partirFavoritos(favorites);
 
   return (
     <div className="px-5 sm:px-6 max-w-7xl mx-auto pt-28 pb-32">
@@ -57,11 +64,48 @@ export default function FavoritosPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {sorted.map((evento) => (
-              <EventCard key={evento.id} evento={evento} />
-            ))}
-          </div>
+          {futuros.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {futuros.map((evento) => (
+                <EventCard key={evento.id} evento={evento} />
+              ))}
+            </div>
+          )}
+
+          {pasados.length > 0 && (
+            <section className={futuros.length > 0 ? "mt-16" : ""} aria-labelledby="favoritos-pasados">
+              <h2
+                id="favoritos-pasados"
+                className="font-display text-xl text-fg-muted mb-2 tracking-[-0.01em]"
+              >
+                Ya han pasado
+              </h2>
+              {/* Esto no es decorativo: son los favoritos que el usuario guardó y
+                  que ya no se pueden ver en su ficha. Decirlo evita que la lista
+                  parezca más corta de lo que es, que es el mismo motivo por el que
+                  `/conciertos` enseña el recuento sin recortar. */}
+              <p className="text-fg-subtle text-sm mb-6 max-w-2xl">
+                {pasados.length === 1
+                  ? "Un evento que guardaste ya ha ocurrido. Puedes ir a su ficha original."
+                  : `${pasados.length} eventos que guardaste ya han ocurrido. Puedes ir a la ficha original de cada uno.`}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {pasados.map((evento) => (
+                  <EventCard
+                    key={evento.id}
+                    evento={evento}
+                    pasado
+                    /* Sin enlace guardado no hay a dónde ir, y una tarjeta sin
+                       destino es un elemento interactivo que no hace nada: mejor
+                       que abra la ficha del evento en la web, que es lo más cerca
+                       que queda. */
+                    href={evento.link || `/evento/${evento.slug}`}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           <PushNotifications />
         </>
       )}

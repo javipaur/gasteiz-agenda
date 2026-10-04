@@ -94,6 +94,8 @@ export function EventCard({
   categoryColors,
   size = "normal",
   priority = false,
+  href,
+  pasado = false,
 }: {
   evento: EventCardEvento;
   showCategory?: boolean;
@@ -101,12 +103,27 @@ export function EventCard({
   categoryColors?: Record<string, string>;
   size?: "normal" | "large" | "compact";
   priority?: boolean;
+  /**
+   * A dónde lleva la tarjeta, en vez de `/evento/[slug]`. Existe para un caso
+   * concreto: un favorito cuyo evento ya pasó sale del agregado —la mayoría de los
+   * scrapers filtran el pasado ellos mismos, así que `includePast` no lo salva— y
+   * `/evento/[slug]` daría 404. Lo que queda es el enlace a la fuente, que es lo
+   * que el visitante quiere: la página donde se anunció.
+   *
+   * Por eso un `href` externo se abre en pestaña nueva. Es la diferencia entre
+   * "ir a otra página de este sitio" e "irse a otra web", y lo segundo no debería
+   * poder cerrar este sitio por error.
+   */
+  href?: string;
+  /** Muestra "Pasó" en lugar del día, y atenúa la tarjeta. Va con `href`. */
+  pasado?: boolean;
 }) {
   const { day, month } = formatDate(evento.date);
-  const relDay = dayBadgeLabel(evento.date);
+  const relDay = pasado ? null : dayBadgeLabel(evento.date);
   const time = shortTime(evento.time);
   const catColor = categoryColors?.[evento.category || "Otros"] || "#9C9996";
-  const detailHref = `/evento/${evento.slug}`;
+  const detailHref = href || `/evento/${evento.slug}`;
+  const externo = detailHref.startsWith("http");
 
   const aspectClass = size === "large" ? "aspect-[16/10]" : size === "compact" ? "aspect-[3/2]" : "aspect-[4/3]";
 
@@ -142,6 +159,8 @@ export function EventCard({
         */}
         <Link
           href={detailHref}
+          target={externo ? "_blank" : undefined}
+          rel={externo ? "noopener noreferrer" : undefined}
           className="block focus-visible:outline-2 focus-visible:outline-accent"
         >
           <div className={`${aspectClass} relative`}>
@@ -173,7 +192,7 @@ export function EventCard({
               style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)" }}
             >
               <span className={`block font-mono text-[11px] uppercase tracking-wide ${relDay ? "text-white/90" : "text-white/70"}`}>
-                {relDay || month}
+                {pasado ? "Pasó" : relDay || month}
               </span>
               <span className="block font-display text-lg text-white">
                 {day}
