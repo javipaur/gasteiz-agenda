@@ -162,6 +162,61 @@ describe("aggregate", () => {
     expect(evs).toHaveLength(0);
   });
 
+  it("prefiere dateIso sobre date, y el slug se calcula con la fecha resuelta", async () => {
+    // `scrapeBuscametasInscripciones` sirve `dd/mm/yyyy` porque el móvil la parte
+    // con `split('/')` —cambiarlo dejaría la pantalla en blanco sin error—, así que
+    // el formato no se puede tocar. Y `new Date("04/10/2026")` no es 4 de octubre:
+    // V8 lo lee como 9 de abril. Medido contra el fixture real, eso descartaba 17
+    // de las 21 inscripciones de Álava por `normalizeRaw` y fechaba otra en
+    // noviembre.
+    //
+    // Lo que hace este test necesario no es que el evento sobreviva, es que el
+    // **slug se calcule con la fecha resuelta**. `agendaSlug` lee `raw.date`, así
+    // que sin handing-le la ISO el evento aparecería en octubre con un slug que
+    // dice abril, y `/evento/[slug]` daría 404 por un evento que la home acaba de
+    // pintar. Es el mismo invariante `id === slug`, aplicado al caso en que hay dos
+    // fechas en el mismo objeto.
+    const [ev] = await aggregate([
+      entry({
+        run: async () => [
+          { ...BASE, date: "04/10/2026", dateIso: "2026-10-04T00:00:00.000Z" },
+        ],
+      }),
+    ]);
+    expect(ev.date).toBe("2026-10-04T00:00:00.000Z");
+    expect(ev.slug).toBe(
+      eventSlug({ title: BASE.title, date: "2026-10-04T00:00:00.000Z", link: BASE.link })
+    );
+    expect(ev.id).toBe(ev.slug);
+  });
+
+  it("acepta dateIso sin date, para cuando la fuente solo sabe dar la ISO", async () => {
+    const [ev] = await aggregate([
+      entry({ run: async () => [{ ...BASE, date: undefined, dateIso: "2027-03-15T00:00:00.000Z" }] }),
+    ]);
+    expect(ev.date).toBe("2027-03-15T00:00:00.000Z");
+  });
+
+  it("descarta cuando dateIso esta presente pero es ilegible", async () => {
+    // Caer a `date` cuando `dateIso` no parsea sería exactamente el bug que esto
+    // arregla: `new Date("04/10/2026")` **sí** parsea, y a abril. Así que un
+    // `dateIso` ilegible no se ignora en silencio sino que tumba el evento. Es la
+    // regla del repo —una fuente sin fecha no entra en el registro— aplicada al
+    // caso nuevo, y es una decisión: se pierde un evento antes que fecharlo en el    // mes equivocado, porque el primero no se ve y el segundo sí.
+    const conIsoRoto = await aggregate([
+      entry({ run: async () => [{ ...BASE, date: "04/10/2026", dateIso: "tampoco-es-fecha" }] }),
+    ]);
+    expect(conIsoRoto).toHaveLength(0);
+
+    // Y el caso del otro lado: un campo opcional vacío no puede tirar abajo una
+    // fecha buena, así que `dateIso: ""` cae a `date` y el evento entra.
+    const conIsoVacio = await aggregate([
+      entry({ run: async () => [{ ...BASE, dateIso: "" }] }),
+    ]);
+    expect(conIsoVacio).toHaveLength(1);
+    expect(conIsoVacio[0].date).toBe(BASE.date);
+  });
+
   it("normaliza url y timeStart de las fuentes que los usan así", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [{ ...BASE, link: undefined, url: "https://x.com/blanca", time: undefined, timeStart: "19:30" }] }),

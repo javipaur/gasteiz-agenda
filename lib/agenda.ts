@@ -35,7 +35,15 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
   const title = (raw.title || "").trim();
   if (!title || title === "Sin título") return null;
 
-  const date = raw.date || "";
+  // `dateIso` manda sobre `date` porque hay fuentes cuyo `date` no es parseable y
+  // no puede cambiarse: el móvil de `buscametas-inscripciones` la parte con
+  // `split('/')`, así que la ruta tiene que servir `dd/mm/yyyy`. Con
+  // `new Date("04/10/2026")` V8 devuelve el 9 de abril, que no es un error de
+  // formato sino una lectura equivocada en silencio. La comprobación de validez va
+  // contra la fecha **resuelta**, no contra `raw.date`: si `dateIso` tampoco
+  // parsea, el evento se descarta igual y esta puerta no se convierte en un
+  // atajo para fabricar fechas.
+  const date = raw.dateIso || raw.date || "";
   if (!date || isNaN(new Date(date).getTime())) return null;
 
   const link = agendaLink(raw);
@@ -44,7 +52,13 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
   // sitios que lo calculan —la migración de favoritos, las tarjetas de La Blanca,
   // su JSON-LD— y por eso vive en `lib/slug.ts` y no aquí. Aquí se decide el
   // `id`; en ningún otro sitio se vuelve a decidir.
-  const slug = agendaSlug(raw);
+  //
+  // Se le pasa `{ ...raw, date }` y no `raw` a propósito: `agendaSlug` lee
+  // `raw.date`, que en una fuente con las dos fechas es la que no parsea, y el
+  // evento aparecería en octubre con un slug que dice abril. O sea que el slug
+  // tiene que derivarse de la misma fecha que el campo `date`, y el único sitio
+  // que sabe cuál es esa fecha es este.
+  const slug = agendaSlug({ ...raw, date });
   const category = normalizeCategory(entry.category ?? raw.category);
 
   return {

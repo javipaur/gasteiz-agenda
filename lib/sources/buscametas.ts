@@ -42,6 +42,41 @@ export async function scrapeBuscametasCalendario(): Promise<BuscametasEvento[]> 
   return transformarEventos((response.data as { eventos: any[] }).eventos);
 }
 
+/**
+ * `dd/mm/yyyy` a ISO, en medianoche **local**, o `undefined` si no es una fecha.
+ *
+ * Es una función y no una expresión suelta porque la usan dos sitios que no pueden
+ * divergir: la ISO que viaja en `dateIso` y la que ordena la lista. Comparar
+ * `new Date("04/10/2026")` es ambiguo —V8 lo lee como 9 de abril— y con dos
+ * conversiones escritas aparte la lista acabaría ordenada por un criterio y la
+ * agenda por otro.
+ *
+ * Se construye con `new Date(y, m-1, d)`, o sea medianoche local, y no partiendo
+ * de una cadena `YYYY-MM-DD`, que sería UTC: al este de UTC eso cae a las 02:00
+ * del día correcto, pero en cualquier huso al oeste cae al día anterior. El repo
+ * ya usa medianoche local en `lib/sources/senderismo.ts`, y la clave de dedupe de
+ * `lib/agenda.ts` ya sabe leer esa clase de cadena en hora local.
+ *
+ * El mes se valida con su vuelta porque `new Date(2026, 11, 31)` no es inválido:
+ * es el 1 de enero de 2027. Sin esa comprobación, un `31/12/2026` de la página
+ * pasaría aquí como fecha de enero y aparecería en la agenda del año que viene.
+ */
+function ddmmyyyyAIso(fecha: string): string | undefined {
+  const partes = fecha.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!partes) return undefined;
+
+  const [, dia, mes, anio] = partes;
+  const d = new Date(Number(anio), Number(mes) - 1, Number(dia));
+  if (
+    d.getFullYear() !== Number(anio) ||
+    d.getMonth() !== Number(mes) - 1 ||
+    d.getDate() !== Number(dia)
+  ) {
+    return undefined;
+  }
+  return d.toISOString();
+}
+
 export async function scrapeBuscametasInscripciones(): Promise<any[]> {
   // `fetch` y no `axios`, a diferencia de `scrapeBuscametasCalendario` de este
   // mismo fichero. Ese hace un POST multipart con `form-data`, que axios resuelve
@@ -82,32 +117,49 @@ export async function scrapeBuscametasInscripciones(): Promise<any[]> {
       : "";
 
     // La fecha del sitio puede ser simple ("04/10/2026") o un rango
-  // ("31/10/2026 - 01/11/2026"). Se normaliza a la de **inicio**, que es la que
-  // ordena y la que la app pinta. Se deja el rango entero en `dateRango` para
-  // quien quiera el detalle: recortarlo pierde informacion que el sitio
-  // publica.
-  const rangoFecha = date.match(
-    /(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/
-  );
+    // ("31/10/2026 - 01/11/2026"). Se normaliza a la de **inicio**, que es la que
+    // ordena y la que la app pinta. Se deja el rango entero en `dateRango` para
+    // quien quiera el detalle: recortarlo pierde informacion que el sitio
+    // publica.
+    const rangoFecha = date.match(
+      /(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/
+    );
+    const fechaInicio = rangoFecha ? rangoFecha[1] : date;
 
-  eventos.push({
+    eventos.push({
       title,
-      date: rangoFecha ? rangoFecha[1] : date,
+      // `date` se queda en `dd/mm/yyyy` porque es el contrato con la app movil:
+      // `InscribeteTabs.tsx` la parte con `split('/')` y si esto pasara a ISO,
+      // `month` seria "2026-10-04" y `parseInt` daria NaN, con la pantalla en
+      // blanco y sin error. La ISO viaja **aparte** en `dateIso`, que es lo que
+      // lee `normalizeRaw`; asi el movil no se entera y la agenda por fin puede
+      // entender la fecha. Anadir un campo es aditivo: ningun cliente que lea
+      // `date` por nombre se rompe.
+      date: fechaInicio,
+      dateIso: ddmmyyyyAIso(fechaInicio),
       dateRango: rangoFecha ? date : undefined,
       location,
-      link: link ? `https://www.buscametas.com${link.startsWith("/") ? "" : "/"}${link}` : "",
+      link: link
+        ? `https://www.buscametas.com${link.startsWith("/") ? "" : "/"}${link}`
+        : "",
       image,
     });
   });
 
-  // Ya viene en `dd/mm/yyyy` y, con el rango recortado arriba, sin el guion. El
-  // sort compara en ISO para no depender del idioma: `new Date("04/10/2026")`
-  // lo interpreta como octubre en algunos navegadores y como abril en otros.
+  // Ordena por la misma conversion que emite `dateIso`, y no por un `split("/")
+  // .reverse()` escrito aqui: son el mismo calculo en dos sitios, y si uno se
+  // queda sin tocar la lista y la agenda iran en direcciones distintas. Una fecha
+  // que no se pueda convertir va al final en vez de comparar contra `NaN`, que no
+  // ordena nada y dejaba su posicion en manos del `sort` estable.
   eventos.sort((a, b) => {
-    const aIso = a.date.split("/").reverse().join("-");
-    const bIso = b.date.split("/").reverse().join("-");
-    return new Date(aIso).getTime() - new Date(bIso).getTime();
+    const aIso = ddmmyyyyAIso(a.date);
+    const bIso = ddmmyyyyAIso(b.date);
+    if (aIso && bIso) return new Date(aIso).getTime() - new Date(bIso).getTime();
+    if (aIso) return -1;
+    if (bIso) return 1;
+    return 0;
   });
 
   return eventos;
 }
+

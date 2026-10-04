@@ -17,6 +17,22 @@
 export type RawLike = {
   title?: string;
   date?: string;
+  /**
+   * Fecha en ISO, cuando `date` no lo es y no puede cambiarse porque alguien
+   * fuera de aquí la lee en otro formato.
+   *
+   * Existe por `buscametas-inscripciones`: el móvil parte la fecha con
+   * `split('/')`, así que la ruta `/api/actividades/carreras/inscripciones`
+   * tiene que servir `dd/mm/yyyy` sí o sí, y `new Date("04/10/2026")` no es 4 de
+   * octubre sino 9 de abril. Antes de este campo eso descartaba 17 de las 21
+   * inscripciones de Álava por `normalizeRaw` y fechaba la última en noviembre.
+   *
+   * Es una pista de **entrada**, no un campo del evento: `normalizeRaw` lo
+   * resuelve y el `AgendaEvento` resultante solo lleva `date`. Un scraper no
+   * debería inventarlo —solo convertir lo que el sitio publica—, y una fuente sin
+   * fecha se sigue descartando, que es la regla del repo.
+   */
+  dateIso?: string;
   dateEnd?: string;
   time?: string;
   timeStart?: string;

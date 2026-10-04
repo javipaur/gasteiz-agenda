@@ -1,5 +1,7 @@
 import { loadFixture, mockFetchWith } from "../helpers";
 import { scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
+import { aggregate } from "@/lib/agenda";
+import { localDateKey } from "@/lib/slug";
 
 /**
  * Inscripciones de buscametás.
@@ -100,6 +102,7 @@ describe("scrapeBuscametasInscripciones", () => {
   });
 
   it("ordena por fecha de inicio", async () => {
+
     // Con el rango recortado, comparar `new Date("04/10/2026")` seria
     // ambiguo: algunos navegadores lo leen como 4 de octubre y otros como
     // 4 de abril. Se pasa a ISO antes de comparar.
@@ -116,6 +119,56 @@ describe("scrapeBuscametasInscripciones", () => {
       expect(aIso(eventos[i - 1].date)).toBeLessThanOrEqual(
         aIso(eventos[i].date)
       );
+    }
+  });
+
+  it("emite dateIso en las 21, y con el dia local que publico el sitio", async () => {
+    // La comprobacion fuerte es `localDateKey(dateIso) === dd/mm/yyyy` y no
+    // `new Date(date).getTime()`: no interesa que la ISO sea una fecha, interesa
+    // que sea **el dia que el sitio publico**. Un `dateIso` que se_limitase a ser
+    // parseable pasaria con el bug puesto, que es exactamente lo que hacia
+    // `new Date("04/10/2026")` — parseaba, y en abril.
+    mockPagina();
+
+    const eventos = await scrapeBuscametasInscripciones();
+
+    expect(eventos.filter((e) => e.dateIso)).toHaveLength(21);
+    for (const e of eventos) {
+      const [dia, mes, anio] = e.date.split("/");
+      expect(localDateKey(e.dateIso)).toBe(`${anio}-${mes}-${dia}`);
+    }
+  });
+
+  it("los 21 llegan al agregado, que es donde estaban perdidos", async () => {
+    // El test que ata el efecto. Todo lo de arriba—atatar las 21, que la fecha
+    // siga en `dd/mm/yyyy`, que se ordena bien— podia estar verde con el bug
+    // entero puesto, porque el scraper nunca ha sido el que fallaba: el que
+    // descartaba era `normalizeRaw`, tres ficheros mas alla. Este pasa por
+    // `aggregate` de verdad.
+    //
+    // Antes salian 3 de 21, y el cuarto con la fecha corrida a noviembre.
+    mockPagina();
+
+    const eventos = await scrapeBuscametasInscripciones();
+    const agregados = await aggregate([
+      {
+        id: "buscametas-inscripciones",
+        label: "Buscametas",
+        category: "Deporte",
+        kind: "inscripciones",
+        priority: 5,
+        run: async () => eventos,
+      },
+    ]);
+
+    expect(agregados).toHaveLength(21);
+    for (const ev of agregados) {
+      const esperado = eventos.find((e) => e.title === ev.title)!.date;
+      const [dia, mes, anio] = esperado.split("/");
+      expect(localDateKey(ev.date)).toBe(`${anio}-${mes}-${dia}`);
+      // Y que el slug no se quede en el mes equivocado: es lo que hacia que
+      // `/evento/[slug]` diera 404 por un evento que la home acababa de pintar.
+      expect(ev.slug).toContain(`${anio}-${mes}-${dia}`);
     }
   });
 
