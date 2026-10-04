@@ -1,51 +1,28 @@
 import { NextResponse } from "next/server";
-import { getAgendaEventos } from "@/lib/agenda";
-import { localDateStr } from "@/lib/utils";
+import { buscarAgenda } from "@/lib/buscar";
 
 export const dynamic = "force-dynamic";
 
-type SearchHit = {
-  slug: string;
-  title: string;
-  date: string;
-  image?: string;
-  location?: string;
-  category?: string;
-};
-
+/**
+ * La búsqueda vive en `lib/buscar.ts` y esta ruta es una capa fina, porque la
+ * página `/buscar` necesita exactamente la misma lógica y dos copias de un filtro
+ * de texto son dos reglas que divergen sin que nada avise.
+ *
+ * El cambio de comportamiento que importa es otro: antes esta ruta recortaba a 6 y
+ * no devolvía el total, así que el desplegable de la cabecera —que hacía
+ * `slice(0, 7)` encima— no podía ver nunca más de seis, y su enlace "Ver todos los
+ * resultados" iba a `/culture?q=`, que solo conoce 9 de las 28 fuentes. Seis
+ * resultados y luego una página vacía.
+ */
 export async function GET(req: Request) {
   try {
-    const q = (new URL(req.url).searchParams.get("q") || "").trim().toLowerCase();
-    if (q.length < 2) {
-      return NextResponse.json({ results: [] });
-    }
+    const params = new URL(req.url).searchParams;
 
-    const eventos = await getAgendaEventos();
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const results: SearchHit[] = eventos
-      .filter((ev) => {
-        if (localDateStr(new Date(ev.date)) === localDateStr(today)) return true;
-        return new Date(ev.date) >= new Date();
-      })
-      .filter((ev) => {
-        const haystack = `${ev.title} ${ev.location || ""} ${ev.category || ""}`.toLowerCase();
-        return q.split(/\s+/).every((term) => haystack.includes(term));
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 6)
-      .map((ev) => ({
-        slug: ev.slug,
-        title: ev.title,
-        date: ev.date,
-        image: ev.image,
-        location: ev.location,
-        category: ev.category,
-      }));
-
-    return NextResponse.json({ results });
+    const { results, total } = await buscarAgenda(params.get("q") || "", {
+      limit: Number(params.get("limit")),
+      offset: Number(params.get("offset")),
+    });
+    return NextResponse.json({ results, total });
   } catch (error) {
     // **Un fallo ya no se disfraza de "no hay resultados".** Este `catch` devolvía
     // `{results: []}` con status 200 y sin mirar siquiera el error, y eso es

@@ -206,7 +206,7 @@ export default function HeroSearch() {
                   })}
                 </ul>
                 <Link
-                  href={`/culture?q=${encodeURIComponent(query.trim())}`}
+                  href={`/buscar?q=${encodeURIComponent(query.trim())}`}
                   onClick={() => {
                     setOpen(false);
                     setQuery("");

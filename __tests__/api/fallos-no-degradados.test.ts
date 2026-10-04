@@ -34,7 +34,7 @@ type FarmaciasEnvelope = {
   data: { id: string; name: string }[];
 };
 
-type SearchEnvelope = { results: unknown[] } & { error?: string };
+type SearchEnvelope = { results: unknown[]; total?: number } & { error?: string };
 
 const GEOJSON = () => loadFixture("farmacias-euskadi.geojson");
 
@@ -174,16 +174,28 @@ describe("GET /api/search", () => {
     const body = (await res.json()) as SearchEnvelope;
 
     expect(res.status).toBe(200);
-    // Solo `results`, y con la forma de `SearchHit`. Un envelope de error aquí
+    // `results` y `total`, y con la forma de `BuscarHit`. Un envelope de error aquí
     // rompería a `Header` y a `HeroSearch`, que leen `results` sin comprobar nada.
-    expect(Object.keys(body).sort()).toEqual(["results"]);
+    //
+    // `total` y los dos campos nuevos del hit (`id` y `source`) se añadieron a
+    // propósito con la página `/buscar`, no por descuido. Sin `total` una lista
+    // recortada es indistinguible de una lista corta: quien busca y ve seis filas no
+    // sabe si hay seis o seiscientos, que es el mismo fallo que hace mal
+    // `/culture/[categoria]` al pintar "70 próximos eventos" y enseñar 60.
+    // `id` viene porque `EventCardEvento` lo exige y el invariante del repo es que
+    // `id === slug`; y `source` porque la etiqueta de la fuente es una de las cuatro
+    // cosas por las que se puede buscar.
+    expect(Object.keys(body).sort()).toEqual(["results", "total"]);
+    expect(body.total).toBe(1);
     expect(body.results).toHaveLength(1);
     expect(Object.keys(body.results[0] as object).sort()).toEqual([
       "category",
       "date",
+      "id",
       "image",
       "location",
       "slug",
+      "source",
       "title",
     ]);
   });
