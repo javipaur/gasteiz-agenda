@@ -11,13 +11,21 @@ type BuscametasEvento = {
 };
 
 function transformarEventos(apiEventos: any[]): BuscametasEvento[] {
-  return apiEventos.map((e: any) => ({
-    title: e.nombre,
-    date: e.fecha_ini ? new Date(e.fecha_ini).toISOString() : new Date().toISOString(),
-    image: e.imagen,
-    location: `${e.poblacion}${e.prov ? ` ${e.prov}` : ""}`,
-    link: e.web || "#",
-  })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return apiEventos
+    .map((e: any) => ({
+      title: e.nombre,
+      // **Sin fecha de reserva.** Antes caía en `new Date()`, o sea el día del
+      // scrape: una carrera sin `fecha_ini` salía hoy y se evaporaba en la
+      // siguiente pasada de la caché de 5 minutos. Misma norma del proyecto que
+      // aplica `lib/sources/helldorado.ts`.
+      date: e.fecha_ini ? new Date(e.fecha_ini).toISOString() : "",
+      image: e.imagen,
+      location: `${e.poblacion}${e.prov ? ` ${e.prov}` : ""}`,
+      link: e.web || "#",
+    }))
+    // El filtro va antes del orden porque `new Date("")` da `NaN` y no ordena.
+    .filter((e) => e.title && e.date)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function scrapeBuscametasCalendario(): Promise<BuscametasEvento[]> {

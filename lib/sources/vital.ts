@@ -51,7 +51,13 @@ function parseFecha(label: string): string {
   const text = strip(label).toLowerCase();
 
   if (/anualmente|todo el a[ñn]o|continuo/i.test(text)) {
-    return new Date().toISOString().slice(0, 10);
+    // **Sin fecha de reserva.** Antes devolvía el día de hoy, y eso hace que un
+    // programa anual —"Anualmente", "todo el año"— aparezca un único día en la
+    // agenda y se evapore en la siguiente pasada de la caché de 5 minutos, con un
+    // día que además acaba en el slug. Es la norma del proyecto: una fuente sin
+    // fecha no entra en el registro, la misma que sacó a Civitatis y Kora. El
+    // `if (!date || ...)` de abajo hace el resto.
+    return "";
   }
 
   // fecha de un día: "5 de septiembre de 2026"

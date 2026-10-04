@@ -191,7 +191,29 @@ export type VamEvent = {
   source: string;
   description: string;
   time: string;
+  price?: string;
 };
+
+/**
+ * El precio tal y como lo publica VAM, o `undefined` si no lo publica.
+ *
+ * El catálogo trae `price_raw` en 125 de sus 200 eventos y `is_free` en 71, y
+ * antes los dos se perdían. Los valores reales que se han medido son `"12 / 18 €"`,
+ * `"100 / 250 ?"`, `"Gratis"`, `"Gratis (con invitación)"`, `"Previa invitación"` y
+ * `"Precio no disponible"`.
+ *
+ * ese último es la fuente diciendo que no lo sabe, y es el único que se descarta:
+ * pasarlo a la tarjeta enseñaría un precio que no existe, que es peor que no
+ * enseñar ninguno. El resto se pasa tal cual, sin normalizar, porque `"Gratis
+ * (con invitación)"` y `"Previa invitación"` no son lo mismo que `"Gratis"` y
+ * reducerlos pierde una condición de acceso que es justo lo que la gente viene a
+ * saber.
+ */
+function precioVam(raw: unknown): string | undefined {
+  const texto = typeof raw === "string" ? raw.trim() : "";
+  if (!texto || /^precio no disponible$/i.test(texto)) return undefined;
+  return texto;
+}
 
 async function fetchAllVamEvents(): Promise<any[]> {
   const res = await fetch(VAM_API, {
@@ -221,11 +243,17 @@ export async function scrapeVamEvents(): Promise<VamEvent[]> {
     .map((e: any) => {
       const image = resolveImageUrl(e.image_url);
       const dateStr = e.date_start || e.date_end;
-      const date = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
 
       return {
         title: e.title || "Sin título",
-        date,
+        // **Sin fecha de reserva.** Antes caía en `new Date()`, o sea el día del
+        // scrape, y el evento salía hoy y se evaporaba en la siguiente pasada de
+        // la caché de 5 minutos, con un día inventado además colado en el slug.
+        // Incumple en silencio la norma del proyecto —la misma que sacó a Civitatis
+        // y Kora fuera del registro— y que `lib/sources/helldorado.ts` ya aplica con
+        // este mismo patrón. Sin fecha, `""`, y el filtro de abajo lo descarta: la
+        // lista es más corta pero ninguno de los que están tiene un día inventado.
+        date: dateStr ? new Date(dateStr).toISOString() : "",
         image,
         location: e.place || e.city || "Vitoria-Gasteiz",
         link: e.source_url || "#",
@@ -233,8 +261,13 @@ export async function scrapeVamEvents(): Promise<VamEvent[]> {
         source: "vam",
         description: e.description || "",
         time: e.schedule_raw || "",
+        price: precioVam(e.price_raw),
       };
     })
+    // El filtro va **antes** del orden porque el orden compara `new Date(a.date)`,
+    // y una fecha vacía da `NaN`, que no ordena nada: sin esto, un evento sin fecha
+    // se queda donde le deje el `sort` estable.
+    .filter((e: any) => e.title && e.date)
     .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   await enrichWithImages(events);
@@ -253,16 +286,19 @@ export async function scrapeVamConciertos(): Promise<any[]> {
     .map((e: any) => {
       const image = resolveImageUrl(e.image_url);
       const dateStr = e.date_start || e.date_end;
-      const date = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
 
       return {
         title: e.title || "Sin título",
-        date,
+        // Mismo criterio que `scrapeVamEvents`: sin fecha de reserva. Aquí el
+        // filtro es el `category?.includes("Concierto")` de arriba más este.
+        date: dateStr ? new Date(dateStr).toISOString() : "",
         image,
         location: e.place || e.city || "Vitoria-Gasteiz",
         link: e.source_url || "#",
+        price: precioVam(e.price_raw),
       };
     })
+    .filter((e: any) => e.title && e.date)
     .sort(
       (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );

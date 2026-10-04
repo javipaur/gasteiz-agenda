@@ -16,18 +16,29 @@ let cache: Actividad[] | null = null;
 let lastFetch = 0;
 const CACHE_TTL = 1000 * 60 * 60 * 24;
 
+/**
+ * `dd/mm/yyyy` o una fecha que V8 entienda, a ISO. **Sin fecha de reserva.**
+ *
+ * Antes los tres caminos de fallo devolvían `new Date()`: una salida de senderismo
+ * sin fecha, o con una fecha que este parser no reconoce, salía en la agenda el día
+ * del scrape y desaparecía en la siguiente pasada de la caché. Un día inventado
+ * además se cuela en el slug, así que `/evento/[slug]` daba 404 por un evento que
+ * la home acababa de pintar. Es la norma del proyecto —"una fuente sin fecha no
+ * entra en el registro"— y el filtro de `scrapeSenderismo` la aplica.
+ */
 function parseFechaISO(fecha?: string): string {
-  if (!fecha) return new Date().toISOString();
+  if (!fecha) return "";
   try {
     const parts = fecha.split("/").map(Number);
     if (parts.length === 3) {
       const [d, m, y] = parts;
-      return new Date(y, m - 1, d).toISOString();
+      const fechaIso = new Date(y, m - 1, d);
+      return isNaN(fechaIso.getTime()) ? "" : fechaIso.toISOString();
     }
     const d = new Date(fecha);
-    return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+    return isNaN(d.getTime()) ? "" : d.toISOString();
   } catch {
-    return new Date().toISOString();
+    return "";
   }
 }
 
@@ -79,10 +90,14 @@ export async function scrapeSenderismo(): Promise<Actividad[]> {
     });
   });
 
-  actividades.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // El filtro va **antes** del orden porque el orden compara `new Date(a.date)`, y
+  // una fecha vacía da `NaN`, que no ordena nada. Sin esto, una salida sin fecha se
+  // queda donde le deje el `sort` estable.
+  const conFecha = actividades.filter((a) => a.title && a.date);
+  conFecha.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  cache = actividades;
+  cache = conFecha;
   lastFetch = now;
 
-  return actividades;
+  return conFecha;
 }
