@@ -12,6 +12,7 @@ import { CATEGORY_COLORS } from "@/lib/categories";
 const IDS_MUNICIPALES = [
   "municipal-agenda",
   "municipal-teatro",
+  "municipal-teatros",
   "municipal-conciertos",
   "municipal-exposiciones",
   "municipal-general",
@@ -27,9 +28,17 @@ const IDS_MUNICIPALES = [
 // además la última de las de priority 0 por el mismo motivo: si el sitio
 // ignorara su `tipo` y devolviera el calendario entero, se comería el `kind` de
 // `municipal-deporte` y los `tags` de `municipal-infantil`.
+//
+// `municipal-teatros` va pegada a `municipal-teatro` y no al final por lo mismo: si
+// el sitio ignorara un `calendariosID` desconocido y devolviera el 196 entero, esta
+// se comería el `category` de `municipal-teatro` y las dos serían la misma. Al ir
+// delante en el desempate —comparten `priority: 0` y el orden del array es el
+// desempate— `municipal-teatro` se queda con el evento y `municipal-teatros` solo
+// gana lo que nadie más reclama.
 const MUNICIPALES_CON_TAXONOMIA = [
   "municipal-agenda",
   "municipal-teatro",
+  "municipal-teatros",
   "municipal-conciertos",
   "municipal-exposiciones",
   "municipal-deporte",
@@ -82,6 +91,7 @@ describe("SOURCE_REGISTRY", () => {
       "municipal-conciertos",
       "municipal-exposiciones",
       "municipal-teatro",
+      "municipal-teatros",
       "rula",
       "vam-conciertos",
     ]);

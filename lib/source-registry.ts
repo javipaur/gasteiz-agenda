@@ -46,6 +46,10 @@ import { SOURCE_DATA, type RawLike, type SourceEntry } from "./source-data";
 const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
   "municipal-agenda": () => scrapeMunicipalCalendar({ tipo: [6] }),
   "municipal-teatro": () => scrapeMunicipalCalendar({ tipo: [13] }),
+  // El 392 es la red de teatros de los centros cívicos, que no aparece en el `tipo:
+  // [13]` de arriba. Medido contra el sitio el 4 de octubre de 2026: 46 eventos en
+  // los doce meses siguientes, de los que 36 no salen en la página 1 del 196.
+  "municipal-teatros": () => scrapeMunicipalCalendar({ calendariosID: 392 }),
   "municipal-conciertos": () => scrapeMunicipalCalendar({ tipo: [2] }),
   "municipal-exposiciones": () => scrapeMunicipalCalendar({ tipo: [7] }),
   "municipal-general": () => scrapeMunicipalCalendar(),

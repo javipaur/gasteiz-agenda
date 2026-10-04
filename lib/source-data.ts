@@ -108,6 +108,15 @@ export type SourceData = Omit<SourceEntry, "run">;
 export const SOURCE_DATA: readonly SourceData[] = [
   { id: "municipal-agenda", group: "municipal", label: "Ayuntamiento", category: "Otros", culture: true, priority: 0 },
   { id: "municipal-teatro", group: "municipal", label: "Ayuntamiento", category: "Teatro", culture: true, priority: 0 },
+  // La red municipal de teatros es un `calendariosID` aparte del `tipo: [13]` de
+  // arriba, no una variante de él. Ninguna de las dos entradas contiene a la otra:
+  // el 392 son los teatros de los centros cívicos (Félix Petite en Ibaiondo, Jesús
+  // Ibáñez de Matauco en Hegoalde, Federico García Lorca en Lakua, el punto de
+  // encuentro de Aldabe y el Palacio de Congresos), y son 46 eventos en el año.
+  //
+  // Se dejó aparte porque todo lo que se sabe de ella se puede comprobar contra
+  // este id, y una entrada que mezcla dos consultas no se puede auditar.
+  { id: "municipal-teatros", group: "municipal", label: "Ayuntamiento", category: "Teatro", culture: true, priority: 0 },
   { id: "municipal-conciertos", group: "municipal", label: "Ayuntamiento", category: "Música", culture: true, priority: 0 },
   { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", category: "Exposiciones", culture: true, priority: 0 },
   { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 1 },

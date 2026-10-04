@@ -67,13 +67,17 @@ const PESOS_POR_CATEGORIA: Record<string, number> = {
 };
 
 describe("scoreEvento", () => {
-  it("las nueve entradas municipales puntúan como municipal y no como desconocidas", () => {
+  it("las diez entradas municipales puntúan como municipal y no como desconocidas", () => {
     // El bug que se arregla aquí: el peso se leía por id y la tabla tenía
-    // "vitoria-gasteiz", un id que desde la T4 no emite nadie. Con eso, las nueve
+    // "vitoria-gasteiz", un id que desde la T4 no emite nadie. Con eso, las
     // variantes municipales —la fuente con más volumen de la agenda— caían al
     // mínimo por defecto y la home ordenaba "Populares" sin ellas.
+    //
+    // El número va escrito a propósito: es la undécima variante municipal la que
+    // haría fallar esto, y no por su peso —que se resuelve por grupo y sería
+    // correcto—, sino porque obliga a mirar la lista al añadirla.
     const municipales = SOURCE_DATA.filter((e) => e.group === "municipal").map((e) => e.id);
-    expect(municipales).toHaveLength(9);
+    expect(municipales).toHaveLength(10);
 
     const pesos = municipales.map((id) => puntua({ source: id, category: "Otros" }));
 
