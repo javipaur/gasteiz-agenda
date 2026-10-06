@@ -1,6 +1,44 @@
-const futureDate = "2026-10-05T20:00:00.000Z";
-const futureDate2 = "2026-10-10T20:00:00.000Z";
-const pastDate = "2025-05-01T10:00:00.000Z";
+/**
+ * Las fechas de este fichero se construyen a partir del reloj en vez de escribirse.
+ *
+ * Los eventos llegan a estas aserciones después de pasar por `lib/agenda.ts:249`,
+ * que descarta el pasado contra la **medianoche local de hoy** —`hoy.setHours(0, 0,
+ * 0, 0)`—. Es decir: la mitad de lo que este fichero comprueba lo decide la hora que
+ * es, y una fecha escrita a mano es una fecha que caduca. Se caducó el 6 de octubre
+ * de 2026: los datos decían `"2026-10-05T20:00:00.000Z"`, el test pedía dos eventos y
+ * recibía uno, porque "Evento Duplicado" ya era ayer. El rojo señalaba la aserción de
+ * longitud, no la fecha, que es la forma más ilegible de Pudrir un fixture.
+ *
+ * Es la misma respuesta que `loadFixtureWithFutureDates` da a los fixtures HTML
+ * —reescribir a futuro en vez de congelar—, con una diferencia: aquí no hay texto que
+ * reescribir, las fechas **son** el dato. La otra respuesta posible, clavar el reloj
+ * con `jest.setSystemTime`, es la que usa `gasteizhoy.test.ts` y es la correcta **allí**
+ * porque su fixture es una rejilla de mes que no se puede mover sin entender su
+ * parser. Aquí no hay nada que entender y nada que clavar: con reloj real el test
+ * comprueba contra la misma medianoche que el código, y no tiene fecha de caducidad.
+ */
+function relativo(dias: number, hora = 20): Date {
+  // Local y no UTC a propósito: se construye la misma magnitud que construye el
+  // código bajo prueba. Con UTC la diferencia de día en las horas del borde haría que
+  // este test se pusiera rojo una vez al año, y un test que solo falla por el huso es
+  // un test roto.
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + dias);
+  d.setHours(hora, 0, 0, 0);
+  return d;
+}
+
+/** `YYYY-MM-DD` **local** de un instante, para los `startDate`/`endDate`. */
+function claveLocal(d: Date): string {
+  return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+}
+
+// Dos días de margen entre los tres, para que ningún caso de borde de zona horaria
+// pueda empujarlos dentro o fuera del rango del test de `startDate`/`endDate`.
+const futureDate = relativo(1).toISOString();
+const futureDate2 = relativo(3).toISOString();
+const pastDate = relativo(-30).toISOString();
 
 jest.mock("@/lib/sources/fever", () => ({
   scrapeFever: jest.fn().mockResolvedValue([
@@ -130,9 +168,12 @@ describe("getProximosEventos", () => {
   });
 
   it("filters by startDate range", async () => {
+    // La ventana se construye con el mismo reloj que las fechas de los mocks, y
+    // no en las últimas: cae entre los dos futuros, así que el caso de abajo sigue
+    // distinguiendo "filtra por rango" de "devuelve los dos".
     const eventos = await getProximosEventos({
-      startDate: "2026-10-09",
-      endDate: "2026-10-11",
+      startDate: claveLocal(relativo(2)),
+      endDate: claveLocal(relativo(4)),
     });
 
     expect(Array.isArray(eventos)).toBe(true);

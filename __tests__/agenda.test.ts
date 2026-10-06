@@ -400,6 +400,17 @@ describe("invariante: toda tarjeta tiene detalle", () => {
     const evs = await aggregate(
       SOURCE_REGISTRY.map((e) => ({
         ...e,
+        // **`cacheTtlMs: undefined` a propósito.** `aggregate` envuelve en
+        // `getCachedOrFetch` las entradas que declaran TTL propio, y hoy solo hay una:
+        // `rula`, con dos horas. Sin esta línea, el `run` de mentira se sustituye por
+        // lo que haya en el fichero `source:rula` de `tmpdir()` —y si alguien ha
+        // arrancado `npm run dev` antes de la suite, ahí están los 500 eventos de
+        // verdad que La Genterula devuelve, y el recuento da 521 en vez de 29.
+        //
+        // O sea que el resultado de la suite dependía de si la máquina había tenido un
+        // dev server encendido, y el fallo se lee como un bug del agregador. La
+        // lectura de disco es lo correcto en producción y lo que hay que anular aquí.
+        cacheTtlMs: undefined,
         run: async () => [
           {
             title: `Evento de ${e.id}`,
