@@ -105,9 +105,26 @@ export type SourceData = Omit<SourceEntry, "run">;
 // lo que ya devuelven las variantes tipadas, y si compartiera prioridad se
 // quedaría delante de `municipal-deporte` y `municipal-infantil` en el desempate,
 // se comería su `kind` y sus `tags`, y `/deporte` y `/kids` saldrían vacíos.
+/**
+ * Capa propia de las entradas que van a `CalendarioServlet`.
+ *
+ * 2 h como `rula`, y por el mismo motivo de fondo: una fuente que pega fuerte y
+ * gordo al servidor necesita su propia capa. Aquí el peso no son 6,5 MB por
+ * petición, son **hasta 13 peticiones por arranque**: la ventana de doce meses se
+ * pide una vez y, si vuelve llena, `lib/sources/municipal.ts` la repite mes a mes.
+ * Con 18 entradas, un arranque en frío son del orden de 200 peticiones, y sin esto
+ * el `agenda-all` de 5 minutos las repetiría cada cinco minutos.
+ *
+* Es el mismo TTL y no uno menor porque el calendario municipal cambia a ritmo de
+ * día, no de minuto: entre una llamada y la siguiente dos horas más tarde hay como
+ * mucho un par de altas nuevas, y la que se pierde por no haberla visto sigue
+ * colgada en la web municipal.
+ */
+const CACHE_MUNICIPAL_MS = 2 * 60 * 60 * 1000;
+
 export const SOURCE_DATA: readonly SourceData[] = [
-  { id: "municipal-agenda", group: "municipal", label: "Ayuntamiento", category: "Otros", culture: true, priority: 0 },
-  { id: "municipal-teatro", group: "municipal", label: "Ayuntamiento", category: "Teatro", culture: true, priority: 0 },
+  { id: "municipal-agenda", group: "municipal", label: "Ayuntamiento", category: "Otros", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-teatro", group: "municipal", label: "Ayuntamiento", category: "Teatro", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
   // La red municipal de teatros es un `calendariosID` aparte del `tipo: [13]` de
   // arriba, no una variante de él. Ninguna de las dos entradas contiene a la otra:
   // el 392 son los teatros de los centros cívicos (Félix Petite en Ibaiondo, Jesús
@@ -116,11 +133,11 @@ export const SOURCE_DATA: readonly SourceData[] = [
   //
   // Se dejó aparte porque todo lo que se sabe de ella se puede comprobar contra
   // este id, y una entrada que mezcla dos consultas no se puede auditar.
-  { id: "municipal-teatros", group: "municipal", label: "Ayuntamiento", category: "Teatro", culture: true, priority: 0 },
-  { id: "municipal-conciertos", group: "municipal", label: "Ayuntamiento", category: "Música", culture: true, priority: 0 },
-  { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", category: "Exposiciones", culture: true, priority: 0 },
-  { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 1 },
-  { id: "municipal-deporte", group: "municipal", label: "Ayuntamiento", category: "Deporte", kind: "agenda", priority: 0 },
+  { id: "municipal-teatros", group: "municipal", label: "Ayuntamiento", category: "Teatro", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-conciertos", group: "municipal", label: "Ayuntamiento", category: "Música", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", category: "Exposiciones", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-general", group: "municipal", label: "Ayuntamiento", cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 1 },
+  { id: "municipal-deporte", group: "municipal", label: "Ayuntamiento", category: "Deporte", kind: "agenda", cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
   // Los seis tipos que no consultaba nadie, medido el 5 de octubre de 2026 contra
   // el `filtros` que devuelve el propio servlet. Los catorce `tipo` del calendario
   // 196 son estos, y solo se estaban filtrando cinco: 6, 13, 2, 7 y el que se
@@ -150,12 +167,12 @@ export const SOURCE_DATA: readonly SourceData[] = [
   // caerse. El 99 «Otros» sí se deja fuera, y por el motivo de siempre: lo coge
   // `municipal-general` sin filtro, así que una entrada para él sería una
   // petición por nada.
-  { id: "municipal-charlas", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, priority: 0 },
-  { id: "municipal-talleres", group: "municipal", label: "Ayuntamiento", category: "Talleres", culture: true, priority: 0 },
-  { id: "municipal-danza", group: "municipal", label: "Ayuntamiento", category: "Danza", culture: true, priority: 0 },
-  { id: "municipal-cine", group: "municipal", label: "Ayuntamiento", category: "Cine", culture: true, priority: 0 },
-  { id: "municipal-fiestas", group: "municipal", label: "Ayuntamiento", category: "Fiestas", culture: true, priority: 0 },
-  { id: "municipal-concursos", group: "municipal", label: "Ayuntamiento", category: "Deporte", priority: 0 },
+  { id: "municipal-charlas", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-talleres", group: "municipal", label: "Ayuntamiento", category: "Talleres", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-danza", group: "municipal", label: "Ayuntamiento", category: "Danza", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-cine", group: "municipal", label: "Ayuntamiento", category: "Cine", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-fiestas", group: "municipal", label: "Ayuntamiento", category: "Fiestas", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-concursos", group: "municipal", label: "Ayuntamiento", category: "Deporte", cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
   // Los dos tipos que faltaban, medidos el 6 de octubre de 2026. El guard de
   // `__tests__/sources/municipal-tipos.test.ts` es lo que los tiene marcados.
   //
@@ -172,9 +189,9 @@ export const SOURCE_DATA: readonly SourceData[] = [
   // "Presentación de libro". Van a Conferencias, que ya existe: dos de los tres son
   // colloquia y el tercero es una presentación. Una categoría "Libros" con tres
   // eventos obligaría a darle color, peso y página para un cubo que no llega a cinco.
-  { id: "municipal-mercados", group: "municipal", label: "Ayuntamiento", category: "Mercados", priority: 0 },
-  { id: "municipal-presentaciones", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, priority: 0 },
-  { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", tags: ["infantil"], priority: 0 },
+  { id: "municipal-mercados", group: "municipal", label: "Ayuntamiento", category: "Mercados", cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-presentaciones", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
+  { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", tags: ["infantil"], cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
   // Va la última de las de priority 0 por el mismo motivo que `municipal-general`
   // va por detrás de todas: si el sitio municipal ignorara el `tipo` desconocido
   // y devolviera el calendario entero, esta llamada se comería el `kind` de
@@ -191,7 +208,7 @@ export const SOURCE_DATA: readonly SourceData[] = [
   // ceros: no era una variante sin tilde que el sitio esperase, era un error
   // tipográfico, y la entrada llevaba tiempo trayendo exactamente nada.
   // `__tests__/source-registry.test.ts` prohíbe ahora las cadenas en `tipo`.
-  { id: "municipal-visitas", group: "municipal", label: "Ayuntamiento", category: "Visitas", priority: 0 },
+  { id: "municipal-visitas", group: "municipal", label: "Ayuntamiento", category: "Visitas", cacheTtlMs: CACHE_MUNICIPAL_MS, priority: 0 },
   { id: "municipal-rss", group: "municipal", label: "Ayuntamiento (RSS)", priority: 1 },
   { id: "vam", group: "vam", label: "VAM", tickets: true, priority: 1 },
   { id: "vam-conciertos", group: "vam", label: "VAM", category: "Música", culture: true, tickets: true, priority: 1 },

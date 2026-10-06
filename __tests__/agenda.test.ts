@@ -382,16 +382,59 @@ describe("caché por fuente", () => {
  * por simetría, falla aquí antes de que nadie lo note en producción. Un TTL de
  * más es un bug de frescura que no se ve; uno de menos es el problema de 6,5 MB
  * que motivó el cambio, solo que repartido.
+ *
+ * **Las municipales llegaron después y con el mismo número, y el motivo es del mismo
+ * tipo pero no del mismo peso**: allí el coste no son 6,5 MB por petición, son hasta
+ * trece peticiones por arranque. El TTL es el mismo porque la respuesta a "cada cuánto
+ * puede esta fuente cambiar" también lo es: las dos cambian a ritmo de día.
  */
 describe("el TTL propio está solo donde está medido", () => {
+  const DOS_HORAS = 2 * 60 * 60 * 1000;
+
   it("La Genterula declara dos horas", () => {
     const rula = SOURCE_REGISTRY.find((e) => e.id === "rula");
-    expect(rula?.cacheTtlMs).toBe(2 * 60 * 60 * 1000);
+    expect(rula?.cacheTtlMs).toBe(DOS_HORAS);
+  });
+
+  it("las diecisiete entradas que van al servlet municipal declaran dos horas", () => {
+    // La lista sale del registro por lo que la cubre, no por enumerarla aquí: si
+    // mañana hay dieciocho municipales que paginan, esta aserción tiene que cambiar
+    // sola y ser `source-registry.test.ts` la que eche de menos a la que se cuele
+    // sin TTL. Escribir los ids aquí sería una segunda lista mantenida a mano, y las
+    // listas mantenidas a mano son las que dejan de cuadrar sin que nadie lo vea.
+    const alServlet = SOURCE_REGISTRY.filter(
+      (e) => e.group === "municipal" && e.id !== "municipal-rss"
+    );
+    expect(alServlet.length).toBe(17);
+    for (const e of alServlet) expect(e.cacheTtlMs).toBe(DOS_HORAS);
   });
 
   it("ninguna otra fuente declara TTL propio", () => {
     const conTtl = SOURCE_REGISTRY.filter((e) => e.cacheTtlMs !== undefined).map((e) => e.id);
-    expect(conTtl).toEqual(["rula"]);
+    const esperadas = [
+      "municipal-agenda",
+      "municipal-teatro",
+      "municipal-teatros",
+      "municipal-conciertos",
+      "municipal-exposiciones",
+      "municipal-general",
+      "municipal-deporte",
+      "municipal-charlas",
+      "municipal-talleres",
+      "municipal-danza",
+      "municipal-cine",
+      "municipal-fiestas",
+      "municipal-concursos",
+      "municipal-mercados",
+      "municipal-presentaciones",
+      "municipal-infantil",
+      "municipal-visitas",
+      "rula",
+    ];
+    // Se ordenan los dos lados porque el orden de `conTtl` es el de `SOURCE_REGISTRY`,
+    // y este cambia cada vez que alguien mueve una entrada. Lo que ata el test es el
+    // conjunto, que es lo que se decide: qué fuentes pesan lo bastante para tener capa.
+    expect([...conTtl].sort()).toEqual([...esperadas].sort());
   });
 });
 

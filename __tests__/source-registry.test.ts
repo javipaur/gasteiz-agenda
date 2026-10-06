@@ -232,6 +232,24 @@ it("ninguna variante municipal pide su `tipo` como cadena", async () => {
     }
   });
 
+  it("las entradas municipales que paginan declaran cacheTtlMs", () => {
+    // Las 17 que van a `CalendarioServlet` paginan: la ventana anual se pide una vez
+    // y, si vuelve llena, se repite mes a mes. Medido el 6 de octubre de 2026, son
+    // del orden de 200 peticiones en un arranque en frío. Sin capa propia las hace
+    // cada 5 minutos, que es el TTL de `agenda-all`, contra un servidor municipal.
+    //
+    // `municipal-rss` va por RSS y no pagina, así que su ritmo lo decide `agenda-all`.
+    // Está escrito y no implícito porque la excepción sin nombrar sería una entrada
+    // más que se puede añadir sin que nadie decida si la excepción la cubre.
+    const SIN_CAPA = new Set(["municipal-rss"]);
+
+    const sinCapa = SOURCE_REGISTRY.filter(
+      (e) => e.group === "municipal" && !e.cacheTtlMs && !SIN_CAPA.has(e.id)
+    );
+
+    expect(sinCapa.map((e) => e.id)).toEqual([]);
+  });
+
   it("ninguna fuente queda etiquetada con su propio id", () => {
     // Restricción global: si alguien añade `{ id: "foo", label: "foo" }`, los
     // demás tests siguen en verde y la pill vuelve a pintar el slug crudo, que es
