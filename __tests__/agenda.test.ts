@@ -119,6 +119,40 @@ describe("aggregate", () => {
     expect(ev.location).toBe("HellDorado");
   });
 
+  it("cuenta cuántas fuentes cuentan cada evento, y no lo tira con el perdedor", async () => {
+    // El bug que este test existe para que no vuelva: el dedupe roba `image`,
+    // `description` y `location` al perdedor y **descarta el resto**. El número de
+    // fuentes que contaban el evento se iba con él, y es justo la señal que usa el
+    // selector de recomendados: un concierto que anuncia el Ayuntamiento, VAM y
+    // Fever es más real que uno que solo aparece en una sala.
+    //
+    // Va con `group: "municipal"` en las tres entradas a propósito: el dedupe no mira
+    // el grupo, así que da igual, pero el nombre de las entradas dice lo que el test
+    // cuenta y el diff lo deja claro si alguien lo lee sin contexto.
+    const entrada = (id: string, link: string) =>
+      entry({ id, priority: 0, run: async () => [{ ...BASE, link }] });
+
+    const evs = await aggregate([
+      entrada("municipal-agenda", "https://www.vitoria-gasteiz.org/a"),
+      entrada("vam", "https://www.vam.eus/b"),
+      entrada("fever", "https://www.feverup.com/c"),
+    ]);
+
+    expect(evs).toHaveLength(1);
+    expect(evs[0].corrobora).toBe(3);
+  });
+
+  it("un evento que solo cuenta una fuente vale uno, no cero", async () => {
+    // El otro lado del anterior, y es el que hace que `corrobora` sea opcional en el
+    // tipo sin perder información: si el contador empezara en 0 y se sumara por
+    // duplicado, un evento sin duplicados saldría con `0`, que se lee como "nadie lo
+    // confirma" cuando en realidad lo confirma su única fuente. Y `lib/recomendados.ts`
+    // hace `?? 1` en los eventos que los tests construyen a mano, así que un 0 real
+    // se colaría por un hueco que el tipo declara opcional.
+    const [ev] = await aggregate([entry({ run: async () => [BASE] })]);
+    expect(ev.corrobora).toBe(1);
+  });
+
   it("aplica la categoría de la entrada cuando la fuente no trae", async () => {
     const [ev] = await aggregate([
       entry({ run: async () => [BASE], category: "Teatro" }),

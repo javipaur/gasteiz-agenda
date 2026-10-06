@@ -29,6 +29,22 @@ export type AgendaEvento = {
   cancelled?: boolean;
   price?: string;
   rating?: number;
+  /**
+   * Cuántos ids de fuente contaban este evento antes del dedupe.
+   *
+   * El dedupe se queda con un ganador y roba al perdedor `image`, `description` y
+   * `location`; este número se perdía con el resto, y era el más informative de los
+   * cuatro: no dice cómo queda el evento, sino **cuánta gente lo anuncia**. Un
+   * concierto que sale en el Ayuntamiento, en VAM y en Fever es más real que uno que
+   * solo aparece en la web de una sala, y esa era la señal que faltaba para que
+   * "recomendado" no fuera solo el ranking de popularidad de `lib/popularity.ts`.
+   *
+   * Opcional, y no por pereza: los muchos tests que construyen `AgendaEvento` a mano
+   * no lo declaran, y hacerlo obligatorio los rompería todos de golpe. Quien lo
+   * consume lo trata como `?? 1`, que es lo que vale un evento que solo cuenta una
+   * fuente.
+   */
+  corrobora?: number;
 };
 
 /**
@@ -173,6 +189,12 @@ export async function aggregateConMeta(
   const byKey = new Map<string, AgendaEvento>();
 
   for (const ev of collected) {
+    // Antes de mirarlo. Todo evento pasa por aquí una vez, así que `corrobora` es 1
+    // para el que no tiene duplicado, y 2, 3… para el que otras fuentes también
+    // contaban. Ponerlo aquí y no en la rama del ganador es lo que hace que el
+    // número sea "cuántas fuentes lo cuentan" y no "cuántas lo-APARTE": un contador
+    // que solo sube en la colisión valdría cero para todo evento sin duplicado.
+    ev.corrobora = 1;
     const key = dedupeKey(ev);
     const winner = byKey.get(key);
     if (!winner) {
@@ -188,6 +210,10 @@ export async function aggregateConMeta(
     if (winner.location === SIN_LUGAR && ev.location !== SIN_LUGAR) {
       winner.location = ev.location;
     }
+    // Una fuente más cuenta este mismo evento. Va después de las herencia de campos
+    // porque es lo único que se acumula: las tres de arriba son "rellena un hueco" y
+    // esta es "suma uno".
+    winner.corrobora = (winner.corrobora ?? 1) + 1;
   }
 
   // Los cancelados se van después del dedupe, no antes: manda la fuente que
