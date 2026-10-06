@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import FavoriteButton from "./FavoriteButton";
@@ -102,10 +103,11 @@ export default function SportPageClient({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((evento, index) => {
-            const imageUrl =
-              evento.image && evento.image.startsWith("http")
-                ? evento.image
-                : null;
+            /* `imagenServible` y no `startsWith("http")`: que la URL sea absoluta no
+               significa que `next/image` pueda descargarla. Con un host fuera de
+               `remotePatterns` lanza en render y tumba la página. Ver
+               `lib/image-hosts.ts`. */
+            const imageUrl = imagenServible(evento.image) ? evento.image : null;
             return (
               <InViewWrapper
                 key={evento.title + evento.date + index}

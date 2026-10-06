@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import FavoriteButton from "./FavoriteButton";
@@ -57,7 +58,7 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
                   >
                     <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
                       <div className="aspect-[4/3] relative">
-                        {evento.image ? (
+                        {imagenServible(evento.image) ? (
                           <Image
                             src={evento.image}
                             /* `alt=""`: la imagen y el título comparten `<a>`, así

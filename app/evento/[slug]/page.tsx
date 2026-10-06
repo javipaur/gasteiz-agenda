@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getEventoBySlug } from "@/lib/agenda";
+import { imagenServible } from "@/lib/image-hosts";
 import {
   JsonLd,
   breadcrumbJsonLd,
@@ -148,7 +149,15 @@ export default async function EventoDetallePage({ params }: PageProps) {
           </nav>
 
           <div className="rounded-2xl overflow-hidden border border-border mb-8 aspect-video relative bg-accent-subtle">
-            {evento.image ? (
+            {/* `imagenServible` y no `evento.image`: que el evento traiga imagen no es
+                lo mismo que `next/image` pueda descargarla, y con un host fuera de
+                `remotePatterns` el componente **lanza en render** —no lo coge ningún
+                `onError`, porque ocurre antes de que exista la etiqueta—. La página de
+                detalle era el último sitio sin el predicado, y es el peor para
+                quedarse sin él: es la que se abre desde una tarjeta que en la home ya
+                se vio, así que el mismo evento se veía bien en la portada y tiraba la
+                ficha al abrirla. Ver `lib/image-hosts.ts`. */}
+            {imagenServible(evento.image) ? (
               <Image
                 src={evento.image}
                 alt={evento.title}

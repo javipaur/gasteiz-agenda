@@ -19,6 +19,7 @@ import { getQueVer } from "@/lib/turismo";
 import { getSitios, getRutasPintxos } from "@/lib/gastronomia";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
+import { imagenServible } from "@/lib/image-hosts";
 
 const CULTURA_SET = new Set(["Teatro", "Exposiciones", "Danza", "Conferencias", "Talleres", "Visitas"]);
 const DEPORTE_SET = new Set(["Deporte", "Senderismo"]);
@@ -201,7 +202,7 @@ export default async function SectionsHub() {
               href={href}
               className={`group relative overflow-hidden rounded-2xl border ${tint} p-5 min-h-[132px] flex flex-col justify-between card-hover hover:shadow-lg hover:shadow-accent/10 active:scale-[0.98]`}
             >
-              {imagen ? (
+              {imagenServible(imagen) ? (
                 <>
                   <Image
                     src={imagen}

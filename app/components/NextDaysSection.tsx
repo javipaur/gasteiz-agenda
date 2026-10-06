@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { localDateStr } from "@/lib/utils";
@@ -127,8 +128,12 @@ export default function NextDaysSection({
     return dayEvents.filter((e) => e.category === categoryFilter);
   }, [dayEvents, categoryFilter]);
 
+  /* `imagenServible` y no `e.image`: el destacado se elige entre los eventos que
+     traen imagen, y "traer imagen" no es lo mismo que "poder mostrarla". Con un host
+     fuera de `remotePatterns`, `next/image` lanza en render —no en el `onError`— y
+     tumbaba la home entera con un HTTP 200. Ver `lib/image-hosts.ts`. */
   const featured = useMemo(
-    () => dayEvents.find((e) => e.image && e.image.length > 0) || null,
+    () => dayEvents.find((e) => imagenServible(e.image)) || null,
     [dayEvents]
   );
 

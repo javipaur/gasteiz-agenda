@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 
 type Pelicula = {
   titulo: string;
@@ -36,15 +37,25 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
     >
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className="aspect-[4/3] relative">
-          <Image
-            src={pelicula.imagen}
-            /* `alt=""`: la imagen y el título están en el mismo `<a>`, así que con
-               el `alt` el lector anunciaba la película dos veces. */
-            alt=""
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
-          />
+          {/*
+            `imagenServible` y no un `src` a pelo: `next/image` **lanza en render**
+            con un host que no esté en `remotePatterns`, y ese throw no lo coge el
+            `onError` porque ocurre antes de que exista la etiqueta. Con un solo host
+            no listado, la cartelera entera se caía. Aquí degrada al fondo del marco,
+            que es lo que se ve cuando la carátula no se puede descargar. Ver
+            `lib/image-hosts.ts`.
+          */}
+          {imagenServible(pelicula.imagen) && (
+            <Image
+              src={pelicula.imagen}
+              /* `alt=""`: la imagen y el título están en el mismo `<a>`, así que con
+                 el `alt` el lector anunciaba la película dos veces. */
+              alt=""
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
           <div className="absolute top-3 left-3 bg-white/15 backdrop-blur-xl rounded-xl px-2.5 py-1.5 text-center leading-tight"

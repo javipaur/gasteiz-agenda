@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatDate, sourceLabel, dayBadgeLabel, shortTime } from "@/lib/utils";
+import { imagenServible } from "@/lib/image-hosts";
 import FavoriteButton from "@/app/components/FavoriteButton";
 
 export { formatDate, sourceLabel };
@@ -124,6 +125,12 @@ export function EventCard({
   const catColor = categoryColors?.[evento.category || "Otros"] || "#9C9996";
   const detailHref = href || `/evento/${evento.slug}`;
   const externo = detailHref.startsWith("http");
+  /* `imagenServible` y no `evento.image`: `next/image` lanza en render si el host no
+     está en `remotePatterns`, y ese throw no lo coge el `onError` de abajo. Con un
+     solo host no listado —un `www` de más, un CDN que cambia— eso tumbaba la home
+     entera con un HTTP 200. Aquí la tarjeta degrada al tile con la inicial, que es lo
+     que ya se pinta cuando un evento no trae imagen. Ver `lib/image-hosts.ts`. */
+  const imagen = imagenServible(evento.image) ? evento.image : undefined;
 
   const aspectClass = size === "large" ? "aspect-[16/10]" : size === "compact" ? "aspect-[3/2]" : "aspect-[4/3]";
 
@@ -164,9 +171,9 @@ export function EventCard({
           className="block focus-visible:outline-2 focus-visible:outline-accent"
         >
           <div className={`${aspectClass} relative`}>
-            {evento.image ? (
+            {imagen ? (
               <Image
-                src={evento.image}
+                src={imagen}
                 /* `alt=""` a propósito: la imagen y el título viven en el mismo
                    `<a>`, así que con el `alt` puesto el lector oye el título dos
                    veces. La imagen es decorativa respecto al texto que ya está al

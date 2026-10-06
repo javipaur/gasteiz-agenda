@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 import { Utensils, MapPin, CalendarDays, ExternalLink, Star } from "lucide-react";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
@@ -182,7 +183,7 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
               <InViewWrapper key={sitio.slug} delay={Math.min(index * 0.04, 0.4)}>
                 <article className="group double-bezel-outer rounded-2xl p-1.5 h-full">
                   <div className="double-bezel rounded-xl overflow-hidden h-full flex flex-col">
-                    {sitio.imagen && (
+                    {imagenServible(sitio.imagen) && (
                       <div className="relative aspect-[16/9] shrink-0">
                         <Image
                           src={sitio.imagen}

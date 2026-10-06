@@ -36,7 +36,7 @@ describe("MovieCard", () => {
           titulo: "La película",
           duracion: "120 min",
           genero: "Drama",
-          imagen: "https://example.com/p.jpg",
+          imagen: "https://www.vitoria-gasteiz.org/cartel.jpg",
           link: "https://example.com/entradas",
           horarios: ["18:00", "20:30", "22:45"],
           cine: "Florida",

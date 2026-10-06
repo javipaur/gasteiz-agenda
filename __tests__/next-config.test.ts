@@ -109,6 +109,25 @@ const MEDIDOS_EN_VIVO: Record<string, { url: string; cuando: string }> = {
     url: "https://www.sensacine.com/cines/cine/E0786/",
     cuando: "2026-09-30",
   },
+
+  /**
+   * Los dos host que faltaban y que tumbaron el sitio, los dos medidos en vivo el
+   * 4 de octubre de 2026 con la web en marcha, que es la única forma de verlos: los
+   * fixtures no los tienen.
+   *
+   * - `lagenterula.com` **no aparece** aquí porque sí sale de
+   *   `__tests__/fixtures/sources/rula-response.json`, 399 veces. Lo que no se veía
+   *   era por el otro motivo: un JSON serializa `/` como `\/`, y el escaneo de este
+   *   fichero buscaba `https://`. Está en la lista de todos modos, por si el fixture
+   *   cambia.
+   * - `upload.wikimedia.org` sí necesita estar aquí: viene de un evento de Arkabia
+   *   cuyo tercer usa una foto de Wikimedia como cartel, y no hay ni una aparición
+   *   en el repo. Es el caso para el que existe este mapa.
+   */
+  "upload.wikimedia.org": {
+    url: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Vitoria_-_Asador_Sagartoki_%28Calle_del_Prado%29.jpg",
+    cuando: "2026-10-04",
+  },
 };
 
 const PUBLICAS = ["/api/search", "/api/farmacias", "/api/cines/boulevard"];
@@ -201,6 +220,76 @@ describe("la CORS de /api", () => {
 describe("images.remotePatterns", () => {
   const patterns = nextConfig.images?.remotePatterns ?? [];
 
+  /**
+   * La mitad que faltaba, y la que cuesta un sitio entero.
+   *
+   * El escaneo de "ningún host de la lista está inventado" va en un sentido: que
+   * cada host de `IMAGE_HOSTS` aparezca en `lib/sources/**` o en los fixtures. Eso
+   * detecta un host que alguien se inventó, y no detecta un host que **falta**.
+   *
+   * Y faltaba uno: `lagenterula.com`, sin `www`, que es el host real de las imágenes
+   * de La Genterula y aparece 399 veces en `__tests__/fixtures/sources/rula-response.json`.
+   * La lista tenía `www.lagenterula.com`, que sí aparece en `lib/sources/rula.ts:1`
+   * porque el API se pide ahí, así que el test de arriba daba verde con el motivo
+   * además escrito en falso. `next/image` **lanza en tiempo de render** con un host
+   * que no esté en `remotePatterns`, así que el efecto no era una imagen rota: la
+   * home, `/culture` y `/agenda/[mes]` pintaban la pantalla de error con un HTTP 200.
+   *
+   * **Por qué este escaneo tenía que normalizar las barras antes.** Un JSON serializa
+   * `/` como `\/`, así que `rula-response.json` contiene `https:\/\/lagenterula.com`
+   * y no `https://lagenterula.com`. Un `matchAll(/https?:\/\/…/)` no encuentra nada.
+   * Eso no era un detalle de este test: es la razón de que la lista entera se
+   * construyera solo con los fixtures de HTML y los literales de TypeScript, y de que
+   * las 399 imágenes de La Genterula —y las de Euskadi, Miniature y Mercado de
+    * Abastos, que también son JSON— no hubieran entrado nunca en el examen.
+
+   */
+  it("ningún host de imagen de los fixtures queda fuera de la lista", () => {
+    const enLaLista = new Set(
+      IMAGE_HOSTS.map((h) => h.hostname.toLowerCase())
+    );
+
+    /**
+     * `vam-response.json` queda fuera y no por pereza. El agregador del VAM devuelve
+     * el catálogo de **toda España** y `esVitoria(e.city)` es lo que lo recorta, así
+     * que su fixture tiene 200 eventos de 200 y solo 13 son de Vitoria: los otros
+     * traen `www.cultura.gal`, `www.teatroscanal.com`, `yescordoba.es` y compañía,
+     * que nunca llegan a una tarjeta. Exigirlos en la lista abriría el optimizador de
+     * imágenes a Once dominios que este sitio no muestra nunca.
+     *
+     * Lo que sí debería cubrirse es que `esVitoria` no cambie, y eso lo ata
+     * `__tests__/sources/vam.test.ts`.
+     */
+    const FIXTURES_EXCLUIDOS = new Set(["vam-response.json"]);
+
+    // Solo los que aparecen dentro de un atributo de imagen. Un host que sale en un
+    // enlace de la ficha o en una URL de API no sirve imágenes y no tiene que estar.
+    //
+    // `src` está fuera a propósito, y por un caso concreto: `boulevard-listing.html`
+    // trae un bloque de configuración de Sensacine con
+    // `"jan_config": {"src": "https://cdn.lib.getjan.io/library/sensacine.js"}`, que
+    // es el `<script>` de su biblioteca de anuncios. Con `src` en la lista, el test
+    // pedía en la lista de imágenes el CDN de un JavaScript.
+    const ATRIBUTOS_DE_IMAGEN =
+      /"(?:image_url|imageUrl|image|featured_image|large|thumbnail|poster|contentUrl)"\s*:\s*"(https?:\\?\/\\?\/[^"]+)"/gi;
+    const HOST_EN_URL = /https?:\\?\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+
+    const sinCubrir = new Set<string>();
+    for (const fichero of ficherosDe(join(ROOT, "__tests__", "fixtures"))) {
+      if (FIXTURES_EXCLUIDOS.has(fichero.split(/[\\/]/).pop()!)) continue;
+      // Las barras escapadas del JSON se deshacen antes de buscar el host. Sin esto,
+      // un `.json` no aporta ni un solo host y el escaneo pasa por archivos que
+      // precisamente son los que_now have the host.
+      const txt = readFileSync(fichero, "utf8").replace(/\\\//g, "/");
+      for (const m of txt.matchAll(ATRIBUTOS_DE_IMAGEN)) {
+        const host = HOST_EN_URL.exec(m[1])?.[1];
+        if (host && !enLaLista.has(host.toLowerCase())) sinCubrir.add(host);
+      }
+    }
+
+    expect([...sinCubrir].sort()).toEqual([]);
+  });
+
   it("no hay ningún comodín de host", () => {
     // `hostname: "**"` convertía el optimizador en un proxy abierto. La tentación
     // de `"**"` es que las fuentes cambian de CDN sin avisar; la respuesta es
@@ -245,7 +334,12 @@ describe("images.remotePatterns", () => {
     const atestiguados = new Set<string>(Object.keys(MEDIDOS_EN_VIVO));
     for (const dir of [join(ROOT, "lib", "sources"), join(ROOT, "__tests__", "fixtures")]) {
       for (const fichero of ficherosDe(dir)) {
-        const txt = readFileSync(fichero, "utf8");
+        // El `.replace` no es cosmético. Un JSON serializa `/` como `\/`, así que
+        // `rula-response.json` contiene `https:\/\/lagenterula.com` y el
+        // `matchAll` de abajo, sin deshacerlas antes, no veía **ningún** host de
+        // ningún fixture JSON. Eso dejó la lista construida solo con los HTML y los
+        // literales de TypeScript, y fue justo lo que dejó pasar el `www` de más.
+        const txt = readFileSync(fichero, "utf8").replace(/\\\//g, "/");
         for (const m of txt.matchAll(/https?:\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g)) {
           atestiguados.add(m[1].toLowerCase());
         }
@@ -387,11 +481,16 @@ describe("images.remotePatterns", () => {
 
   it("el número de hosts está acotado, para que una ampliación se note", () => {
     // No es un capricho de números: la lista estaba en una entrada —que es
-    // decir, "cualquiera"— y ahora mide veintipocos. Si algún día sube a
+    // decir, "cualquiera"— y ahora mide treinta y tantos. Si algún día sube a
     // cincuenta, la primera pregunta que hay que poder contestar es qué hace
     // cada una, y ese es el motivo de que el motivo sea obligatorio.
+    //
+    // El tope subió de 32 a 34 el 4 de octubre de 2026, y solo por dos entradas:
+    // `lagenterula.com` y `upload.wikimedia.org`, los dos hosts que faltaban y que
+    // entre los dos tumbaban la web entera. Subirlo con un motivo es el uso que este
+    // test quiere; subirlo porque salta es lo que no.
     expect(IMAGE_HOSTS.length).toBeGreaterThanOrEqual(20);
-    expect(IMAGE_HOSTS.length).toBeLessThanOrEqual(32);
+    expect(IMAGE_HOSTS.length).toBeLessThanOrEqual(34);
   });
 });
 

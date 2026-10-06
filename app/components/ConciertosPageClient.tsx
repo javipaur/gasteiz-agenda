@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { isTicketSource } from "@/lib/tickets";
@@ -213,7 +214,7 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
             className="block focus-visible:outline-2 focus-visible:outline-accent"
           >
           <div className="aspect-[4/3] relative">
-            {evento.image ? (
+            {imagenServible(evento.image) ? (
               <Image
                 src={evento.image}
                 /* `alt=""`: la imagen y el título comparten `<a>`, así que con el

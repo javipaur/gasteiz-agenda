@@ -21,7 +21,13 @@ const EVENTO = {
   slug: "concierto-de-prueba",
   title: "Concierto de prueba",
   date: "2099-03-04",
-  image: "https://example.com/cartel.jpg",
+  /* Un host **de la lista**, no `example.com`. Las tarjetas descartan la imagen si
+     `imagenServible` dice que el host no está en `remotePatterns` —porque
+     `next/image` lanza en render con uno que no lo esté, y eso tumba la página
+     entera—, así que una URL de ejemplo haría que este test no encontrara ninguna
+     imagen y pasara por un `alt` que ya no se está probando. El host es el del
+     Ayuntamiento, que es el primero de `lib/image-hosts.ts`. */
+  image: "https://www.vitoria-gasteiz.org/cartel.jpg",
   location: "Sala Gimeno",
   link: "https://example.com",
   category: "Conciertos",
@@ -109,7 +115,7 @@ describe("alt dentro del enlace del título", () => {
           titulo: "La película",
           duracion: "120",
           genero: "Drama",
-          imagen: "https://example.com/p.jpg",
+          imagen: "https://www.vitoria-gasteiz.org/cartel.jpg",
           link: "https://example.com",
           horarios: ["18:00"],
           cine: "Florida",

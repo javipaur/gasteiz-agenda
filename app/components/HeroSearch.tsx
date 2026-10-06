@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { imagenServible } from "@/lib/image-hosts";
 import { formatDate } from "@/lib/utils";
 import { InViewWrapper } from "@/lib/shared";
 import ShortcutHint from "./ShortcutHint";
@@ -187,8 +188,9 @@ export default function HeroSearch() {
                           className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted transition-colors duration-200 cursor-pointer"
                         >
                           <span className="relative w-9 h-9 rounded-lg overflow-hidden bg-bg-muted shrink-0 flex items-center justify-center">
-                            {hit.image ? (
-                              <Image src={hit.image} alt="" fill sizes="36px" className="object-cover" />
+                              {imagenServible(hit.image) ? (
+                                <Image src={hit.image} alt="" fill sizes="36px" className="object-cover" />
+
                             ) : (
                               <span className="font-display text-sm text-fg-subtle">{hit.title.charAt(0)}</span>
                             )}

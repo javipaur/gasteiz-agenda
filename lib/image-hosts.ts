@@ -95,7 +95,23 @@ export const IMAGE_HOSTS: readonly ImageHost[] = [
   },
   {
     hostname: "www.lagenterula.com",
-    motivo: "La Genterula: las imágenes de `featured_image.large` del API MEC cuelgan del propio dominio",
+    motivo: "La Genterula: el API MEC se pide en `www.lagenterula.com` (rula.ts:1)",
+  },
+  {
+    // **Sin `www`, y en la lista por el peor motivo posible.** Esta entrada no
+    // estaba, y su ausencia tumbaba el sitio entero: `next/image` lanza en tiempo de
+    // render cuando el host no está en `remotePatterns`, así que una sola tarjeta con
+    // una imagen de este host tumba la home, `/culture` y `/agenda/[mes]`, y las
+    // las tres pintan la pantalla de error con un HTTP 200. Nótese que el `motivo`
+    // de la entrada de arriba, que sí estaba, era **falso**: decía que las imágenes
+    // "cuelgan del propio dominio", y el `www` de la API no es el host del `cdn` de
+    // las imágenes. El test que valida esta lista no lo detectó porque atestigua
+    // contra `lib/sources/**` **y** los fixtures, y el `www` sí aparece en `rula.ts:1`.
+    //
+    // El `www` se queda porque el API se llama así, y los dos host conviven.
+    hostname: "lagenterula.com",
+    motivo:
+      "La Genterula: es el host real de `featured_image.large` en la respuesta del API, sin www. Medido en la respuesta en vivo el 4 de octubre de 2026, 399 apariciones en el fixture",
   },
   {
     hostname: "opendata.euskadi.eus",
@@ -137,6 +153,21 @@ export const IMAGE_HOSTS: readonly ImageHost[] = [
   {
     hostname: "mercadoabastos.eus",
     motivo: "Mercado de Abastos: las imágenes del REST de The Events Calendar son de su propio dominio",
+  },
+  {
+    // Segundo host que faltaba y que tumbaba la home, medido el 4 de octubre de 2026
+    // con la web en marcha: un evento de Arkabia usa una foto de Wikimedia como imagen
+    // de cabecera —`upload.wikimedia.org/wikipedia/commons/…/Vitoria_-_Asador_Sagartoki.jpg`—,
+    // porque el Third que organiza el evento publica el cartel en la wiki y no en su
+    // propia web. Arkabia no lo filtra, y con la lista como estaba, la home no cargaba.
+    //
+    // Es el caso de uno, no de un scraper: la causa de que un `og:image` de un tercero
+    // sea de donde sea, y la razón de que `imagenServible` exista. Esta entrada es
+    // para que **esa** foto se vea; el `imagenServible` es para que la siguiente no
+    // tumbe nada.
+    hostname: "upload.wikimedia.org",
+    motivo:
+      "Arkabia: un Third publica su cartel en la wiki y usa la foto de Wikimedia como imagen del evento. Es el segundo host que faltaba y el que tumbaba la home",
   },
   {
     hostname: "img.evbuc.com",
@@ -192,8 +223,90 @@ export const IMAGE_HOSTS: readonly ImageHost[] = [
   },
 ];
 
+/**
+ * El único protocolo que el optimizador acepta, y el motivo de que sea una constante
+ * y no un `"https"` repetido en dos sitios: `imagenServible` —el predicado que decide
+ * si una tarjeta pinta `<Image>` o degrada— tiene que decir **exactamente** lo que
+ * dicen los `remotePatterns`, porque `next/image` lanza en render con lo que no case
+ * (`image-loader.js:96`). Dos literales sueltos son dos verdades que divergen el día
+ * que alguien amplía la lista, y divergen calladas: el predicado acepta, la etiqueta
+ * lanza y la página cae.
+ */
+const PROTOCOLO = "https" as const;
+
 /** El `remotePatterns` que se pasa a `next/image`, derivado de la lista. */
 export const REMOTE_PATTERNS = IMAGE_HOSTS.map((h) => ({
-  protocol: "https" as const,
+  protocol: PROTOCOLO,
   hostname: h.hostname,
 }));
+
+/**
+ * Si `next/image` puede descargar esta URL, o si hay que pintarla sin imagen.
+ *
+ * Es un **type guard** (`url is string`) y no un `boolean` a propósito. Los trece
+ * sitios que pintan una imagen tienen esta forma —
+ *
+ *     {imagenServible(evento.image) ? <Image src={evento.image} … /> : <fallback />}
+ *
+ * y sin el guard, TypeScript no estrecha `evento.image` dentro de la rama y
+ * `src={evento.image}` deja de compilar. Un predicado que obliga a sus consumidores a
+ * escribir `!` o un cast es un predicado que no se va a usar.
+ *
+ * Existe por el incidente que motivó el arreglo del host de La Genterula.
+ * `next/image` **lanza en tiempo de render** cuando el host no está en
+ * `remotePatterns`, y no es una excepción que se pueda capturar en el `onError` de la
+ * etiqueta, porque el `onError` es para fallos de descarga y este throw pasa antes de
+ * que exista la etiqueta. El efecto fue que **una sola** imagen con un host no
+ * listado —un `www` de más, un CDN que cambia— tumbaba la home, `/culture`,
+ * `/agenda/[mes]` y `/conciertos` a la vez, cada una con un HTTP 200 y la pantalla de
+ * error pintada. Un sitio de agenda no puede caerse por una miniatura.
+ *
+ * La lista de `remotePatterns` sigue siendo la puerta que evita el proxy abierto, y
+ * por eso `next.config.ts` no cambia. Lo que cambia es que la tarjeta **degrada**:
+ * si el host no está, se pinta el tile con la inicial del título, que es lo que ya se
+ * pinta cuando un evento no trae imagen. Una miniatura que falta es un dato que falta;
+ * una home que no carga es el producto entero.
+ *
+ * El predicado es una lista y un `Set` porque `EventCard` es `"use client"` y esto se
+ * evalúa en cada tarjeta de la home. `lib/image-hosts.ts` no importa nada —por eso
+ * está en su propio fichero— así que llega al bundle del cliente sin arrastrar los
+ * scrapers.
+ *
+ * **La clave del `Set` lleva el esquema y no solo el host**, por dos razones que salen
+ * de `match-remote-pattern.js`, que es donde Next decide: `protocol` se compara con
+ * `!==` y `hostname` con picomatch. Un `http://` de un host perfectamente listado
+ * **no casa** y por lo tanto tumba la página igual que un host desconocido —y no es
+ * hipotético: `gasteizhoy-listing.html` trae
+ * `src="http://www.gasteizhoy.com/wp-content/uploads/2026/08/megabanner-*.gif"`, dos
+ * imágenes en claro de una fuente que sí está en la lista. Y el predicado comparaba
+ * solo el host, así que las daba por buenas y la página caía igual. Con la clave
+ * `esquema://host` la lista de permitidos y los `remotePatterns` no pueden discrepar:
+ * salen de la misma `PROTOCOLO`.
+ */
+const SERVIDORES_PERMITIDOS = new Set(
+  IMAGE_HOSTS.map((h) => `${PROTOCOLO}://${h.hostname.toLowerCase()}`)
+);
+
+/** Esquema y host, o `null`. El grupo 1 es el esquema sin `:` y el 2 el host. */
+const URL_ABSOLUTA = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+
+export function imagenServible(url: string | undefined | null): url is string {
+  if (!url) return false;
+
+  // Las rutas del propio sitio —el logo, los iconos— no pasan por el optimizador, así
+  // que no tienen host que esté en la lista. Sin esta línea, marcarlas como "no
+  // servibles" las borraría de la pantalla.
+  //
+  // `//` se queda fuera a propósito y por un motivo medido: `next/image` **lanza** con
+  // una URL relativa al protocolo —`image-loader.js:59`—"protocol-relative URL (//)
+  // must be changed to an absolute URL"—, o sea que aceptar las devolvería al
+  // comportamiento que este predicado existe para quitar. Que hoy ninguna fuente las
+  // produzca —las cuatro apariciones en las fixtures son `<script src>` de jQuery y
+  // del adscript— no es una garantía: basta con que un scraper lea un `src` en crudo.
+  if (url.startsWith("//")) return false;
+  if (url.startsWith("/")) return true;
+
+  const match = URL_ABSOLUTA.exec(url);
+  if (!match) return false;
+  return SERVIDORES_PERMITIDOS.has(`${match[1].toLowerCase()}://${match[2].toLowerCase()}`);
+}

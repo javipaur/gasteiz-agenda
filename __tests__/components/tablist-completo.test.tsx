@@ -23,7 +23,7 @@ const SITIO = {
   tipoCocina: "Casual",
   descripcion: "Comida de barrio.",
   direccion: "Calle Mayor 1",
-  imagen: "https://example.com/bar.jpg",
+  imagen: "https://www.vitoria-gasteiz.org/cartel.jpg",
   rangoPrecio: "€€",
   recomendado: true,
   linkMaps: "https://maps.example.com",
