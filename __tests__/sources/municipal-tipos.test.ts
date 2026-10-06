@@ -12,6 +12,12 @@ import { SOURCE_REGISTRY, SOURCE_GROUPS } from "@/lib/source-registry";
  * trayendo cero eventos sin que nada lo dijera, y el motivo de que nadie lo viera
  * es que **este test no existía**. Se miraba el tipo de cada entrada una por una,
  * y en las que faltaba no había nada que mirar.
+ *
+ * La protección contra una **cadena** en `tipo` —el bug de `municipal-visitas`, que
+ * filtraba por "visitias guiadas" y por eso no traía nada— está en
+ * `__tests__/source-registry.test.ts`, en el test que compara las URLs que salen de
+ * los `run`. No se replica aquí: este fichero comprueba la otra mitad, que todo tipo
+ * que el servidor declara lo consulta alguien.
  */
 
 /** El 99 «Otros» lo cubre `municipal-general` sin filtro. Está escrito, no implícito. */
@@ -53,16 +59,5 @@ describe("los tipos que el Ayuntamiento declara", () => {
       .sort();
 
     expect(sinConsultar).toEqual([CUBIERTO_SIN_PEDIR]);
-  });
-
-  it("los tipos que se piden son números, que es lo único que acepta el servlet", () => {
-    // Red de seguridad para la otra mitad del problema: una cadena en `tipo` devuelve
-    // cero eventos sin dar error, y fue lo que hacía `municipal-visitas` llevar meses
-    // filtrando por "visitias guiadas".
-    const declarados = new Set(tiposDeclarados().map((t) => t.id));
-
-    for (const id of declarados) {
-      expect(Number.isNaN(Number(id))).toBe(false);
-    }
   });
 });
