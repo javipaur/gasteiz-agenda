@@ -28,8 +28,21 @@ describe("scrapeEuskadi", () => {
   it("normalizes every category the real payload produces into one with a color", async () => {
     // Euskadi manda `typeEs` en crudo, y cuando no lo reconoce manda "evento".
     // Sin un alias, esa categoria sale sin color en la tarjeta y con el
-    // identificador en crudo en /agenda/[mes]. Este test corre el fixture real
-    // justamente para que un tipo nuevo que aparezca aqui se note.
+    // identificador en crudo en /agenda/[mes].
+    //
+    // **Lo que este test cubre, medido sobre la propia fixture: cinco tipos.**
+    // `euskadi-response.json` son 20 ítems de los 311 que declara `totalItems`, la
+    // página 1 de 16, y sus `typeEs` son Teatro, Concierto, Conferencia, Exposición
+    // y Danza. Los cinco normalizan. Ese es su alcance real y está bien que sea
+    // estrecho: es un guard de las cinco primeras páginas.
+    //
+    // Lo que **no** cubre es lo que hizo que 41 eventos de esta fuente llegaran sin
+    // color a producción el 5 de octubre de 2026: `otro`, `formación` y `feria`, que
+    // solo aparecen en las páginas 2 a 16 y que no están en ninguna fixture del
+    // repo. La traducción de esos tres está en `__tests__/categories.test.ts`, con
+    // el número medido al lado. Ningún test offline puede ver un vocabulario que
+    // solo existe en la página 2 de una API: por eso aquí no se promete lo que no
+    // comprueba, y por eso los aliases llevan la cuenta de dónde salió cada uno.
     mockFetchWith([
       { match: /api\.euskadi\.eus/, content: loadFixture("euskadi-response.json") },
     ]);

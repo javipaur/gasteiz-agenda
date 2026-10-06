@@ -43,6 +43,30 @@ const CATEGORY_ALIASES: Record<string, string> = {
   // Sin este alias sale una categoria sin color: gris en la tarjeta y el
   // identificador en crudo en /agenda/[mes].
   "evento": "Otros",
+
+  // Los seis de abajo no salen de leer el código: salen de contar la agenda en
+  // vivo el 5 de octubre de 2026. `normalizeCategory` se terminaba en
+  // `CATEGORY_ALIASES[key] || cat`, así que una clave que no estuviera aquí
+  // pasaba sin tocar y **sin color, sin peso de popularidad y fuera de toda página
+  // de sección**. Medido: 90 eventos de 1457, el 6,2%.
+  //
+  //   "Teatro y danza"  35  rula
+  //   "otro"            20  euskadi
+  //   "formación"       20  euskadi
+  //   "deportiva"       12  municipal-rss
+  //   "Literatura"       2  rula
+  //   "feria"            1  euskadi
+  //
+  // Se traducen al vocabulario de aquí y no al revés: la taxonomía son las quince
+  // de `CATEGORY_COLORS`, que es lo que tiene color, peso y página. Añadir
+  // "Literatura" por dos poetry jams obligaría a darle las tres cosas para que
+  // `/culture/[categoria]` no se quedara con un cubo de dos eventos.
+  "teatro y danza": "Teatro",
+  "otro": "Otros",
+  "formacion": "Talleres",
+  "deportiva": "Deporte",
+  "literatura": "Otros",
+  "feria": "Otros",
 };
 
 export function normalizeCategory(cat?: string): string {
