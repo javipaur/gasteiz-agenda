@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 
 import { loadFixture, mockFetchWith } from "../helpers";
 import { SOURCE_REGISTRY, SOURCE_GROUPS } from "@/lib/source-registry";
@@ -82,30 +82,53 @@ describe("los tipos que el Ayuntamiento declara", () => {
  */
 
 /**
- * `tipo` seguido de una cadena. Sin la `g` a propósito: `test` con bandera global lleva
- * `lastIndex` entre llamadas y el mismo patrón puede devolver `true` y `false` sobre el
- * mismo texto según el orden.
+ * Una clave `tipo` —con o sin comillas— seguida de un array que empieza por una cadena.
+ *
+ * Sin la `g` a propósito: `test` con bandera global lleva `lastIndex` entre llamadas y
+ * el mismo patrón puede devolver `true` y `false` sobre el mismo texto según el orden.
+ *
+ * Las tres formas del array son las que hay: `"` doble, `'` simple y el `JSON.stringify`
+ * de `lib/sources/municipal.ts` escapa las dos. La comilla de la clave también, porque
+ * `"tipo":` es la forma que produce el propio `JSON.stringify` y la que lleva escrita
+ * cualquiera que monte el filtro a mano en una ruta. `\b` delante para que `miTipo: ["x"]`
+ * no case: lo que se busca es la clave `tipo`, no cualquier cosa que acabe en "tipo".
+ *
+ * Y sin `g` ni `y`, el patrón no tiene estado entre ficheros: se usa el mismo para los
+ * cuatro de `app/api/**` que tienen el mismo `tipo` en un comentario y en el código.
  */
-const CADENA_EN_TIPO = /tipo:\s*\[\s*"/;
+const CADENA_EN_TIPO = /\b["']?tipo["']?\s*:\s*\[\s*["']/;
 
 /**
- * El fichero sin sus comentarios.
+ * El fichero sin sus comentarios de bloque y de línea entera.
  *
  * Sin esto el guard es **imposible de satisfacer**: el arreglo se explica en un comentario
  * al lado de la línea, y la explicación tiene que poder escribir `tipo: ["visitias
  * guiadas"]` para decir qué era lo que había. Un guard que se pone rojo con la
  * explicación del arreglo enseña la lección contraria —borrar la explicación para que el
- * test pase— y este repo lleva cuatro commits terakhir corrigiendo comentarios que
+ * test pase— y este repo lleva cuatro commits seguidos corrigiendo comentarios que
  * decían lo contrario del código. Que mire el código y no la prosa que lo rodea.
  *
- * El riesgo del recorte es al revés del que importa aquí: quitar texto no puede inventar
- * un `tipo: ["` que no estaba, solo podría tapar uno si un `//` de dentro de una cadena
- * comiera la línea, que es lo que el test testigo cubre con un caso normal.
+ * **El `//` solo se quita cuando es la línea entera.** Es la decisión que hace falta y
+ * no es la única posible, así que va con su motivo. La alternativa era `\/\/.*$`, que
+ * quita el `//` de donde sea, y esa **era** la primera versión de este guard: cortaba la
+ * línea desde el primer `//` de cualquier sitio, y el `//` más común de este repo es el
+ * de `https://`. Con ella, un `tipo` con cadena detrás de una URL quedaba invisible, y
+ * esa no es una forma rareza de escribir el bug —es exactamente la que emite
+ * `lib/sources/municipal.ts`, que concatena el `&f={"tipo":[...]}` a la URL, y la que
+ * traía esta ruta desde su primer commit—. Tres líneas plantadas en una ruta real
+ * pasaron en verde con el recorte viejo. Anclando el `//` al principio de la línea, e
+ * ignorando los espacios de delante, se quitan igual los comentarios de `route.ts`, que
+ * son líneas `//` enteras, y el código con URL se queda intacto.
+ *
+ * Lo que queda es el coste, y es el que se acepta: **un comentario de cola ya no se
+ * quita**, así que `const x = 1; // tipo: ["ejemplo"]` daría un falso positivo. Se
+ * acepta porque el falso positivo se ve y se arregla borrando el ejemplo del comentario,
+ * mientras que el bug que se cuela no se ve nunca: es HTTP 200 con `[]` y sin log.
  */
 function sinComentarios(texto: string): string {
   return texto
     .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/\/\/.*$/gm, " ");
+    .replace(/^\s*\/\/.*$/gm, " ");
 }
 
 /** Los ficheros de TypeScript de un directorio, saltando `node_modules` y los dot. */
@@ -137,24 +160,36 @@ describe("las rutas que preguntan al calendario por su cuenta", () => {
     expect(conCadenaEnTipo(join(ROOT, "app", "api"))).toEqual([]);
   });
 
-  it("el detector pica la línea que `visitas` tenía antes del arreglo", () => {
-    // El testigo del guard de arriba. Se escribe en un temporal y se recorre con la
-    // **misma** función, así que cubre las tres cosas que pueden fallar: que el
-    // recorrido no llegue, que no lea, y que el patrón no case. Sin esto, un `[]` verde
-    // no distinguiría "no hay ninguna ruta con la cadena" de "no miré nada".
+  it("el detector pica las tres formas en las que una ruta se cuela", () => {
+    // El testigo del guard de arriba, y son tres líneas y no una porque **cada una
+    // tapa un agujero distinto**. La de la URL es la que hay que mirar: no es una
+    // forma rareza de escribir el bug, es **exactamente** la que emitía
+    // `lib/sources/municipal.ts` cuando concatenaba el `f` a la URL, y la que traía
+    // esta ruta desde su primer commit. Un `tipo` con cadena detrás de un `https://`
+    // no se puede ver si el recorte de comentarios se come el `//` de cualquier sitio.
+    //
+    // Las otras dos son el otro hueco, el del patrón: `"tipo":` con la clave
+    // entrecomillada, que es como la escribe JSON.stringify, y la comilla simple, que
+    // es como la escribe un fichero escrito a mano. Con las tres en el mismo test, un
+    // recorte que se pase de listo o un patrón demasiado corto se ven en el diff
+    // nombrando el fichero que falta, y los otros dos siguen en verde.
+    const FORMAS = {
+      "url.ts":
+        'const url = `https://www.vitoria-gasteiz.org/wb021/was/CalendarioServlet?accion=buscar&f={"tipo":["visitias guiadas"]}`;\n',
+      "comillas.ts": 'const f = { "tipo": ["visitias guiadas"] };\n',
+      "comilla-simple.ts": "const f = { tipo: ['visitias guiadas'] };\n",
+    };
+
     const dir = mkdtempSync(join(tmpdir(), "municipal-tipo-"));
     try {
-      writeFileSync(
-        join(dir, "route.ts"),
-        'const eventos = await scrapeMunicipalCalendar({ tipo: ["visitias guiadas"] });\n',
-        "utf8"
-      );
+      for (const [nombre, linea] of Object.entries(FORMAS)) {
+        writeFileSync(join(dir, nombre), linea, "utf8");
+      }
 
-      const halladas = conCadenaEnTipo(dir);
-      expect(halladas).toHaveLength(1);
-      // El separador del path sale como lo pone la plataforma, así que se mira solo
-      // el final del nombre en vez de la ruta entera.
-      expect(halladas[0].endsWith("route.ts")).toBe(true);
+      // Solo el nombre del fichero: en el temporal la ruta sale con `..` de por medio
+      // y no dice nada. Lo que importa aquí es *qué* formas se ven, no dónde están.
+      const halladas = conCadenaEnTipo(dir).map((f) => basename(f)).sort();
+      expect(halladas).toEqual(Object.keys(FORMAS).sort());
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
