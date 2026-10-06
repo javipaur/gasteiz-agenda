@@ -1,3 +1,5 @@
+import { localDateKey } from "../slug";
+
 const MUNICIPAL_BASE = "https://www.vitoria-gasteiz.org/wb021/was/CalendarioServlet";
 
 /**
@@ -16,6 +18,18 @@ const MUNICIPAL_BASE = "https://www.vitoria-gasteiz.org/wb021/was/CalendarioServ
  */
 const FILAS_SOSPECHOSAS = 45;
 
+/**
+ * La ventana más estrecha que se pide: medio mes, que es lo que sale de partir un mes
+ * por la mitad.
+ *
+ * No es un número redondo porque no tiene por qué serlo: los meses van de 28 a 31 días
+ * y sus mitades de 14 a 16, así que 16 es el suelo del grano y por debajo se devuelve
+ * lo que vino. También evita que se repita la misma ventana: `ventanasDeMes` sobre una
+ * ventana de menos de un mes devuelve esa ventana entera, así que sin este suelo una
+ * consulta de dos semanas pediría sus mismos días dos veces.
+ */
+const GRANO_MINIMO_DIAS = 16;
+
 /** Las ventanas de un mes que cubren `[fd, fh]`. El último mes se recorta a `fh`. */
 function ventanasDeMes(fd: number, fh: number): Array<[number, number]> {
   const out: Array<[number, number]> = [];
@@ -29,7 +43,24 @@ function ventanasDeMes(fd: number, fh: number): Array<[number, number]> {
   return out;
 }
 
-/** Una ventana del calendario, y si viene llena, sus trozos. */
+/**
+ * Una ventana del calendario, y si viene llena, sus trozos.
+ *
+ * **La cota son dos particiones, meses y medios meses.** La ventana que se pide va
+ * primero; si viene llena —45 filas o más— se repite mes a mes; y si un mes viene
+ * lleno, ese mes se parte por la mitad. El peor caso son **38 peticiones** por entrada,
+ * medido: la ventana de un año, doce meses que se parten en tres cada uno, y el resto
+ * final de un día que no llega a partirse porque ya es más corto que medio mes. El caso
+ * normal son **14**, porque el segundo nivel solo se dispara si un mes trae 45 filas del
+ * mismo tipo o más, y eso no se ha visto: el tipo más lleno del calendario medido el 6 de
+ * octubre de 2026 trae 157 al año, o sea unos trece al mes. El coste del segundo nivel se
+ * paga, por tanto, **solo cuando se dispara**, que es lo que lo hace aceptable.
+ *
+ * Lo que se acepta como peaje de esa cota es truncar ese mes en silencio, que es
+ * exactamente la clase de fallo que la paginación vino a arreglar. La otra forma de no
+ * truncar es avisar, así que el segundo nivel avisa por consola antes de dispararse: si
+ * el aviso salta, hay que mirar por qué un mes trae 45 cosas de un mismo tipo.
+ */
 async function pedirVentana(
   fd: number,
   fh: number,
@@ -89,17 +120,11 @@ async function pedirVentana(
 
   const dias = (fh - fd) / 86400000;
 
-  // Un mes es el grano más fino que devuelve el conjunto completo, así que por
-  // debajo de eso no hay subdivisión que valga: se devuelve lo que vino aunque esté
-  // truncado. Un solo nivel de partición, y nada más, que es lo que hace la promesa
-  // de requests acotada: 1 + 13 en el peor caso, no 1 + 13 + 13 + 13.
-  //
-  // **El bloque de la mitad que hay debajo de este return está escrito y apagado a la
-  // vez:** este guard devuelve para toda `profundidad >= 1`, así que solo llega aquí
-  // una llamada con `profundidad === 0`, y esa se va por meses. Es el segundo nivel,
-  // pendiente de la decisión que está escrita en
-  // `__tests__/sources/municipal.test.ts`, en el test que va en `skip`.
-  if (profundidad >= 1 || dias < 32) return eventos;
+  // El tope son dos particiones —meses y medios meses— y el grano mínimo es medio mes,
+  // que es donde para la segunda. Por debajo de medio mes no hay subdivisión que
+  // valga: se devuelve lo que vino aunque siga truncado, porque partir más solo
+  // multiplica peticiones contra un servlet que ya devolvió 45 filas.
+  if (profundidad >= 2 || dias < GRANO_MINIMO_DIAS) return eventos;
 
   if (profundidad === 0) {
     const trozos: any[] = [];
@@ -109,10 +134,21 @@ async function pedirVentana(
     return trozos;
   }
 
+  // El estado va dentro del texto, no se queda en la cuenta. Es el mismo patrón que el
+  // `throw` de arriba y por el mismo motivo: `lib/agenda.ts:107` loguea
+  // `reason.message` y nada más, así que un aviso sin calendario ni rango no dice
+  // dónde mirar.
+  console.warn(
+    `municipal calendar truncado: calendariosID=${calendariosID} ` +
+      `${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())} ` +
+      `devuelve ${eventos.length} filas en ${Math.round(dias)} días (> ${FILAS_SOSPECHOSAS}), ` +
+      `se parte por la mitad`
+  );
+
   const mitad = Math.floor(fd + (fh - fd) / 2);
   const [primera, segunda] = await Promise.all([
-    pedirVentana(fd, mitad, filterStr, 1, calendariosID),
-    pedirVentana(mitad, fh, filterStr, 1, calendariosID),
+    pedirVentana(fd, mitad, filterStr, 2, calendariosID),
+    pedirVentana(mitad, fh, filterStr, 2, calendariosID),
   ]);
   return [...primera, ...segunda];
 }

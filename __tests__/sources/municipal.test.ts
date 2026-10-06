@@ -205,29 +205,19 @@ it("el filtro `tipo` viaja en la URL", async () => {
     expect(eventos.filter((e) => e.title.startsWith("Mensual")).length).toBeGreaterThanOrEqual(12);
   });
 
-  it.skip("parte en dos una ventana que también satura", async () => {
+  it("parte en dos una ventana que también satura", async () => {
     // El segundo nivel existe porque hay un tramo del calendario que trae más de 45
     // cosas y todavía no se sabe cuál es. Con el nivel 0 partiendo por meses, un día
     // cargado se quedaría a medias, y aquí se ve que se parte.
     //
-    // **Está en `skip` y no porque el segundo nivel sea malo, sino porque este test y
-    // la cota de peticiones son incompatibles.** Medido el 6 de octubre de 2026:
-    //
-    // - Con el guard tal y como está (`profundidad >= 1 || dias < 32`) este test falla
-    //   recibiendo 600 filas `Mes`: son los doce meses de 50, y el nivel 1 se devuelve
-    //   tal cual. Las mitades no existen. Las ocho líneas de `pedirVentana` que parten
-    //   la ventana por la mitad son inalcanzables, siempre, y no por una espera que se
-    //   cuelgue: el guard devuelve para toda `profundidad >= 1`, y la única llamada que
-    //   sobrevive a ese guard tiene `profundidad === 0`.
-    // - Bajando el guard a `profundidad >= 3 || dias < 10` el test pasa. Y el scrape
-    //   pasa de **14 peticiones a 86**, porque de un mes de 30 días hay que llegar a
-    //   una ventana de diez: mes → mitad → cuarto. Con 18 entradas municipales, el
-    //   peor caso pasa de ~250 a ~1.550 peticiones al mismo servlet, que es el que ya
-    //   se cruzaba con dieciséis en paralelo y vaciaba la agenda por `scraping_failed`.
-    //
-    // Lo que falta decidir no es cómo se escribe el segundo nivel —está escrito— sino
-    // si el Ayuntamiento aguanta el cargar. Si la respuesta es sí, el cambio es una
-    // línea en `lib/sources/municipal.ts` y quitar este `skip`.
+    // **El umbral del doble es `20` y no `10`, y es aritmética, no gusto.** El segundo
+    // nivel parte el mes por la mitad, así que la hoja más estrecha que llega al servlet
+    // son 16 días: con un umbral de 10 este test no podría ponerse verde con el tope en
+    // 2, y para llegar a diez días desde un mes de treinta hay que partir tres veces —
+    // mes, mitad y cuarto—, que son 86 peticiones por entrada en vez de las 38 que
+    // mide este tope. El 20 está en mitad de camino entre las dos cosas que el servlet
+    // ve: las ventanas de mes van de 28 a 31 días y las mitades de 14 a 16, así que
+    // ninguna se confunde con ninguna de las dos.
     const de = (n: number, prefijo: string) =>
       JSON.stringify({
         actividades: {
@@ -247,7 +237,7 @@ it("el filtro `tipo` viaja en la URL", async () => {
           const p = new URL(url).searchParams;
           const dias = (Number(p.get("fh")) - Number(p.get("fd"))) / 86400000;
           if (dias > 200) return de(50, "Anual");
-          if (dias > 10) return de(50, "Mes");
+          if (dias > 20) return de(50, "Mes");
           return de(5, "Mitad");
         },
       },
