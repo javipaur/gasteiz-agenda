@@ -107,6 +107,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Talleres: "#FF8A3D",
   Gastronomía: "#FFB300",
   Senderismo: "#9BFF57",
+  Mercados: "#E0A34E",
   Otros: "#7C8794",
 };
 
@@ -125,5 +126,6 @@ export const CATEGORY_FILLS: Record<string, string> = {
   Talleres: "#E8742A",
   Gastronomía: "#E8A32E",
   Senderismo: "#7ADB39",
+  Mercados: "#C98934",
   Otros: "#565E68",
 };

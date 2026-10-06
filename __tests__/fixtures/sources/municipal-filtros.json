@@ -1,0 +1,26 @@
+{
+  "_nota": "Array `filtros` de CalendarioServlet con id=tipo, capturado el 2026-10-06. El test solo usa `id` y `texto`. `num` no se asserta: cuenta las filas de la ventana anual y cambia cada semana, asi que un test que lo mirara se pondria rojo sin que nadie hubiera roto nada.",
+  "filtros": [
+    {
+      "id": "tipo",
+      "label": "Tipo",
+      "default": "Todas",
+      "array": [
+        { "texto": "Exposición", "num": 446, "id": "7" },
+        { "texto": "Charla / Conferencia", "num": 130, "id": "3" },
+        { "texto": "Cursos y talleres", "num": 120, "id": "10" },
+        { "texto": "Otros", "num": 117, "id": "99" },
+        { "texto": "Feria", "num": 79, "id": "14" },
+        { "texto": "Visita guiada", "num": 76, "id": "15" },
+        { "texto": "Jornada / Evento", "num": 64, "id": "6" },
+        { "texto": "Teatro", "num": 60, "id": "13" },
+        { "texto": "Concierto", "num": 33, "id": "2" },
+        { "texto": "Danza", "num": 10, "id": "4" },
+        { "texto": "Proyección audiovisual", "num": 6, "id": "12" },
+        { "texto": "Presentación", "num": 5, "id": "11" },
+        { "texto": "Fiesta", "num": 5, "id": "9" },
+        { "texto": "Concurso / Campeonato", "num": 2, "id": "1" }
+      ]
+    }
+  ]
+}

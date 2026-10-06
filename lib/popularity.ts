@@ -59,7 +59,7 @@ function pesoFuente(source?: string): number {
 }
 
 /**
- * Peso por categoría, con las quince que `normalizeCategory` produce de verdad:
+ * Peso por categoría, con las dieciséis que `normalizeCategory` produce de verdad:
  * las mismas de `CATEGORY_COLORS`.
  *
  * Nueve números vienen de la tabla anterior y conservan su valor. Dos claves
@@ -71,6 +71,15 @@ function pesoFuente(source?: string): number {
  * (Exposiciones, Visitas, Talleres), que por encima del deporte y el resto
  * (Deporte, Senderismo, Cine, Conferencias). `Otros` se queda en el mínimo de
  * categoría, que es el mismo valor que el `??` de abajo.
+ *
+ * `Mercados` es la decimosexta y la única que no viene de la cuenta de la agenda
+ * sino de un tipo municipal que se acaba de abrir: el 14 «Feria», que trae 44
+ * eventos. Va en la banda de 16 con `Gastronomía`, `Visitas` y `Talleres` porque
+ * es el mismo registro —algo a lo que se sale, al aire libre y sin entrada—, y
+ * **no** en la banda de 22 del espectáculo en escena que traen Teatro y Danza: un
+ * mercado de barrio no se programa sobre un escenario. El color que la acompaña,
+ * `#E0A34E`, es el ámbar de `Gastronomía` oscurecido, que es lo que menos se
+ * parece a un cartel de festival o de sala.
  */
 export const CATEGORY_WEIGHT: Readonly<Partial<Record<string, number>>> = {
   Música: 30,
@@ -83,6 +92,7 @@ export const CATEGORY_WEIGHT: Readonly<Partial<Record<string, number>>> = {
   Gastronomía: 16,
   Visitas: 16,
   Talleres: 16,
+  Mercados: 16,
   Deporte: 14,
   Cine: 12,
   Conferencias: 12,

@@ -24,6 +24,8 @@ const IDS_MUNICIPALES = [
   "municipal-cine",
   "municipal-fiestas",
   "municipal-concursos",
+  "municipal-mercados",
+  "municipal-presentaciones",
   "municipal-infantil",
   "municipal-visitas",
   "municipal-rss",
@@ -55,6 +57,8 @@ const MUNICIPALES_CON_TAXONOMIA = [
   "municipal-cine",
   "municipal-fiestas",
   "municipal-concursos",
+  "municipal-mercados",
+  "municipal-presentaciones",
   "municipal-infantil",
   "municipal-visitas",
 ] as const;
@@ -103,6 +107,15 @@ describe("SOURCE_REGISTRY", () => {
     // no entra en `/culture`. Todas caen en el cubo `agenda` de los cuatro, que es
     // lo que ya hace `mapToCultureCategory` con lo que no encaja en teatro,
     // conciertos o exposiciones.
+    //
+    // El 6 de octubre entraron las otras dos, y aquí **el criterio no es la
+    // categoría sino la bandera `culture`**: `CULTURE_SOURCE_IDS` se deriva de ella,
+    // así que entra `municipal-presentaciones` —que va a `Conferencias`, igual que
+    // `municipal-charlas`, y también acaba en el cubo `agenda`— y **no** entra
+    // `municipal-mercados`, que es la que no la declara. Las tres de libro son
+    // cultura aunque solo sean tres; un mercado semanal no es una oferta cultural
+    // aunque tenga color propio. Lo que no vale es razonar por categoría: si se
+    // razonara, `municipal-charlas` también tendría que salirse de aquí.
     expect([...CULTURE_SOURCE_IDS].sort()).toEqual([
       "fever",
       "gasteizhoy",
@@ -114,6 +127,7 @@ describe("SOURCE_REGISTRY", () => {
       "municipal-danza",
       "municipal-exposiciones",
       "municipal-fiestas",
+      "municipal-presentaciones",
       "municipal-talleres",
       "municipal-teatro",
       "municipal-teatros",

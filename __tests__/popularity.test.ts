@@ -63,6 +63,7 @@ const PESOS_POR_CATEGORIA: Record<string, number> = {
   Cine: 12,
   Conferencias: 12,
   Senderismo: 12,
+  Mercados: 16,
   Otros: 10,
 };
 
@@ -83,7 +84,7 @@ describe("scoreEvento", () => {
     // (charlas, talleres, danza, cine, fiestas y concursos). El desglose de lo que
     // trae cada uno está en `lib/source-data.ts`.
     const municipales = SOURCE_DATA.filter((e) => e.group === "municipal").map((e) => e.id);
-    expect(municipales).toHaveLength(16);
+    expect(municipales).toHaveLength(18);
 
     const pesos = municipales.map((id) => puntua({ source: id, category: "Otros" }));
 
@@ -138,7 +139,7 @@ describe("scoreEvento", () => {
     expect(scoreEvento(fever, today)).toBeGreaterThan(scoreEvento(flojo, today));
   });
 
-  it("las quince categorías reales tienen el peso que les corresponde", () => {
+  it("las dieciséis categorías reales tienen el peso que les corresponde", () => {
     // El conjunto de pesos y el de `CATEGORY_COLORS` tienen que seguir siendo el
     // mismo, en los dos sentidos: una categoría nueva sin peso puntuaría el
     // mínimo en silencio.

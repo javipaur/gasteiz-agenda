@@ -67,6 +67,8 @@ const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
   "municipal-cine": () => scrapeMunicipalCalendar({ tipo: [12] }),
   "municipal-fiestas": () => scrapeMunicipalCalendar({ tipo: [9] }),
   "municipal-concursos": () => scrapeMunicipalCalendar({ tipo: [1] }),
+  "municipal-mercados": () => scrapeMunicipalCalendar({ tipo: [14] }),
+  "municipal-presentaciones": () => scrapeMunicipalCalendar({ tipo: [11] }),
   "municipal-infantil": () => scrapeMunicipalCalendar({ dest: ["infantil"] }),
   "municipal-visitas": () => scrapeMunicipalCalendar({ tipo: [15] }),
   "municipal-rss": () => scrapeMunicipalRss(),

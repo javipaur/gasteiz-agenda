@@ -148,17 +148,17 @@ paths:
           in: query
           schema:
             type: string
-            enum: [Música, Teatro, Cine, Exposiciones, Infantil, Deporte, Danza, Festival, Conferencias, Fiestas, Visitas, Talleres, Gastronomía, Senderismo, Otros]
+            enum: [Música, Teatro, Cine, Exposiciones, Infantil, Deporte, Danza, Festival, Conferencias, Fiestas, Visitas, Talleres, Gastronomía, Senderismo, Mercados, Otros]
           description: >-
             Filtrar por categoría. La comparación es por subcadena en minúsculas, así que
-            también entran valores parciales; el enum lista las quince categorías
+            también entran valores parciales; el enum lista las dieciséis categorías
             canónicas que emite la agenda.
           example: Música
         - name: source
           in: query
           schema:
             type: string
-            enum: [municipal-agenda, municipal-teatro, municipal-teatros, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-charlas, municipal-talleres, municipal-danza, municipal-cine, municipal-fiestas, municipal-concursos, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, mercado-abastos, miniature, buscametas-calendario, buscametas-inscripciones]
+            enum: [municipal-agenda, municipal-teatro, municipal-teatros, municipal-conciertos, municipal-exposiciones, municipal-general, municipal-deporte, municipal-charlas, municipal-talleres, municipal-danza, municipal-cine, municipal-fiestas, municipal-concursos, municipal-mercados, municipal-presentaciones, municipal-infantil, municipal-visitas, municipal-rss, vam, vam-conciertos, euskadi, senderismo, fiestas-blanca, jimmyjazz, helldorado, musikaze, fever, rula, gasteizhoy, eventbrite, entradium, vital, arkabia, mercado-abastos, miniature, buscametas-calendario, buscametas-inscripciones]
           description: >-
             Filtrar por fuente. Los valores son los ids del registro de fuentes de la
             agenda agregada, no nombres de sala. La comparación es exacta y en minúsculas.
@@ -1232,7 +1232,7 @@ components:
           type: string
         category:
           type: string
-          enum: [Música, Teatro, Cine, Exposiciones, Infantil, Deporte, Danza, Festival, Conferencias, Fiestas, Visitas, Talleres, Gastronomía, Senderismo, Otros]
+          enum: [Música, Teatro, Cine, Exposiciones, Infantil, Deporte, Danza, Festival, Conferencias, Fiestas, Visitas, Talleres, Gastronomía, Senderismo, Mercados, Otros]
 
     RulaEvent:
       type: object

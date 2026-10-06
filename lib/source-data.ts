@@ -140,17 +140,40 @@ export const SOURCE_DATA: readonly SourceData[] = [
   // el campo `tipo` de la respuesta viene siempre `null`, así que una petición
   // múltiple no dejaría ni los eventos ni su categoría. Medido, no supuesto.
   //
-  // Se dejan fuera tres tipos a propósito: el 99 «Otros», el 14 «Feria» y el 11
-  // «Presentación» trajeron 32, 4 y 3 eventos nuevos. El 99 ya los coge
-  // `municipal-general` sin filtro, así que una entrada para él sería una petición
-  // por nada; y «Feria» y «Presentación» no tienen categoría propia, y hacerlas
-  // «Otros» no compensa por 7 eventos.
+  // **Lo que decía este párrafo estaba equivocado, y la corrección es una
+  // medición y no una opinión.** Decía que el 14 «Feria» y el 11 «Presentación»
+  // se dejaban fuera a propósito porque no tienen categoría propia y por siete
+  // eventos no compensaba. Se volvió a medir el 6 de octubre de 2026 contra el
+  // array `filtros` del propio servlet: el 14 trae **44** y no 4, y casi todos son
+  // mercados. Los dos entran dos entradas más abajo, y
+  // `__tests__/sources/municipal-tipos.test.ts` es lo que no deja que vuelvan a
+  // caerse. El 99 «Otros» sí se deja fuera, y por el motivo de siempre: lo coge
+  // `municipal-general` sin filtro, así que una entrada para él sería una
+  // petición por nada.
   { id: "municipal-charlas", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, priority: 0 },
   { id: "municipal-talleres", group: "municipal", label: "Ayuntamiento", category: "Talleres", culture: true, priority: 0 },
   { id: "municipal-danza", group: "municipal", label: "Ayuntamiento", category: "Danza", culture: true, priority: 0 },
   { id: "municipal-cine", group: "municipal", label: "Ayuntamiento", category: "Cine", culture: true, priority: 0 },
   { id: "municipal-fiestas", group: "municipal", label: "Ayuntamiento", category: "Fiestas", culture: true, priority: 0 },
   { id: "municipal-concursos", group: "municipal", label: "Ayuntamiento", category: "Deporte", priority: 0 },
+  // Los dos tipos que faltaban, medidos el 6 de octubre de 2026. El guard de
+  // `__tests__/sources/municipal-tipos.test.ts` es lo que los tiene marcados.
+  //
+  // El 14 trae 44 eventos que no salían de ninguna parte, y **casi todos son
+  // mercados**: "Mercado de Lakua-Arriaga", "Mercado de la Plaza Simón Bolívar",
+  // "Mercado de la Plaza Santa Bárbara", "Mercado dominical de coleccionismo",
+  // "Mercado de la Almendra", "Feria de bodas". El Ayuntamiento los agrupa bajo
+  // "Feria" porque es su taxonomía interna; para quien busca planes un domingo por
+  // la mañana, son mercados. Por eso la categoría se llama Mercados aunque el tipo
+  // se llame Feria.
+  //
+  // El 11 trae 3 eventos y los tres son de libro: "Feria del Libro: Coloquio con
+  // Palabra Joven", "Feria del Libro: Entrevista y firma con Mikel Santiago",
+  // "Presentación de libro". Van a Conferencias, que ya existe: dos de los tres son
+  // colloquia y el tercero es una presentación. Una categoría "Libros" con tres
+  // eventos obligaría a darle color, peso y página para un cubo que no llega a cinco.
+  { id: "municipal-mercados", group: "municipal", label: "Ayuntamiento", category: "Mercados", priority: 0 },
+  { id: "municipal-presentaciones", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, priority: 0 },
   { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", tags: ["infantil"], priority: 0 },
   // Va la última de las de priority 0 por el mismo motivo que `municipal-general`
   // va por detrás de todas: si el sitio municipal ignorara el `tipo` desconocido
