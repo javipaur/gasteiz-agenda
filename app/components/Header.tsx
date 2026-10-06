@@ -23,6 +23,12 @@ type SearchHit = {
 
 const navItems = [
   { name: "Inicio", href: "/" },
+  // Va el primero porque `/hoy` es la respuesta a la pregunta que más gente se hace al
+  // abrir la agenda, y el resto son secciones por tema. Está en `navItems` y no en
+  // `GRUPOS_CATEGORIAS` porque no es una categoría: el desplegable agrupa por género y
+  // "Recomendados" no es un género. Es lo que hace que la página exista para alguien
+  // que no llega por el post de Instagram.
+  { name: "Recomendados", href: "/hoy" },
   { name: "La Blanca", href: "/fiestas-blanca", accent: true },
   { name: "Conciertos", href: "/conciertos" },
   { name: "Cartelera", href: "/movies" },
