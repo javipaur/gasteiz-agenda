@@ -230,6 +230,8 @@ it("el filtro `tipo` viaja en la URL", async () => {
         },
       });
 
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
     mockFetchWith([
       {
         match: /vitoria-gasteiz\.org/,
@@ -249,5 +251,77 @@ it("el filtro `tipo` viaja en la URL", async () => {
     expect(eventos.filter((e) => e.title.startsWith("Mes"))).toHaveLength(0);
     // Y hay algo de las mitades, que es lo que demuestra que se llegó al segundo nivel.
     expect(eventos.filter((e) => e.title.startsWith("Mitad")).length).toBeGreaterThan(0);
+
+    // **El aviso es parte del contrato, no un adorno.** Si el segundo nivel se abre y
+    // trunca un mes sin decir nada, estamos otra vez en el fallo que la paginación vino a
+    // arreglar, y encima pagando más peticiones por ello. Borrar el `console.warn` entero
+    // dejaba esta suite en verde: eso lo hacía el primer sitio donde alguien iba a tocar
+    // sin querer, y por eso está comprobado aquí. El mensaje se mira por dentro porque
+    // el calendario y el rango son lo único que dice dónde hay que mirar.
+    const avisos = warn.mock.calls.map((c) => String(c[0]));
+    expect(avisos.length).toBeGreaterThan(0);
+    expect(avisos.some((m) => m.includes("municipal calendar truncado"))).toBe(true);
+    expect(avisos.some((m) => m.includes("calendariosID=196"))).toBe(true);
+    expect(avisos.some((m) => /\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}/.test(m))).toBe(true);
+
+    warn.mockRestore();
+  });
+
+  it("las ventanas de mes teselan el rango, sin huecos ni solapes", async () => {
+    // La aserción que faltaba, y es la que sostiene la paginación entera: si las
+    // ventanas no cubren `[fd, fh]` de punta a punta, los días que se pierden no se
+    // pierden en el log, se pierden en la agenda. Y como se perdió dos veces sin que
+    // nada lo dijera —`while (d.getTime() + 7 * 86400000 < fh)` dejaba sin pedir el
+    // último día, y `out.push([d.getTime() + 86400000, ...])` perdía hoy— este test
+    // comprueba las tres cosas: que la primera ventana empieza en el `fd` que se pidió,
+    // que la última acaba en el `fh` que se pidió, y que cada ventana arranca donde
+    // acabó la anterior.
+    //
+    // El doble devuelve muchas filas **solo en la ventana del año**, y una por mes, para
+    // que la lista de llamadas sean exactamente la ventana original y sus trece meses: si
+    // los meses vinieran llenos, el segundo nivel se sumaría en medio y esta lista ya no
+    // sería la de las ventanas de mes.
+    const de = (n: number) =>
+      JSON.stringify({
+        actividades: {
+          resultados: Array.from({ length: n }, (_, i) => ({
+            codigo: `t${i}`,
+            titulo: `T ${i}`,
+            fechaInicio: "20261015",
+            datetime: "2026-10-15T00:00:00.000Z",
+          })),
+        },
+      });
+
+    mockFetchWith([
+      {
+        match: /vitoria-gasteiz\.org/,
+        content: (url) => {
+          const p = new URL(url).searchParams;
+          const dias = (Number(p.get("fh")) - Number(p.get("fd"))) / 86400000;
+          return de(dias > 200 ? 50 : 1);
+        },
+      },
+    ]);
+
+    await scrapeMunicipalCalendar();
+
+    const ventanas = (global.fetch as jest.Mock).mock.calls.map((c) => {
+      const p = new URL(String(c[0])).searchParams;
+      return [Number(p.get("fd")), Number(p.get("fh"))] as const;
+    });
+    const original = ventanas[0];
+    const meses = ventanas.slice(1);
+
+    expect(meses.length).toBeGreaterThanOrEqual(12);
+
+    // Extremo izquierdo: el primer día del rango no se pierde.
+    expect(meses[0][0]).toBe(original[0]);
+    // Extremo derecho: el último día del rango no se pierde.
+    expect(meses[meses.length - 1][1]).toBe(original[1]);
+    // Y en medio: cada ventana arranca donde acabó la anterior, sin huecos y sin solapes.
+    for (let i = 1; i < meses.length; i++) {
+      expect(meses[i][0]).toBe(meses[i - 1][1]);
+    }
   });
 });
