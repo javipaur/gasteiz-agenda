@@ -6,15 +6,35 @@ const MUNICIPAL_BASE = "https://www.vitoria-gasteiz.org/wb021/was/CalendarioServ
  * Filas a partir de las cuales la respuesta se da por truncada.
  *
  * **El tope del servlet no es un número único, y por eso el umbral no busca el
- * tope.** Medido el 6 de octubre de 2026: una consulta con `tipo` devuelve 50 o 54
- * según el tipo, y la consulta sin filtro —`municipal-general`— devolvió 120 de una
- * vez. El corte va por sección, no por petición.
+ * tope.** Medido el 6 de octubre de 2026: una consulta con `tipo` devuelve 53 o 54 según
+ * el tipo, la de tipo 7 llega a 57 en una ventana de medio mes, y la consulta sin
+ * filtro —`municipal-general`— devolvió 120 de una vez. El corte va por sección, no
+ * por petición.
  *
- * 45 está por debajo de cualquiera de los dos topes. La consecuencia aceptada es que
- * `municipal-general` se pagina siempre: doce peticiones más para la única entrada
- * que ve todos los tipos a la vez. La alternativa sería un umbral por entrada, y un
- * umbral por entrada es una lista mantenida a mano que se pudre el día que el
- * Ayuntamiento añada un tipo, que es lo que pasó dos veces esta semana.
+* **45 se queda, y subirlo a 70 se midió y se descartó. La pregunta de la que sale
+ * el número era buena —¿aguanta un arranque en frío?— y la respuesta fue que el
+ * municipal no es lo que manda en el tiempo.**
+ *
+ * Cuatro arranques en frío de `/api/v1/events`, con la caché de disco vaciada entre
+ * medias porque `getCachedOrFetch` escribe en `tmpdir` y reiniciar el proceso no la
+ * invalida: 30,8 s, 6,4 s, 6,6 s y 30,4 s. Dos de cuatro por encima de 30 s, así que
+ * el plan pedía subir el umbral a 70. Antes de hacerlo se mide de quién es ese tiempo,
+ * y no es del municipal: **`vam` tarda 14,0 s y `vam-conciertos` 12,0 s, y el scraping
+ * municipal entero son 125 peticiones en 2,0 s de pared** con las diecisiete entradas
+ * en paralelo. Subir el umbral no habría arreglado el arranque.
+ *
+ * Y además habría roto esto. **El tope del servlet medido el 6 de octubre de 2026 es
+ * de 54 a 57 filas por ventana**, no de 50: un mes entero del tipo 7 —157 eventos
+ * sumando los doce— viene en 54 filas. Con el umbral en 70 no habría paginado ninguna
+ * ventana y se habrían perdido 103 de esos 157, que es dos tercios de la entrada. El
+ * 45 está por debajo del tope real medido, que es lo que tiene que estar: es lo que
+ * hace que una ventana llena seienda truncada en vez de completa.
+ *
+ * La consecuencia aceptada de estar por debajo del tope es que `municipal-general` se
+ * pagina siempre, doce peticiones más para la única entrada que ve todos los tipos a
+ * la vez. La alternativa sería un umbral por entrada, y un umbral por entrada es una
+ * lista mantenida a mano que se pudre el día que el Ayuntamiento añada un tipo, que es
+ * lo que pasó dos veces esta semana.
  */
 const FILAS_SOSPECHOSAS = 45;
 
