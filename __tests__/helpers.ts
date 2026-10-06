@@ -42,7 +42,22 @@ export type Route = {
   headers?: Record<string, string>;
 };
 
-export function mockFetchWith(routes: Route[]) {
+/**
+ * Una ruta que contesta distinto según la URL que se le pide.
+ *
+ * Es un tipo aparte y no un `content` que admita función porque hay consumidores de
+ * `Route` que leen el cuerpo y lo pasan tal cual a `new Response(...)`
+ * (`timeout-plazos.test.ts`), y ensanchar el campo les rompería el typecheck a ellos
+ * por algo que no necesitan. `Route` sigue siendo un cuerpo fijo; este dice "el cuerpo
+ * sale de una función", que es lo que hace falta cuando una misma URL tiene que
+ * responder distinto según los parámetros de la query: una ventana de doce meses que
+ * satura y un mes que no, en el mismo test.
+ */
+export type RutaDinamica = Omit<Route, "content"> & {
+  content: Route["content"] | ((url: string) => string);
+};
+
+export function mockFetchWith(routes: (Route | RutaDinamica)[]) {
   return jest.spyOn(global, "fetch").mockImplementation(async (input: Parameters<typeof fetch>[0]) => {
     const url =
       typeof input === "string"
@@ -53,7 +68,9 @@ export function mockFetchWith(routes: Route[]) {
 
     for (const route of routes) {
       if (route.match.test(url)) {
-        return new Response(route.content, {
+        const body =
+          typeof route.content === "function" ? route.content(url) : route.content;
+        return new Response(body, {
           status: route.status ?? 200,
           headers: route.headers,
         });

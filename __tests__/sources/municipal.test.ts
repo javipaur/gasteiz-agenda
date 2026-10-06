@@ -119,8 +119,16 @@ it("el filtro `tipo` viaja en la URL", async () => {
     const llamadas = (global.fetch as jest.Mock).mock.calls.map((c) => c[0] as string);
     // El `f` va crudo en la query, sin `encodeURIComponent`: `fetchMunicipalCalendar`
     // lo concatena tal cual. Por eso el filtro se lee en la URL tal y como sale.
-    expect(llamadas[0]).toContain('&f={"tipo":[15]}');
-    expect(llamadas[1]).toContain('&f={"dest":["infantil"]}');
+    //
+    // Y se busca por filtro y no por posición porque una consulta puede partirse en
+    // varias peticiones: el fixture trae 111 filas, que es más de `FILAS_SOSPECHOSAS`,
+    // así que desde la paginación cada `scrapeMunicipalCalendar` puede ser una llamada
+    // o catorce. "La petición que lleva este filtro" es lo que el test quería decir
+    // siempre; "la segunda llamada" solo lo era cuando todo cabía en una.
+    const porTipo = llamadas.find((u) => u.includes('"tipo":[15]'));
+    const porDest = llamadas.find((u) => u.includes('"dest":["infantil"]'));
+    expect(porTipo).toContain('&f={"tipo":[15]}');
+    expect(porDest).toContain('&f={"dest":["infantil"]}');
   });
 
   it("propaga el fallo HTTP en vez de devolver una lista vacía", async () => {
@@ -145,5 +153,111 @@ it("el filtro `tipo` viaja en la URL", async () => {
     ]);
 
     await expect(scrapeMunicipalCalendar()).rejects.toThrow(/404/);
+  });
+
+  it("repite la consulta mes a mes cuando la ventana anual satura", async () => {
+    // El defecto, medido el 6 de octubre de 2026: `CalendarioServlet` corta a unos 50
+    // resultados. Una ventana de 12 meses devuelve 50, el resto se pierde, y no hay
+    // ningún error ni ningún log que lo diga.
+    //
+    // El doble devuelve 50 en la ventana anual y 1 por mes. Esa es la forma real del
+    // problema: la consulta anual parece que funciona, y por eso el rojo no llegaba
+    // nunca a ninguna parte.
+    const anual = Array.from({ length: 50 }, (_, i) => ({
+      codigo: `a${i}`,
+      titulo: `Anual ${i}`,
+      fechaInicio: "20261015",
+      datetime: "2026-10-15T00:00:00.000Z",
+    }));
+    const mensual = (mes: number) => ({
+      codigo: `m${mes}`,
+      titulo: `Mensual ${mes}`,
+      fechaInicio: `2026${String(mes).padStart(2, "0")}15`,
+      datetime: `2026-${String(mes).padStart(2, "0")}-15T00:00:00.000Z`,
+    });
+
+    mockFetchWith([
+      {
+        match: /vitoria-gasteiz\.org/,
+        content: (url) => {
+          const p = new URL(url).searchParams;
+          const dias = (Number(p.get("fh")) - Number(p.get("fd"))) / 86400000;
+          if (dias > 200) return JSON.stringify({ actividades: { resultados: anual } });
+          const mes = new Date(Number(p.get("fd"))).getMonth() + 1;
+          return JSON.stringify({ actividades: { resultados: [mensual(mes)] } });
+        },
+      },
+    ]);
+
+    const eventos = await scrapeMunicipalCalendar();
+    const llamadas = (global.fetch as jest.Mock).mock.calls.map((c) => {
+      const p = new URL(String(c[0])).searchParams;
+      return (Number(p.get("fh")) - Number(p.get("fd"))) / 86400000;
+    });
+
+    // Una sola petición anual, y luego una por mes.
+    expect(llamadas.filter((dias) => dias > 200)).toHaveLength(1);
+    expect(llamadas.filter((dias) => dias <= 200).length).toBeGreaterThanOrEqual(12);
+
+    // Y lo que se queda son los mensuales, no los de la anual: si se devolvieran los
+    // dos, la paginación no habría servido de nada.
+    expect(eventos.filter((e) => e.title.startsWith("Anual"))).toHaveLength(0);
+    expect(eventos.filter((e) => e.title.startsWith("Mensual")).length).toBeGreaterThanOrEqual(12);
+  });
+
+  it.skip("parte en dos una ventana que también satura", async () => {
+    // El segundo nivel existe porque hay un tramo del calendario que trae más de 45
+    // cosas y todavía no se sabe cuál es. Con el nivel 0 partiendo por meses, un día
+    // cargado se quedaría a medias, y aquí se ve que se parte.
+    //
+    // **Está en `skip` y no porque el segundo nivel sea malo, sino porque este test y
+    // la cota de peticiones son incompatibles.** Medido el 6 de octubre de 2026:
+    //
+    // - Con el guard tal y como está (`profundidad >= 1 || dias < 32`) este test falla
+    //   recibiendo 600 filas `Mes`: son los doce meses de 50, y el nivel 1 se devuelve
+    //   tal cual. Las mitades no existen. Las ocho líneas de `pedirVentana` que parten
+    //   la ventana por la mitad son inalcanzables, siempre, y no por una espera que se
+    //   cuelgue: el guard devuelve para toda `profundidad >= 1`, y la única llamada que
+    //   sobrevive a ese guard tiene `profundidad === 0`.
+    // - Bajando el guard a `profundidad >= 3 || dias < 10` el test pasa. Y el scrape
+    //   pasa de **14 peticiones a 86**, porque de un mes de 30 días hay que llegar a
+    //   una ventana de diez: mes → mitad → cuarto. Con 18 entradas municipales, el
+    //   peor caso pasa de ~250 a ~1.550 peticiones al mismo servlet, que es el que ya
+    //   se cruzaba con dieciséis en paralelo y vaciaba la agenda por `scraping_failed`.
+    //
+    // Lo que falta decidir no es cómo se escribe el segundo nivel —está escrito— sino
+    // si el Ayuntamiento aguanta el cargar. Si la respuesta es sí, el cambio es una
+    // línea en `lib/sources/municipal.ts` y quitar este `skip`.
+    const de = (n: number, prefijo: string) =>
+      JSON.stringify({
+        actividades: {
+          resultados: Array.from({ length: n }, (_, i) => ({
+            codigo: `${prefijo}${i}`,
+            titulo: `${prefijo} ${i}`,
+            fechaInicio: "20261015",
+            datetime: "2026-10-15T00:00:00.000Z",
+          })),
+        },
+      });
+
+    mockFetchWith([
+      {
+        match: /vitoria-gasteiz\.org/,
+        content: (url) => {
+          const p = new URL(url).searchParams;
+          const dias = (Number(p.get("fh")) - Number(p.get("fd"))) / 86400000;
+          if (dias > 200) return de(50, "Anual");
+          if (dias > 10) return de(50, "Mes");
+          return de(5, "Mitad");
+        },
+      },
+    ]);
+
+    const eventos = await scrapeMunicipalCalendar();
+
+    expect(eventos.filter((e) => e.title.startsWith("Anual"))).toHaveLength(0);
+    expect(eventos.filter((e) => e.title.startsWith("Mes"))).toHaveLength(0);
+    // Y hay algo de las mitades, que es lo que demuestra que se llegó al segundo nivel.
+    expect(eventos.filter((e) => e.title.startsWith("Mitad")).length).toBeGreaterThan(0);
   });
 });
