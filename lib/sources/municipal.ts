@@ -118,7 +118,21 @@ export async function fetchMunicipalCalendar(
     // calendario 27 veces seguidas y se colgaba en cuanto una no respondía. Al
     // mover el fetch aquí, ponerlo cubre las diez entradas municipales en vez de
     // solo una.
-    signal: AbortSignal.timeout(20000),
+    //
+    // Y de 20 s a 45 s, medido, no por prudencia. Con diez variantes eran 20; con
+    // las dieciséis que hay ahora son **dieciséis peticiones al mismo servlet
+    // lanzadas en paralelo**, todas con el mismo `fd`/`fh`, y la más lenta se queda
+    // al borde del plazo. Cuatro arranques en frío seguidos el 5 de octubre de 2026
+    // tardaron 5,6 s, 19,7 s, 5,8 s y 6,1 s: tres bien y **una a 400 ms de cortar**,
+    // que es exactamente la forma que tiene de cruzarse. Y cuando se cruzó, el
+    // efecto no fue un scraper lento: fueron quince fuentes fuera y
+    // `completa: false` en `/api/v1/salud`, porque un `AbortSignal` agotado rechaza
+    // la promesa y `aggregate` marca las que rechazan.
+    //
+    // Subir el plazo y no bajar el número de peticiones porque el coste de equivocarse
+    // no es el mismo: un arranque en frío lento se cachea cinco minutos y las páginas
+    // son ISR, mientras que un timeout deja huecos en la agenda sin log de error.
+    signal: AbortSignal.timeout(45000),
   });
   // Propaga, y no devuelve `[]`. Un `return []` aquí se comía el fallo entero:
   // `lib/agenda.ts` usa `Promise.allSettled`, así que una fuente que **resuelve**

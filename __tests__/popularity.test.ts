@@ -73,11 +73,17 @@ describe("scoreEvento", () => {
     // variantes municipales —la fuente con más volumen de la agenda— caían al
     // mínimo por defecto y la home ordenaba "Populares" sin ellas.
     //
-    // El número va escrito a propósito: es la undécima variante municipal la que
+    // El número va escrito a propósito: es la siguiente variante municipal la que
     // haría fallar esto, y no por su peso —que se resuelve por grupo y sería
     // correcto—, sino porque obliga a mirar la lista al añadirla.
+    //
+    // Subió de 10 a 16 el 5 de octubre de 2026: se reparó `municipal-visitas`, que
+    // llevaba meses filtrando por una cadena que el servlet no acepta y devolvía
+    // cero, y se añadieron seis entradas para los `tipo` que nadie consultaba
+    // (charlas, talleres, danza, cine, fiestas y concursos). El desglose de lo que
+    // trae cada uno está en `lib/source-data.ts`.
     const municipales = SOURCE_DATA.filter((e) => e.group === "municipal").map((e) => e.id);
-    expect(municipales).toHaveLength(10);
+    expect(municipales).toHaveLength(16);
 
     const pesos = municipales.map((id) => puntua({ source: id, category: "Otros" }));
 

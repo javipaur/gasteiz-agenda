@@ -99,6 +99,30 @@ describe("scrapeMunicipalCalendar", () => {
     expect(llamada).toContain("accion=buscar");
   });
 
+it("el filtro `tipo` viaja en la URL", async () => {
+    // Lo que ata una variante del registro al calendario que quiere es **la URL**,
+    // no el resultado: si el `tipo` no llegara, la prueba seguiría viendo "eventos"
+    // —el fixture responde igual— y no fallaría. Mirando la petición, sí.
+    //
+    // La lección de por qué esto importa tanto está en
+    // `__tests__/source-registry.test.ts`: `municipal-visitas` se filtraba con
+    // `tipo: ["visitias guiadas"]`, el servlet solo acepta números, y la entrada
+    // llevaba meses devolviendo cero sin que nada lo dijera. Aquí se mira el
+    // camino; allí se prohíbe el que no funciona.
+    mockFetchWith([
+      { match: /vitoria-gasteiz\.org/, content: loadFixture("municipal-response.json") },
+    ]);
+
+    await scrapeMunicipalCalendar({ tipo: [15] });
+    await scrapeMunicipalCalendar({ dest: ["infantil"] });
+
+    const llamadas = (global.fetch as jest.Mock).mock.calls.map((c) => c[0] as string);
+    // El `f` va crudo en la query, sin `encodeURIComponent`: `fetchMunicipalCalendar`
+    // lo concatena tal cual. Por eso el filtro se lee en la URL tal y como sale.
+    expect(llamadas[0]).toContain('&f={"tipo":[15]}');
+    expect(llamadas[1]).toContain('&f={"dest":["infantil"]}');
+  });
+
   it("propaga el fallo HTTP en vez de devolver una lista vacía", async () => {
     // Devolver `[]` es indistinguible de "hoy no hay nada", y esta es la fuente
     // de `priority: 0`, la que gana todos los dedupes: un 502 del Ayuntamiento

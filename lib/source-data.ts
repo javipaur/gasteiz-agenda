@@ -121,6 +121,36 @@ export const SOURCE_DATA: readonly SourceData[] = [
   { id: "municipal-exposiciones", group: "municipal", label: "Ayuntamiento", category: "Exposiciones", culture: true, priority: 0 },
   { id: "municipal-general", group: "municipal", label: "Ayuntamiento", priority: 1 },
   { id: "municipal-deporte", group: "municipal", label: "Ayuntamiento", category: "Deporte", kind: "agenda", priority: 0 },
+  // Los seis tipos que no consultaba nadie, medido el 5 de octubre de 2026 contra
+  // el `filtros` que devuelve el propio servlet. Los catorce `tipo` del calendario
+  // 196 son estos, y solo se estaban filtrando cinco: 6, 13, 2, 7 y el que se
+  // creía estar usando el de visitas guiadas, que no lo estaba (ver
+  // `municipal-visitas` más abajo).
+  //
+  //   3 Charla / Conferencia         51 filas   47 eventos que no salían de otra parte
+  //   10 Cursos y talleres            50 filas   30
+  //   4  Danza                        10 filas   10
+  //   12 Proyección audiovisual        6 filas    6
+  //   9  Fiesta                        5 filas    2
+  //   1  Concurso / Campeonato        2 filas    2
+  //
+  // Cada uno necesita su propia entrada y su propio `tipo`, y no por gusto: **el
+  // servlet no acepta un array de varios `tipo`**. Los catorce juntos devuelven 47
+  // eventos distintos frente a los 386 que salen de catorce peticiones separadas, y
+  // el campo `tipo` de la respuesta viene siempre `null`, así que una petición
+  // múltiple no dejaría ni los eventos ni su categoría. Medido, no supuesto.
+  //
+  // Se dejan fuera tres tipos a propósito: el 99 «Otros», el 14 «Feria» y el 11
+  // «Presentación» trajeron 32, 4 y 3 eventos nuevos. El 99 ya los coge
+  // `municipal-general` sin filtro, así que una entrada para él sería una petición
+  // por nada; y «Feria» y «Presentación» no tienen categoría propia, y hacerlas
+  // «Otros» no compensa por 7 eventos.
+  { id: "municipal-charlas", group: "municipal", label: "Ayuntamiento", category: "Conferencias", culture: true, priority: 0 },
+  { id: "municipal-talleres", group: "municipal", label: "Ayuntamiento", category: "Talleres", culture: true, priority: 0 },
+  { id: "municipal-danza", group: "municipal", label: "Ayuntamiento", category: "Danza", culture: true, priority: 0 },
+  { id: "municipal-cine", group: "municipal", label: "Ayuntamiento", category: "Cine", culture: true, priority: 0 },
+  { id: "municipal-fiestas", group: "municipal", label: "Ayuntamiento", category: "Fiestas", culture: true, priority: 0 },
+  { id: "municipal-concursos", group: "municipal", label: "Ayuntamiento", category: "Deporte", priority: 0 },
   { id: "municipal-infantil", group: "municipal", label: "Ayuntamiento", tags: ["infantil"], priority: 0 },
   // Va la última de las de priority 0 por el mismo motivo que `municipal-general`
   // va por detrás de todas: si el sitio municipal ignorara el `tipo` desconocido
@@ -129,8 +159,15 @@ export const SOURCE_DATA: readonly SourceData[] = [
   // gana eventos que ninguna otra variante reclama, y frente a `municipal-general`
   // (priority 1) sigue ganando, que es lo que queremos: lo que solo está en
   // visitas guiadas conserva `category: "Visitas"`.
-  // La cadena va sin tilde a propósito: es lo que espera el sitio municipal, y
-  // la ruta que lo consume en producción es /api/actividades/eventos/agenda/visitas.
+  //
+  // **El `tipo` es el número 15 y no una cadena, y el comentario que antes decía
+  // lo contrario estaba equivocado.** Se preguntaba con `tipo: ["visitias
+  // guiadas"]`, y el servlet solo acepta números: medido el 5 de octubre de 2026,
+  // `"Visita guiada"`, `"visita guiada"`, `"VISITA GUIADA"` y `"visitias guiadas"`
+  // devuelven **0** cada una, y `[15]` devuelve 50. Cuatro formas de cadena, cuatro
+  // ceros: no era una variante sin tilde que el sitio esperase, era un error
+  // tipográfico, y la entrada llevaba tiempo trayendo exactamente nada.
+  // `__tests__/source-registry.test.ts` prohíbe ahora las cadenas en `tipo`.
   { id: "municipal-visitas", group: "municipal", label: "Ayuntamiento", category: "Visitas", priority: 0 },
   { id: "municipal-rss", group: "municipal", label: "Ayuntamiento (RSS)", priority: 1 },
   { id: "vam", group: "vam", label: "VAM", tickets: true, priority: 1 },

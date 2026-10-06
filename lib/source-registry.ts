@@ -54,8 +54,21 @@ const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
   "municipal-exposiciones": () => scrapeMunicipalCalendar({ tipo: [7] }),
   "municipal-general": () => scrapeMunicipalCalendar(),
   "municipal-deporte": () => scrapeMunicipalCalendar({ calendariosID: 168 }),
+  // Los seis `tipo` que nadie filtraba. El orden de estas seis y el de las de
+  // arriba no importa entre ellas: cada una pide un `tipo` distinto y el sitio
+  // asigna un solo tipo por evento, así que no compiten por nada. Lo que sí importa
+  // es que todas van **antes** de `municipal-infantil`, que es la que se come el
+  // `dest`, y de que `municipal-general` (priority 1) vaya detrás de todas.
+  // Los números y lo que traen, medidos el 5 de octubre de 2026; el desglose está
+  // en `lib/source-data.ts`.
+  "municipal-charlas": () => scrapeMunicipalCalendar({ tipo: [3] }),
+  "municipal-talleres": () => scrapeMunicipalCalendar({ tipo: [10] }),
+  "municipal-danza": () => scrapeMunicipalCalendar({ tipo: [4] }),
+  "municipal-cine": () => scrapeMunicipalCalendar({ tipo: [12] }),
+  "municipal-fiestas": () => scrapeMunicipalCalendar({ tipo: [9] }),
+  "municipal-concursos": () => scrapeMunicipalCalendar({ tipo: [1] }),
   "municipal-infantil": () => scrapeMunicipalCalendar({ dest: ["infantil"] }),
-  "municipal-visitas": () => scrapeMunicipalCalendar({ tipo: ["visitias guiadas"] }),
+  "municipal-visitas": () => scrapeMunicipalCalendar({ tipo: [15] }),
   "municipal-rss": () => scrapeMunicipalRss(),
   vam: () => scrapeVamEvents(),
   "vam-conciertos": () => scrapeVamConciertos(),
