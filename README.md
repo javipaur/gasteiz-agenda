@@ -42,6 +42,7 @@ Configurar en Dokploy o en `.env.local`:
 | `EMAIL_PASS` | Contraseña de aplicación de Gmail. **Obligatoria en producción** |
 | `NEXT_PUBLIC_SITE_URL` | URL base del sitio (newsletter, RSS, enlaces) |
 | `MEC_TOKEN` | Token del API de La Genterula. **Sin ella la fuente no se consulta** y sus eventos no salen en la agenda |
+| `NEXT_PUBLIC_ANALYTICS_URL` | Opcional. Sin ella `Analytics` devuelve `null` y **no hay forma de medir qué post de Instagram trajo visitas** |
 
 Sin `EMAIL_USER`/`EMAIL_PASS` el envío de correo **falla de forma explícita** en
 producción (`scripts/send-newsletter.ts` sale con código 1). Fuera de producción

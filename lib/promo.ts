@@ -45,3 +45,34 @@ export function radioImagenPromo(url: string | undefined | null): string | null 
   if (!m) return null;
   return HOSTS.includes(m[1].toLowerCase()) ? url : null;
 }
+
+/**
+ * El pie de foto.
+ *
+ * Va escrito a mano y no se genera con una plantilla: un pie de foto es texto de
+ * persona, y la diferencia entre "3 planes para hoy" y "3 planes para hoy 👇" es la
+ * diferencia entre un post que se lee y uno que se salta. Lo que sí es mecánico es
+ * la lista, y esa sale de los datos.
+ */
+export function textoDelPie(
+  lista: Array<{ title: string; location: string }>,
+  desde: string,
+  hasta: string
+): string {
+  const ventana = desde === hasta ? "HOY" : "ESTE FINDE";
+  if (lista.length === 0) {
+    return `${ventana} no hay nada recomendado.\n\nPero el resto de la agenda sí: mira la de aquí abajo.`;
+  }
+
+  const lineas = lista.map(
+    (e) => `• ${e.title}${e.location ? ` — ${e.location}` : ""}`
+  );
+
+  return [
+    `${ventana} en Vitoria-Gasteiz: ${lista.length} ${lista.length === 1 ? "plan" : "planes"} que recomendamos.`,
+    "",
+    ...lineas,
+    "",
+    "La agenda completa, con las 28 fuentes:",
+  ].join("\n");
+}

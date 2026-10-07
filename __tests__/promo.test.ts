@@ -1,4 +1,4 @@
-import { TAMANO_PROMO, urlDePromo, radioImagenPromo } from "@/lib/promo";
+import { TAMANO_PROMO, urlDePromo, radioImagenPromo, textoDelPie } from "@/lib/promo";
 
 describe("el paquete de redes", () => {
   it("las tarjetas son 4:5, que es lo que ocupa más pantalla en el feed", () => {
@@ -29,5 +29,42 @@ describe("el paquete de redes", () => {
     expect(radioImagenPromo(null)).toBeNull();
     expect(radioImagenPromo(undefined)).toBeNull();
     expect(radioImagenPromo("")).toBeNull();
+  });
+});
+
+describe("el pie de foto", () => {
+  const ev = (title: string, location = "") => ({ title, location });
+
+  it("con tres planes los lista y cuenta", () => {
+    const texto = textoDelPie(
+      [ev("Concierto en el Joyel", "Sala Ganueta"), ev("Cine", "Florida"), ev("Mercado", "")],
+      "2026-10-07",
+      "2026-10-07"
+    );
+
+    expect(texto).toContain("HOY");
+    expect(texto).toContain("3 planes");
+    expect(texto).toContain("• Concierto en el Joyel — Sala Ganueta");
+  });
+
+  it("uno solo en singular, que «1 planes» delata el generador", () => {
+    expect(textoDelPie([ev("Uno")], "2026-10-07", "2026-10-07")).toContain("1 plan");
+  });
+
+  it("un día sin nada lo dice sin fingir que hay algo", () => {
+    // La tentación aquí es rellenarlo. Un post que dice "hoy no hay nada" y aun así
+    // lleva a la agenda es más útil que uno que inventa tres planes para no quedar
+    // en blanco.
+    const texto = textoDelPie([], "2026-10-07", "2026-10-07");
+
+    expect(texto).toContain("HOY");
+    expect(texto).toContain("no hay nada recomendado");
+  });
+
+  it("la ventana larga no dice HOY", () => {
+    const texto = textoDelPie([ev("Uno")], "2026-10-10", "2026-10-11");
+
+    expect(texto).toContain("ESTE FINDE");
+    expect(texto).not.toContain("HOY");
   });
 });
