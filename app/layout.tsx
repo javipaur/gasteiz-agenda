@@ -107,6 +107,14 @@ export default function RootLayout({
       lang="es"
       data-accent={getAccentSeason()}
       className={`${archivo.variable} ${jetbrainsMono.variable}`}
+      /* El script de abajo escribe `data-theme` en `<html>` antes de que hidrate, y el
+         servidor no lo pone: sin esto React avisa de un mismatch en cada carga y
+         descarta el atributo sin arreglarlo. **Es la solución documentada para un script
+         inline que escribe un atributo antes de hidratar** y no un silencio: el atributo
+         se sigue aplicando —sin él la página daría un flash del tema contrario—, solo
+         deja de ser un attrs que React tenga que comparar. Si algún día desaparece, el
+         síntoma es un aviso de hidratación y un posible flash de tema. */
+      suppressHydrationWarning
     >
       <head>
         <meta name="color-scheme" content="light dark" />
