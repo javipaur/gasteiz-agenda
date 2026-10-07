@@ -62,6 +62,21 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
     path: "/api/vgbus",
     motivo: "la llama BusPageClient",
   },
+  {
+    // El proxy de imágenes de los hosts cuyo WAF rechaza al optimizador de Next. La
+    // llama el navegador al pintar las tarjetas, así que sin esta entrada el sitio
+    // devolvería 401 a las fotos y saldría el mismo degradado gris de siempre, pero por
+    // un motivo distinto: con esto es que el host rechaza nuestro User-Agent, y sin
+    // esto es que el sitio se rechaza a sí mismo.
+    //
+    // **Pública no quiere decir abierta.** El `src` lo pone el sitio, y la ruta solo
+    // sirve lo que `imagenServible` acepta, que sale de `IMAGE_HOSTS`. Con la CORS
+    // abierta que llevan las públicas, quien puede pedir aquí una imagen es cualquiera,
+    // pero solo de los veintiséis hosts de la lista —que es el mismo límite que el
+    // optimizador de Next impone y el que cerró el proxy abierto el 30 de septiembre.
+    path: "/api/img",
+    motivo: "la llama el navegador al pintar las tarjetas",
+  },
 
   // El logger del navegador. `lib/axiom/client.ts` monta
   // `SimpleFetchTransport({input: "/api/log"})` desde un módulo `"use client"`, que

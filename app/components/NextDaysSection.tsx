@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import Link from "next/link";
 import { InViewWrapper, EventCard } from "@/lib/shared";
 import { localDateStr } from "@/lib/utils";
@@ -128,12 +128,15 @@ export default function NextDaysSection({
     return dayEvents.filter((e) => e.category === categoryFilter);
   }, [dayEvents, categoryFilter]);
 
-  /* `imagenServible` y no `e.image`: el destacado se elige entre los eventos que
+  /* `propsImagen` y no `e.image`: el destacado se elige entre los eventos que
      traen imagen, y "traer imagen" no es lo mismo que "poder mostrarla". Con un host
      fuera de `remotePatterns`, `next/image` lanza en render —no en el `onError`— y
-     tumbaba la home entera con un HTTP 200. Ver `lib/image-hosts.ts`. */
+     tumbaba la home entera con un HTTP 200. Ver `lib/image-hosts.ts`.
+     Se guarda el resultado entero y no un booleano porque es lo que va al `<Image>`:
+     el destacado es la imagen más grande de la home, y por lo mismo que en las tarjetas
+     tiene que saber si va por el proxy. */
   const featured = useMemo(
-    () => dayEvents.find((e) => imagenServible(e.image)) || null,
+    () => dayEvents.find((e) => propsImagen(e.image)) || null,
     [dayEvents]
   );
 
@@ -281,7 +284,7 @@ export default function NextDaysSection({
               >
                 <div className="relative aspect-[16/7] md:aspect-[2.4/1]">
                   <Image
-                    src={featured.image!}
+                    {...propsImagen(featured.image)!}
                     /* `alt=""`: la imagen y el título comparten el `<a>` del destacado, así que con el
                        `alt` puesto el lector anunciaba el evento dos veces. */
                     alt=""

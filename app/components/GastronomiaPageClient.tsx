@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import { Utensils, MapPin, CalendarDays, ExternalLink, Star } from "lucide-react";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
@@ -179,14 +179,19 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredSitios.map((sitio, index) => (
+            {filteredSitios.map((sitio, index) => {
+              // En una variable y no dos llamadas en la línea de la condición: así
+              // TypeScript estrecha el spread de `<Image>`, y una llamada dentro del
+              // spread volvería a devolver `PropsImagen | undefined`.
+              const img = propsImagen(sitio.imagen);
+              return (
               <InViewWrapper key={sitio.slug} delay={Math.min(index * 0.04, 0.4)}>
                 <article className="group double-bezel-outer rounded-2xl p-1.5 h-full">
                   <div className="double-bezel rounded-xl overflow-hidden h-full flex flex-col">
-                    {imagenServible(sitio.imagen) && (
+                    {img && (
                       <div className="relative aspect-[16/9] shrink-0">
                         <Image
-                          src={sitio.imagen}
+                          {...img}
                           alt={`Fachada de ${sitio.nombre}`}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
@@ -229,7 +234,8 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                   </div>
                 </article>
               </InViewWrapper>
-            ))}
+              );
+            })}
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import FavoriteButton from "./FavoriteButton";
@@ -103,11 +103,12 @@ export default function SportPageClient({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((evento, index) => {
-            /* `imagenServible` y no `startsWith("http")`: que la URL sea absoluta no
+            /* `propsImagen` y no `startsWith("http")`: que la URL sea absoluta no
                significa que `next/image` pueda descargarla. Con un host fuera de
                `remotePatterns` lanza en render y tumba la página. Ver
-               `lib/image-hosts.ts`. */
-            const imageUrl = imagenServible(evento.image) ? evento.image : null;
+               `lib/image-hosts.ts`. Devuelve además el prefijo de `/api/img` y su
+               `unoptimized` para los hosts cuyo WAF rechaza al optimizador. */
+            const imageUrl = propsImagen(evento.image);
             return (
               <InViewWrapper
                 key={evento.title + evento.date + index}
@@ -127,7 +128,7 @@ export default function SportPageClient({
                       <div className="aspect-[4/3] relative">
                         {imageUrl ? (
                           <Image
-                            src={imageUrl}
+                            {...imageUrl}
                             /* `alt=""`: la imagen y el título comparten `<a>`, así
                                que con el `alt` el lector oye el título dos veces. */
                             alt=""

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import { isTicketSource } from "@/lib/tickets";
@@ -197,6 +197,10 @@ function TicketIcon({ className }: { className?: string }) {
 
 function EventCard({ evento, index }: { evento: Evento; index: number }) {
   const dateLabel = formatEventDate(evento.date);
+  // En una variable y no dos llamadas en la línea de la condición: así TypeScript
+  // estrecha el spread de `<Image>`, y una llamada dentro del spread volvería a
+  // devolver `PropsImagen | undefined`.
+  const imagen = propsImagen(evento.image);
 
   return (
     <InViewWrapper delay={Math.min(index * 0.04, 0.4)}>
@@ -214,9 +218,9 @@ function EventCard({ evento, index }: { evento: Evento; index: number }) {
             className="block focus-visible:outline-2 focus-visible:outline-accent"
           >
           <div className="aspect-[4/3] relative">
-            {imagenServible(evento.image) ? (
+            {imagen ? (
               <Image
-                src={evento.image}
+                {...imagen}
                 /* `alt=""`: la imagen y el título comparten `<a>`, así que con el
                    `alt` el lector oye el título dos veces. */
                 alt=""

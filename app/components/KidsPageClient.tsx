@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import FavoriteButton from "./FavoriteButton";
@@ -43,6 +43,10 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
             const d = new Date(evento.date);
             const month = isNaN(d.getTime()) ? "???" : new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", "");
             const day = isNaN(d.getTime()) ? "??" : d.getDate();
+            // En una variable y no dos llamadas en la línea de la condición: así
+            // TypeScript estrecha el spread de `<Image>`, y una llamada dentro del
+            // spread volvería a devolver `PropsImagen | undefined`.
+            const imagen = propsImagen(evento.image);
             return (
               <InViewWrapper key={evento.id} delay={Math.min(index * 0.04, 0.4)}>
                 <div className="group relative double-bezel-outer rounded-[1.25rem] p-1.5 block transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-1 focus-within:outline-2 focus-within:outline-accent">
@@ -58,9 +62,9 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
                   >
                     <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
                       <div className="aspect-[4/3] relative">
-                        {imagenServible(evento.image) ? (
+                        {imagen ? (
                           <Image
-                            src={evento.image}
+                            {...imagen}
                             /* `alt=""`: la imagen y el título comparten `<a>`, así
                                que con el `alt` el lector oye el título dos veces. */
                             alt=""

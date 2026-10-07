@@ -182,7 +182,12 @@ describe("el predicado está cableado en todos los sitios que pintan imágenes",
         // predicado por nombre. Un `src` que no sea `http` es una estática del propio
         // sitio: ahí no hay host que pueda no estar en `remotePatterns`.
         const codigo = txt.replace(/\/\*[\s\S]*?\*\//g, "");
-        if (codigo.includes("imagenServible(")) continue;
+        // `propsImagen` cuenta igual, y no por generosidad: llama a `imagenServible` en su
+        // primera línea y devuelve `undefined` exactamente cuando el predicado dice que
+        // no. La puerta que este test vigila sigue cerrada por ella; lo que este test
+        // comprueba es que el fichero **sepa** de ella, y saberlo es lo mismo venga de
+        // `imagenServible` o de `propsImagen`.
+        if (codigo.includes("imagenServible(") || codigo.includes("propsImagen(")) continue;
         if (/src="(?!http)/.test(codigo)) continue;
 
         sinGuardar.push(ruta.replace(ROOT, "."));

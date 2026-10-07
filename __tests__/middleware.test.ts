@@ -336,6 +336,7 @@ const ESPERADAS: Record<string, string> = {
   "/api/push/subscribe": "la llama PushNotifications al pedir permisos",
   "/api/search": "la llaman Header y HeroSearch",
   "/api/vgbus": "la llama BusPageClient",
+  "/api/img": "la llama el navegador al pintar las tarjetas",
   "/api/log": "el logger del navegador no tiene la clave y sin esto sus avisos se pierden",
   "/api/newsletter/subscribe": "alta desde el formulario del navegador",
   "/api/newsletter/confirm": "enlace de confirmación que llega por email",
@@ -348,7 +349,7 @@ const ESPERADAS: Record<string, string> = {
 };
 
 describe("la lista de rutas públicas", () => {
-  it("son exactamente estas doce, y ninguna más", () => {
+  it("son exactamente estas trece, y ninguna más", () => {
     const enCodigo = PUBLIC_API_ROUTES.map((r) => r.path).sort();
     expect(enCodigo).toEqual(Object.keys(ESPERADAS).sort());
   });

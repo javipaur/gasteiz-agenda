@@ -570,8 +570,23 @@ describe("las respuestas que el middleware produce de verdad", () => {
   });
 });
 
+/**
+ * Cuántas rutas protegidas cubre el documento.
+ *
+ * **Por qué una constante y no el número escrito en el `toEqual`.** El número estaba
+ * escrito en el test y en el nombre del caso, que son dos sitios que hay que cambiar
+ * juntos y que no avisan de nada cuando se cambia solo uno: el nombre del caso es
+ * texto, y un texto que dice treinta cuando son treinta y una sigue leyéndose bien. Con
+ * la constante, los dos casos que dependen del número se inventan solos y el nombre se
+ * pone desde ella.
+ *
+ * Y el número sigue escrita en el `toEqual`, que es lo que ata la constante a la
+ * realidad: si las rutas cambian sin tocar esto, el `toEqual` se pone rojo.
+ */
+const ProtectedCount = 29;
+
 describe("la cobertura del documento", () => {
-  it("cubre las treinta rutas protegidas salvo las dos que se listan aquí", () => {
+  it("cubre las ProtectedCount rutas protegidas salvo las dos que se listan aquí", () => {
     // La lista es explícita a propósito. Las dos de abajo existen en `app/api/**`
     // y no están en el YAML; si alguien añade una tercera sin documentarla, este
     // test lo dice por el nombre en vez de dejar que la deuda crezca en silencio.
@@ -590,7 +605,7 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 44 rutas: 15 públicas y 29 protegidas", () => {
+  it("la política entera son 45 rutas: 16 públicas y 29 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     //
@@ -606,11 +621,18 @@ describe("la cobertura del documento", () => {
     // protegidas, y las tres no lo son. Lo de que `/api/promo` es un espacio de
     // nombres y no una ruta exacta está en `lib/api-public-routes.ts` y lo comprueba
     // `__tests__/promo-publico.test.ts`.
+    //
+    // La decimosexta es `/api/img`, el proxy de los hosts cuyo WAF rechaza las cabeceras
+    // del optimizador de Next. También es pública por necesidad —la llama el navegador al
+    // pintar las tarjetas, que no tiene la clave— y por el mismo motivo que las tres del
+    // paquete: protegerla devolvería 401 a las fotos y saldría el mismo degradado gris del
+    // que se queja este arreglo. No está en el YAML porque su consumidor es una etiqueta
+    // `<img>` del propio sitio, no un integrador.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 44, publicas: 15, protegidas: 29 });
+    }).toEqual({ total: 45, publicas: 16, protegidas: ProtectedCount });
   });
 });
 

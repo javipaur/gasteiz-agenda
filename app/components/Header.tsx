@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import { Heart } from "lucide-react";
@@ -498,6 +498,11 @@ export default function Header() {
                         <ul>
                           {results.map((hit) => {
                             const { day, month } = formatDate(hit.date);
+                            // En una variable y no dos llamadas en la línea de la
+                            // condición: así TypeScript estrecha el spread de `<Image>`,
+                            // y una llamada dentro del spread volvería a devolver
+                            // `PropsImagen | undefined`.
+                            const imagen = propsImagen(hit.image);
                             return (
                               <li key={hit.slug}>
                                 <button
@@ -506,8 +511,8 @@ export default function Header() {
                                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted transition-colors duration-200 cursor-pointer"
                                 >
                                   <span className="relative w-9 h-9 rounded-lg overflow-hidden bg-bg-muted shrink-0 flex items-center justify-center">
-                                    {imagenServible(hit.image) ? (
-                                      <Image src={hit.image} alt="" fill sizes="36px" className="object-cover" />
+                                    {imagen ? (
+                                      <Image {...imagen} alt="" fill sizes="36px" className="object-cover" />
                                     ) : (
                                       <span className="font-display text-sm text-fg-subtle">{hit.title.charAt(0)}</span>
                                     )}

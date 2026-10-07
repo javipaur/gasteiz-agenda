@@ -19,7 +19,7 @@ import { getQueVer } from "@/lib/turismo";
 import { getSitios, getRutasPintxos } from "@/lib/gastronomia";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 
 const CULTURA_SET = new Set(["Teatro", "Exposiciones", "Danza", "Conferencias", "Talleres", "Visitas"]);
 const DEPORTE_SET = new Set(["Deporte", "Senderismo"]);
@@ -196,16 +196,20 @@ export default async function SectionsHub() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {categories.map(({ label, href, desc, tint, wash, icon: Icon, count, unit, imagen, meta }) => {
           const showCount = count > 0 && !(label === "La Blanca" && !fiestasEnabled);
+          // En una variable y no dos llamadas en la línea de la condición: así TypeScript
+          // estrecha el spread de `<Image>`, y una llamada dentro del spread volvería a
+          // devolver `PropsImagen | undefined`.
+          const img = propsImagen(imagen);
           return (
             <Link
               key={href}
               href={href}
               className={`group relative overflow-hidden rounded-2xl border ${tint} p-5 min-h-[132px] flex flex-col justify-between card-hover hover:shadow-lg hover:shadow-accent/10 active:scale-[0.98]`}
             >
-              {imagenServible(imagen) ? (
+              {img ? (
                 <>
                   <Image
-                    src={imagen}
+                    {...img}
                     alt=""
                     fill
                     sizes="(max-width: 640px) 50vw, 25vw"

@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import { InViewWrapper } from "@/lib/shared";
 import { formatDate, shortTime } from "@/lib/utils";
 import type { Evento } from "@/lib/eventos";
@@ -92,6 +92,10 @@ export default function TopEventsSection({
             {events.map((evento) => {
               const { day, month } = formatDate(evento.date);
               const time = shortTime(evento.time);
+              // En una variable y no dos llamadas en la línea de la condición: así
+              // TypeScript estrecha el spread de `<Image>`, y una llamada dentro del
+              // spread volvería a devolver `PropsImagen | undefined`.
+              const imagen = propsImagen(evento.image);
               return (
                 <Link
                   key={evento.id}
@@ -99,9 +103,9 @@ export default function TopEventsSection({
                   className="group relative shrink-0 snap-start w-36 sm:w-44 bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/5 active:scale-[0.97]"
                 >
                   <div className="relative aspect-[3/4] bg-bg-muted">
-{imagenServible(evento.image) ? (
+{imagen ? (
                         <Image
-                          src={evento.image}
+                          {...imagen}
                           /* `alt=""`: la imagen y el título comparten el `<a>` de la tarjeta, así que con el
                              `alt` puesto el lector anunciaba el evento dos veces. */
                           alt=""

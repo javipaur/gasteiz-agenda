@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getEventoBySlug } from "@/lib/agenda";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 import {
   JsonLd,
   breadcrumbJsonLd,
@@ -122,6 +122,10 @@ export default async function EventoDetallePage({ params }: PageProps) {
   const fechaFin = endDate && !isNaN(endDate.getTime())
     ? endDate.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })
     : null;
+  // En una variable y no dos llamadas en la línea de la condición: así TypeScript
+  // estrecha el spread de `<Image>`, y una llamada dentro del spread volvería a
+  // devolver `PropsImagen | undefined`.
+  const imagen = propsImagen(evento.image);
 
   return (
     <>
@@ -149,17 +153,20 @@ export default async function EventoDetallePage({ params }: PageProps) {
           </nav>
 
           <div className="rounded-2xl overflow-hidden border border-border mb-8 aspect-video relative bg-accent-subtle">
-            {/* `imagenServible` y no `evento.image`: que el evento traiga imagen no es
+            {/* `propsImagen` y no `evento.image`: que el evento traiga imagen no es
                 lo mismo que `next/image` pueda descargarla, y con un host fuera de
                 `remotePatterns` el componente **lanza en render** —no lo coge ningún
                 `onError`, porque ocurre antes de que exista la etiqueta—. La página de
                 detalle era el último sitio sin el predicado, y es el peor para
                 quedarse sin él: es la que se abre desde una tarjeta que en la home ya
                 se vio, así que el mismo evento se veía bien en la portada y tiraba la
-                ficha al abrirla. Ver `lib/image-hosts.ts`. */}
-            {imagenServible(evento.image) ? (
+                ficha al abrirla. Ver `lib/image-hosts.ts`. Aquí es donde más se nota el
+                prefijo de `/api/img`: es la imagen más grande de todo el sitio, y sin
+                él la ficha de La Genterula salía con un rectángulo vacío en lugar de un
+                cartel. */}
+            {imagen ? (
               <Image
-                src={evento.image}
+                {...imagen}
                 alt={evento.title}
                 fill
                 priority

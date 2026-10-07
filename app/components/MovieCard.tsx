@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { imagenServible } from "@/lib/image-hosts";
+import { propsImagen } from "@/lib/image-proxy";
 
 type Pelicula = {
   titulo: string;
@@ -27,6 +27,10 @@ function TicketIcon({ className }: { className?: string }) {
 
 export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
   const badgeColor = CINE_COLORS[pelicula.cine] || "bg-fg-muted";
+  // En una variable y no dos llamadas en la línea de la condición: así TypeScript
+  // estrecha el spread de `<Image>`, y una llamada dentro del spread volvería a
+  // devolver `PropsImagen | undefined`.
+  const imagen = propsImagen(pelicula.imagen);
 
   return (
     <a
@@ -38,16 +42,17 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
       <div className="double-bezel rounded-[calc(1.25rem-0.375rem)] overflow-hidden">
         <div className="aspect-[4/3] relative">
           {/*
-            `imagenServible` y no un `src` a pelo: `next/image` **lanza en render**
+            `propsImagen` y no un `src` a pelo: `next/image` **lanza en render**
             con un host que no esté en `remotePatterns`, y ese throw no lo coge el
             `onError` porque ocurre antes de que exista la etiqueta. Con un solo host
             no listado, la cartelera entera se caía. Aquí degrada al fondo del marco,
             que es lo que se ve cuando la carátula no se puede descargar. Ver
-            `lib/image-hosts.ts`.
+            `lib/image-hosts.ts`. Devuelve además el prefijo de `/api/img` y su
+            `unoptimized` para los hosts cuyo WAF rechaza al optimizador.
           */}
-          {imagenServible(pelicula.imagen) && (
+          {imagen && (
             <Image
-              src={pelicula.imagen}
+              {...imagen}
               /* `alt=""`: la imagen y el título están en el mismo `<a>`, así que con
                  el `alt` el lector anunciaba la película dos veces. */
               alt=""
