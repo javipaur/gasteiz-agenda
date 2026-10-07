@@ -1,40 +1,103 @@
-const SPIRAL_PATH =
-  "M 50.00 22.50 L 48.48 22.68 L 47.00 23.00 L 45.56 23.44 L 44.18 24.00 L 42.85 24.67 L 41.60 25.45 L 40.43 26.34 L 39.35 27.31 L 38.37 28.37 L 37.49 29.51 L 36.72 30.70 L 36.06 31.95 L 35.52 33.25 L 35.10 34.58 L 34.80 35.93 L 34.61 37.29 L 34.55 38.65 L 34.61 40.00 L 34.79 41.33 L 35.08 42.63 L 35.48 43.89 L 35.98 45.10 L 36.58 46.26 L 37.28 47.34 L 38.07 48.36 L 38.93 49.29 L 39.86 50.14 L 40.86 50.89 L 41.91 51.55 L 43.01 52.11 L 44.14 52.57 L 45.30 52.92 L 46.47 53.17 L 47.65 53.31 L 48.83 53.34 L 50.00 53.28 L 51.15 53.11 L 52.26 52.85 L 53.35 52.49 L 54.38 52.04 L 55.36 51.50 L 56.29 50.89 L 57.14 50.20 L 57.93 49.45 L 58.64 48.64 L 59.27 47.78 L 59.82 46.88 L 60.28 45.94 L 60.65 44.97 L 60.93 43.98 L 61.13 42.98 L 61.23 41.98 L 61.24 40.98 L 61.17 40.00 L 61.01 39.04 L 60.77 38.10 L 60.45 37.20 L 60.05 36.34 L 59.59 35.53 L 59.06 34.77 L 58.47 34.07 L 57.84 33.43 L 57.15 32.85 L 56.42 32.34 L 55.66 31.91 L 54.88 31.55 L 54.07 31.26 L 53.26 31.05 L 52.43 30.91 L 51.61 30.85 L 50.80 30.86 L 50.00 30.94 L 49.22 31.10 L 48.47 31.31 L 47.75 31.59 L 47.06 31.93 L 46.42 32.32 L 45.82 32.77 L 45.28 33.25 L 44.78 33.78 L 44.34 34.34 L 43.96 34.93 L 43.64 35.55 L 43.38 36.18 L 43.17 36.82 L 43.03 37.46 L 42.95 38.11 L 42.93 38.75 L 42.97 39.38 L 43.06 40.00 L 43.20 40.60 L 43.39 41.17 L 43.63 41.71 L 43.92 42.21 L 44.24 42.69 L 44.60 43.12 L 44.98 43.51 L 45.40 43.86 L 45.84 44.16 L 46.29 44.42 L 46.76 44.63 L 47.23 44.80 L 47.71 44.91 L 48.19 44.98 L 48.66 45.01 L 49.12 44.99 L 49.57 44.93 L 50.00 44.83 L 50.41 44.70 L 50.80 44.53 L 51.16 44.33 L 51.49 44.10 L 51.79 43.85 L 52.06 43.58 L 52.30 43.29 L 52.50 42.98 L 52.67 42.67 L 52.80 42.35 L 52.90 42.03 L 52.97 41.71 L 53.00 41.40 L 53.00 41.09 L 52.97 40.80 L 52.91 40.51 L 52.83 40.25 L 52.72 40.00 L 52.60 39.77 L 52.45 39.57 L 52.29 39.39 L 42.00 52.00 L 27.00 66.00";
-
+/**
+ * La marca en la cabecera.
+ *
+ * **Es el mismo dibujo que `public/brand-mark.svg`, y son dos ficheros a
+ * propósito.** El del PWA lo sirve el sistema operativo, que no puede importar
+ * un componente de React ni heredar el tema de la web, así que necesita el SVG
+ * plano con el color escrito. Este es el que se pinta en el navegador, y por eso
+ * lleva el acento por prop: la espiral era roja en verano y verde en otoño, y eso
+ * es una decisión del rebrand que el logo del escritorio no puede tener.
+ *
+ * Lo que cambia aquí y no en el SVG del PWA es **solo el color de la G**, que
+ * aquí es `var(--color-accent)` en vez de un rojo fijo. Todo lo demás —la
+ * txapela, la nota, el pincho, la gilda, el cursor— es el mismo trazado, y
+ * `__tests__/logo-marca.test.ts` es lo que vigila que los dos no se separen.
+ *
+ * **Lo que no lleva y por qué.** El fondo crema del SVG tampoco: este logo va
+ * sobre el fondo de la página, que cambia con el tema, y un cuadrado crema sería
+ * un parche. Y no lleva `width`/`height` en el `<svg>`, porque quien lo pinta le
+ * pasa el tamaño por `className` y un tamaño fijo se lo ignores.
+ */
 type LogoMarkProps = {
   className?: string;
-  ring?: string;
-  spiral?: string;
+  /** La G. Por defecto el acento de la estación. */
+  g?: string;
+  /** Todo lo negro: txapela, nota y cursor. */
+  ink?: string;
+  /** El pincho. */
+  pincho?: string;
+  /** La gilda: aceituna y guindillo. */
+  gilda?: string;
+  /** El rojo del pimentón dentro de la aceituna, y las ondas del cursor. */
+  rojo?: string;
+  /** El crema del destello de la aceituna y del contorno del cursor. */
+  crema?: string;
 };
 
 export function LogoMark({
   className,
-  ring = "currentColor",
-  spiral = "var(--color-accent)",
+  g = "var(--color-accent)",
+  ink = "currentColor",
+  pincho = "#ca8a04",
+  gilda = "#65a30d",
+  rojo = "#dc2626",
+  crema = "#faf9f5",
 }: LogoMarkProps) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 100 100"
-      fill="none"
-      aria-hidden="true"
-    >
+    <svg className={className} viewBox="0 0 512 512" fill="none" aria-hidden="true">
+      {/* La G: cuenco circular con abertura a la derecha y travesaño, para que
+          se lea como letra y no como un anillo roto. */}
       <path
-        d="M 71 40 a 21 21 0 1 1 -42 0 a 21 21 0 1 1 42 0"
-        pathLength={100}
-        strokeDasharray="12.5 25 62.5"
-        stroke={ring}
-        strokeWidth={3.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M 85 -85 A 120 120 0 1 0 120 16 L 120 0 L 18 0 L 18 42 L 62 42 A 62 62 0 1 1 44 -44 L 85 -85 Z"
+        fill={g}
       />
-      <path
-        d={SPIRAL_PATH}
-        stroke={spiral}
-        strokeWidth={3.3}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+
+      {/* La nota, dentro de la curva de la G. */}
+      <g transform="translate(-18, -48)">
+        <ellipse cx="0" cy="14" rx="14" ry="10" transform="rotate(-26, 0, 14)" fill={ink} />
+        <rect x="7" y="-28" width="8" height="42" rx="4" fill={ink} />
+        <path d="M 15 -28 C 30 -28 36 -12 36 6 C 30 -4 23 -12 15 -14 Z" fill={ink} />
+      </g>
+
+      {/* El pincho cruza en diagonal **por delante** de la G, y es por eso que
+          va después del path de la letra: el orden de dibujo es el orden de las
+          capas. */}
+      <line x1="-135" y1="110" x2="115" y2="-140" stroke={pincho} strokeWidth="9" strokeLinecap="round" />
+
+      {/* La gilda: la aceituna con el centro rojo del pimentón. */}
+      <g transform="translate(-24, 2)">
+        <circle cx="0" cy="0" r="22" fill={gilda} />
+        <circle cx="0" cy="0" r="18" fill="#4d7c0f" />
+        <circle cx="0" cy="0" r="8" fill={rojo} />
+        <circle cx="-5" cy="-5" r="3.5" fill={crema} />
+      </g>
+
+      {/* El guindillo curvado rodeando el pincho. */}
+      <path d="M -60 14 C -42 -22, 10 -28, 48 -6 C 22 18, -26 24, -60 14 Z" fill="#4d7c0f" />
+      <path d="M -48 6 C -34 -14, 4 -18, 36 -2 C 18 10, -20 14, -48 6 Z" fill={gilda} />
+      <path d="M -60 14 C -72 12, -80 6, -84 -4 C -80 2, -72 8, -64 12 Z" fill="#365314" />
+
+      {/* La txapela, con el tallo del txuntxurro que la hace boina y no
+          sombrero. */}
+      <g transform="translate(-38, -120) rotate(-16)">
+        <path d="M 0 -22 L 0 -11" stroke={ink} strokeWidth="5" strokeLinecap="round" />
+        <path d="M -68 6 C -62 -22, 58 -28, 80 -2 C 84 14, -26 25, -68 6 Z" fill={ink} />
+        <path d="M -54 8 C -20 20, 44 15, 66 5 C 46 13, -14 15, -54 8 Z" fill={ink} opacity="0.75" />
+      </g>
+
+      {/* El cursor y sus ondas. El contorno crema es lo que lo separa de la G
+          cuando se solapan. */}
+      <g transform="translate(108, 18)">
+        <path d="M -14 -22 A 26 26 0 0 1 -14 22" fill="none" stroke={rojo} strokeWidth="6.5" strokeLinecap="round" />
+        <path d="M -4 -34 A 40 40 0 0 1 -4 34" fill="none" stroke={rojo} strokeWidth="5.5" strokeLinecap="round" />
+        <path
+          d="M 10 -16 L 40 28 L 24 29 L 34 50 L 23 55 L 13 34 L 1 42 Z"
+          fill={ink}
+          stroke={crema}
+          strokeWidth="5"
+          strokeLinejoin="round"
+        />
+      </g>
     </svg>
   );
 }
