@@ -590,18 +590,27 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 41 rutas: 12 públicas y 29 protegidas", () => {
+  it("la política entera son 44 rutas: 15 públicas y 29 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     //
     // La duodécima pública es `/api/v1/salud`, que se añadió para que un cliente
     // externo pueda comprobar si el agregado está completo antes de usarlo. Va
     // documentada más abajo, en "el estado del agregado".
+    //
+    // Las tres del paquete de redes son las trece, catorce y quince, y son públicas
+    // **por necesidad y no por descuido**: Meta descarga las imágenes sin credencial,
+    // así que protegerlas respondería 401 a la URL que el propio paquete devuelve. No
+    // están en el `openapi.yaml` porque su consumidor es un post, no un integrador: el
+    // caso de "cubre las treinta rutas protegidas" solo exige documentar las
+    // protegidas, y las tres no lo son. Lo de que `/api/promo` es un espacio de
+    // nombres y no una ruta exacta está en `lib/api-public-routes.ts` y lo comprueba
+    // `__tests__/promo-publico.test.ts`.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 41, publicas: 12, protegidas: 29 });
+    }).toEqual({ total: 44, publicas: 15, protegidas: 29 });
   });
 });
 

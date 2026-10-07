@@ -19,6 +19,12 @@
  * Porque la pregunta que se hace en una revisión no es «¿está en la lista?» sino
  * «¿por qué está en la lista?». Una entrada sin motivo escrito es una entrada
  * que nadie va a volver a mirar, y `__tests__/middleware.test.ts` la exige.
+ *
+ * ## Por qué hay dos listas
+ *
+ * `PUBLIC_API_ROUTES` es de paths exactos. `PUBLIC_API_NAMESPACES` es para lo que
+ * lleva parámetros en el path y no se puede escribir exacto; hoy solo la tiene
+ * `/api/promo`, y el motivo de cada una está escrito en su sitio.
  */
 
 /** Una exención de autenticación, con el motivo por el que existe. */
@@ -119,7 +125,45 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
   },
 ];
 
+/**
+ * Espacios de nombres públicos: todo lo que caiga debajo es público.
+ *
+ * **La lista de arriba es de paths exactos y estas no pueden estar en ella.** Las tres
+ * rutas del paquete de redes llevan la fecha y el slug en el path
+ * (`/api/promo/2026-10-07/portada`), así que el path literal que Next conoce —el del
+ * fichero, con `[fecha]`— no es el `pathname` que llega al middleware. Una lista exacta
+ * no puede hacerlos públicos, y sin esto el middleware responde 401 a las direcciones
+ * que el propio paquete devuelve: **la imagen que va al post de Instagram sale con un
+ * hueco**, porque Meta la descarga sin ninguna credencial y no reintenta con una clave
+ * que no existe.
+ *
+ * **Por qué un espacio de nombres no es aquí el agujero del `startsWith`.** El
+ * problema de `/api/actividades` era que un prefijo abría lo que se añadiera mañana sin
+ * que nadie lo decidiera. `/api/promo` no tiene esa forma: las tres rutas que hay
+ * debajo son públicas **por diseño**, todas sirven material para publicar y ninguna
+ * escribe ni toca una credencial. Lo que se protege en este repo es lo que lee o
+ * muta datos de la agenda; el paquete solo lee. Aun así el corte lleva barra final, para
+ * que `/api/promoXXX` no entre por accidente.
+ */
+export const PUBLIC_API_NAMESPACES: readonly PublicApiRoute[] = [
+  {
+    path: "/api/promo",
+    motivo:
+      "las imagenes las descarga Meta sin credencial, asi que el paquete tiene que ser publico",
+  },
+];
+
 const PUBLICAS = new Set(PUBLIC_API_ROUTES.map((r) => r.path));
+
+/**
+ * Las raíces de los espacios de nombres, sin barra.
+ *
+ * La comparación de abajo usa la barra puesta en el momento de comparar, y no aquí,
+ * porque hacen falta las dos formas: `/api/promo` es el propio espacio de nombres y
+ * `/api/promo/2026-10-07/portada` está debajo. Con una sola de las dos, el paquete
+ * sería público por la mitad.
+ */
+const ESPACIOS = PUBLIC_API_NAMESPACES.map((r) => r.path);
 
 /**
  * `true` si la ruta es pública.
@@ -132,5 +176,10 @@ const PUBLICAS = new Set(PUBLIC_API_ROUTES.map((r) => r.path));
 export function isPublicApiRoute(pathname: string): boolean {
   const normalizada =
     pathname.length > 1 && pathname.endsWith("/") ? pathname.replace(/\/+$/, "") : pathname;
-  return PUBLICAS.has(normalizada);
+  // La lista exacta va primero: es el camino normal y no depende de ningún prefijo.
+  if (PUBLICAS.has(normalizada)) return true;
+  // Y el espacio de nombres se comprueba contra su barra final puesta, por lo que solo
+  // entra lo que está debajo de él y no lo que le componga el nombre al lado: con
+  // `startsWith("/api/promo")` sin más, `/api/promocopia` nacería pública.
+  return ESPACIOS.some((raiz) => normalizada === raiz || normalizada.startsWith(`${raiz}/`));
 }
