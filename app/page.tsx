@@ -19,7 +19,8 @@ import { getProximosPartidos } from "@/lib/partidos";
 import { getPeliculas } from "@/lib/cines";
 import { getKidsEventos } from "@/lib/kids";
 import { getDeporteEventos } from "@/lib/deporte";
-import { getPopularEvents } from "@/lib/popularity";
+import { recomendados } from "@/lib/recomendados";
+import { localDateStr } from "@/lib/utils";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
@@ -148,7 +149,30 @@ async function MoodWithData() {
 
 async function TopWithData() {
   const eventos = await getCachedEventos();
-  const top = getPopularEvents(eventos, 10);
+  // `recomendados()` y no `getPopularEvents()`: el riel ya no es "los diez más
+  // populares de toda la agenda" sino "lo que recomendamos **hoy**", y es el mismo
+  // criterio que usan `/hoy` y el paquete de redes, para que la home y el post de
+  // Instagram no digan dos cosas distintas sobre el mismo día. El rótulo de
+  // `TopEventsSection` se cambió con esto, porque "Top 10" sobre una lista de un día
+  // era mentira.
+  //
+  // `getPopularEvents` **no** desaparece: `HeroSection` lo sigue usando para el
+  // destacado, y allí el criterio sin ventana es el correcto, porque una única tarjeta
+  // protagonista quiere "lo más popular de todo" y no "lo de hoy".
+  //
+  // El `hoy` va como argumento y no con el `new Date()` por defecto del selector, por el
+  // mismo motivo que en `HeroSection` y `NextDaysSection`: la home tiene `revalidate =
+  // 300`, así que un reloj leído aquí dentro se congela contra el día con el que se
+  // calculó el primer render —abrir la web antes de medianoche y dejarla abierta te
+  // deja el día nuevo puntuando con el de ayer.
+  // eslint-disable-next-line react-hooks/purity
+  const ahora = Date.now();
+  const top = recomendados(eventos, {
+    desde: localDateStr(new Date(ahora)),
+    hasta: localDateStr(new Date(ahora)),
+    limite: 10,
+    hoy: new Date(ahora),
+  });
   return (
     <TopEventsSection
       events={top.map((e, i) => ({ ...e, ranking: i + 1 }))}

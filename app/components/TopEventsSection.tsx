@@ -38,13 +38,32 @@ export default function TopEventsSection({
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
           <div className="flex items-end justify-between gap-4 mb-6">
+            {/* La cabecera **no dice "Top 10"** y no es un capricho: el componente ya no
+                pinta los diez más populares de toda la agenda, sino los recomendados de
+                **hoy** que le pasa `recomendados()` en `app/page.tsx`. Con el rótulo
+                antiguo, una lista de un solo día se anunciaba como el top de la semana,
+                que es el mismo criterio que ya no se usa —y es mentira en la primera
+                pantalla, que es donde más se lee. `__tests__/components/riel-recomendados.test.tsx`
+                lo comprueba, porque cambiar el rótulo sin tocar esta línea es el
+                arreglo que nadie revisa. */}
             <SectionHead
-              tag="Top 10"
-              title="Top 10 en Vitoria-Gasteiz"
-              subtitle="Los planes que más suenan esta semana"
+              tag="Recomendados"
+              title="Lo que recomendamos para hoy"
+              subtitle="Los planes que más fuentes confirman"
               color="var(--amber)"
             />
             <div className="flex items-center gap-2 shrink-0">
+              {/* `/hoy` es la misma lista sin el recorte del riel: el enlace va aquí y no
+                  en la cabecera porque `SectionHead` no admite un `href`, y este sitio ya
+                  tiene `/hoy` en el menú —un segundo acceso a la misma página, arriba del
+                  todo—, así que añadir otro sería ruido. */}
+              <Link
+                href="/hoy"
+                className="hidden sm:inline-flex items-center gap-1 text-sm text-fg-muted hover:text-accent transition-colors duration-300"
+              >
+                Ver todos
+                <ArrowIcon className="w-3.5 h-3.5" />
+              </Link>
               <button
                 onClick={() => scrollBy(-1)}
                 aria-label="Anterior"

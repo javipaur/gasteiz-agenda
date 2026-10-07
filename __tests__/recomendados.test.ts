@@ -1,5 +1,17 @@
 import { recomendados, LIMITE_POR_DEFECTO } from "@/lib/recomendados";
+import { mockSoloMunicipal, ymdEnDias } from "./helpers";
 import type { Evento } from "@/lib/eventos";
+
+jest.mock("@/lib/sources/buscametas", () => ({
+  scrapeBuscametasCalendario: jest.fn().mockResolvedValue([]),
+  scrapeBuscametasInscripciones: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("@/lib/cache", () => ({
+  getCachedOrFetch: jest.fn(
+    async (_key: string, _ttlMs: number, fetcher: () => Promise<unknown>) => fetcher()
+  ),
+}));
 
 /**
  * Qué va en una lista de recomendados, que es el mismo criterio para la home, para
@@ -169,5 +181,69 @@ describe("recomendados", () => {
     });
 
     expect(lista).toEqual([]);
+  });
+});
+
+/**
+ * Las dos listas de la home, sobre la agenda real, y por qué no son la misma.
+ *
+ * La home tenía dos riles que contestaban a "qué hago" con criterios distintos:
+ * `NextDaysSection` pintaba los siete días con su filtro, y el riel de
+ * `TopEventsSection` pintaba `getPopularEvents(eventos, 10)` —los diez más populares
+ * de **toda** la agenda, sin ventana. Ese riel ahora sale de `recomendados()` con la
+ * ventana en hoy, que es lo que dicen `/hoy` y el paquete de redes.
+ *
+ * **`getPopularEvents` no se borra**, y este bloque es lo que deja escrito por qué: lo
+ * sigue usando `HeroSection` para el destacado, y allí el criterio sin ventana es el
+ * correcto —una única tarjeta protagonista quiere "lo más popular de todo", no "lo de
+ * hoy"—. Que las dos casas siguen siendo distintas a propósito, y no por descuido.
+ *
+ * El día del que se pregunta es dos días por delante de hoy y el fixture se reescribe
+ * para caer entero ahí, como en `__tests__/hoy.test.ts`: sin eso el `getAgendaEventos()`
+ * descarta el fixture por ser pasado y la comparación no miraría nada.
+ */
+describe("los dos rankings, y por qué son distintos", () => {
+  const HOY_REAL = ymdEnDias(2);
+
+  async function agendaDelFixture() {
+    jest.resetModules();
+    mockSoloMunicipal(HOY_REAL);
+    const { getAgendaEventos } = await import("@/lib/agenda");
+    return getAgendaEventos();
+  }
+
+  it("recomendados no puede devolver nada fuera de su ventana, y con datos reales", async () => {
+    const eventos = await agendaDelFixture();
+
+    const lista = recomendados(eventos, {
+      desde: HOY_REAL,
+      hasta: HOY_REAL,
+      limite: 10,
+    });
+
+    // El fixture se reescribe entero en `HOY_REAL`, así que esto no distingue el
+    // selector de uno que ignorase la ventana: mira lo que el selector **promete**,
+    // y un día flojo en producción llegaría por el mismo camino que este caso.
+    expect(lista.length).toBeGreaterThan(0);
+    expect(lista.every((e) => e.date.slice(0, 10) === HOY_REAL)).toBe(true);
+  });
+
+  it("getPopularEvents trae eventos de cualquier fecha, que es lo que el hero necesita", async () => {
+    await agendaDelFixture();
+    const { getPopularEvents } = await import("@/lib/popularity");
+
+    // Un evento de 2099 entra, y entra sin que se le pueda pedir otra cosa. La
+    // diferencia con el caso anterior es toda la decisión: la lista de la home es
+    // "de hoy" y la del destacado es "la más popular de todo", y por eso son dos
+    // funciones distintas en vez de una con un parámetro que nadie usa.
+    const lista = getPopularEvents(
+      [
+        ev({ id: "lejano", date: "2099-01-01T20:00:00.000Z" }),
+        ev({ id: "tambien-lejano", date: "2099-06-01T20:00:00.000Z" }),
+      ],
+      10
+    );
+
+    expect(lista.map((e) => e.id).sort()).toEqual(["lejano", "tambien-lejano"]);
   });
 });
