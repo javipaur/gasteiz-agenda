@@ -35,6 +35,75 @@ export function loadFixtureWithFutureDates(
   );
 }
 
+/**
+ * El fixture municipal con **todos** sus eventos en el día `ymd`.
+ *
+ * **Por qué hay que reescribir las fechas y no usar `loadFixture` tal cual.** El
+ * fixture se capturó el 16 de septiembre de 2026 y `getAgendaEventos()` descarta el
+ * pasado salvo que se le pida `includePast` —que es lo correcto para la agenda real—.
+ * Con las fechas de captura cualquier consumidor del fixture pinta el estado vacío, y
+ * un test que lo espera así pasa por el motivo equivocado. Además se pudre en
+ * silencio: no falla, solo deja de comprobar nada.
+ *
+ * Y por qué no se reusa `loadFixtureWithFutureDates`: ese solo reescribe el texto
+ * `"Fecha: …"` de los fixtures HTML, y este es un JSON donde la fecha viaja en
+ * `fechaInicio` y en `datetime`, en formatos distintos.
+ *
+ * Que todos los eventos caigan en el **mismo** día es lo que permite que un test
+ * distinga "el día que se le pide" de "hoy": con las fechas repartidas, una ventana de
+ * un día puede no tener nada por casualidad y el caso pasa sin comprobar la fecha.
+ */
+export function fixtureMunicipalEn(ymd: string): string {
+  const datos = JSON.parse(loadFixture("municipal-response.json")) as Record<
+    string,
+    { resultados?: Array<Record<string, unknown>> }
+  >;
+
+  const yyyymmdd = ymd.replace(/-/g, "");
+  // A las 20:00 hora local, con el offset que fija `jest.config.ts` en el proceso
+  // principal antes de bifurcar los workers, para que el `new Date(...)` del
+  // agregado caiga dentro de la ventana local del día.
+  const instante = new Date(`${ymd}T20:00:00`).toISOString();
+
+  for (const seccion of Object.values(datos)) {
+    for (const fila of seccion?.resultados ?? []) {
+      fila.fechaInicio = yyyymmdd;
+      fila.datetime = instante;
+      fila.fechaFin = null;
+      fila.isCancelado = false;
+    }
+  }
+
+  return JSON.stringify(datos);
+}
+
+/** `YYYY-MM-DD` en hora local, que es como los eventos llevan la fecha. */
+export function ymdLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
+/** Un `YYYY-MM-DD` de `dias` a partir de hoy. */
+export function ymdEnDias(dias: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return ymdLocal(d);
+}
+
+/**
+ * El pie de un aggregate limpio: solo la fuente municipal.
+ *
+ * Un test que no la usa se sale a `www.buscametas.com` de verdad, porque
+ * `lib/sources/buscametas.ts` es el único fichero del repo que usa `axios` en vez de
+ * `fetch` y `mockFetchWith` solo intercepta `global.fetch`. Se nota en el número de
+ * eventos —1.504 reales en vez de los del fixture— y en que un test que promete "hoy
+ * no tiene nada" encuentra ocho tarjetas.
+ */
+export function mockSoloMunicipal(fecha: string): void {
+  mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: fixtureMunicipalEn(fecha) }]);
+}
+
 export type Route = {
   match: RegExp;
   content: string;

@@ -1,5 +1,5 @@
 import React from "react";
-import { loadFixture, mockFetchWith } from "./helpers";
+import { mockSoloMunicipal, ymdEnDias } from "./helpers";
 
 /**
  * **Los dos scrapers que no pasan por `fetch` están mockeados, y no es opcional.**
@@ -48,63 +48,17 @@ jest.mock("@/lib/cache", () => ({
  * `renderToStaticMarkup`, que es lo que lee una persona.
  */
 
-/** El día que el test pregunta, dos días por delante de hoy. */
-const OBJETIVO = (() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 2);
-  return d;
-})();
-
-const ymd = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-const FECHA = ymd(OBJETIVO);
-const AYER = ymd(new Date(Date.now() - 86400000));
-
 /**
- * El fixture municipal con todas las fechas en `FECHA`.
- *
- * **Por qué hay que reescribirlo y no usar `loadFixture` tal cual.** El fixture se
- * capturó el 16 de septiembre de 2026 y `getAgendaEventos()` descarta el pasado salvo
- * que se le pida `includePast` —que es lo correcto para la agenda real—. Con las fechas
- * de captura la página pinta el estado vacío, el test pasa por el motivo equivocado y
- * dentro de dos semanas no pinta nada en absoluto: se pudre en silencio, que es la
- * trampa que `loadFixtureWithFutureDates` ya evita para los HTML.
- *
- * Y por qué no se reusa ese helper: solo reescribe el texto `"Fecha: …"` de los
- * fixtures HTML, y este es un JSON donde la fecha viaja en `fechaInicio` y `datetime`.
- *
- * Todos los eventos caen en el **mismo** día a propósito. Así "hoy" no tiene nada y el
- * día que se pregunta sí, que es lo que hace que el caso de `?fecha=` demuestre que
- * la página pinta el día pedido en vez del día actual.
+ * Todos los eventos del fixture caen en el **mismo** día, dos días por delante de hoy.
+ * Así "hoy" no tiene nada y el día que se pregunta sí, que es lo que hace que el caso
+ * de `?fecha=` demuestre que la página pinta el día pedido en vez del día actual.
  */
-function fixtureEnFuturo(): string {
-  const datos = JSON.parse(loadFixture("municipal-response.json")) as Record<
-    string,
-    { resultados?: Array<Record<string, unknown>> }
-  >;
-
-  const yyyymmdd = FECHA.replace(/-/g, "");
-  // A las 20:00 hora local, con el offset de `jest.config.ts` —que fija
-  // `Europe/Madrid` en el proceso principal, antes de bifurcar los workers—, para
-  // que el `new Date(...)` del selector caiga dentro de la ventana local del día.
-  const instante = new Date(`${FECHA}T20:00:00`).toISOString();
-
-  for (const seccion of Object.values(datos)) {
-    for (const fila of seccion?.resultados ?? []) {
-      fila.fechaInicio = yyyymmdd;
-      fila.datetime = instante;
-      fila.fechaFin = null;
-      fila.isCancelado = false;
-    }
-  }
-
-  return JSON.stringify(datos);
-}
+const FECHA = ymdEnDias(2);
+const AYER = ymdEnDias(-1);
 
 async function renderizar(params: Record<string, string> = {}) {
   jest.resetModules();
-  mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: fixtureEnFuturo() }]);
+  mockSoloMunicipal(FECHA);
   const mod = await import("@/app/hoy/page");
   return mod.default({
     searchParams: Promise.resolve(params),
