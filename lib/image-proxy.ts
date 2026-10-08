@@ -19,6 +19,17 @@ import { imagenServible } from "@/lib/image-hosts";
 /**
  * Los hosts cuyo WAF rechaza las cabeceras del optimizador de Next.
  *
+ * **Y también las del renderizador de las tarjetas de redes.** El motivo por el que la
+ * lista se exporta es este: `ImageResponse` —el SVG de `next/og`— descarga las
+ * imágenes con el `fetch` de Node, que manda la misma cadena "node". Una tarjeta de
+ * `app/api/promo` que le pase la URL cruda de uno de estos hosts sale con un
+ * rectángulo del color del fondo, no con un error. Medido el 8 de octubre de 2026 con
+ * `ImageResponse` de verdad, a 1080×1350: 31795 bytes con la URL cruda —igual que el
+ * fondo vacío— y 700427 bytes pasando por `/api/img`.
+ * `urlImagenPromo` de `lib/promo.ts` manda estos hosts por `/api/img` por eso, y el
+ * test que lo comprueba enumera esta lista en vez de escribir los nombres a mano, que
+ * es lo que hace que un host nuevo no se escape.
+ *
  * **El criterio es medido y hay que volver a medirlo.** El optimizador manda
  * `user-agent: node` hardcodeado en `BASE_REQ_HEADERS` (`image-optimizer.js` de Next 16)
  * y no hay ninguna opción de `next.config.ts` para cambiarlo, así que la única pregunta
@@ -28,7 +39,10 @@ import { imagenServible } from "@/lib/image-hosts";
  * de octubre de 2026: `node` y `Node.js` devolvieron 403 las seis, y `undici/7`,
  * `curl/8`, `Mozilla/5.0` y sin `User-Agent` devolvieron 200 los doce. El bloqueo es de
  * la cadena, no del cliente: el mismo Chrome que sí lo ve en su navegador recibe 403
- * desde el servidor.
+ * desde el servidor. Repetido el 8 de octubre de 2026 contra el mismo sitio, con el
+ * `fetch` de Node y no con `curl`: 403 sin tocar nada y 200 con un `user-agent`
+ * de navegador, que es exactamente por lo que `app/api/img/route.ts` pone uno
+ * explícito.
  *
  * **El fallo que arregla esto era grande y estaba en producción.** 65 de las 111 imágenes
  * de la home salían rotas, todas de este host, todas con el degradado gris del tile. El
@@ -40,7 +54,7 @@ import { imagenServible } from "@/lib/image-hosts";
  * sentence permanente: nada de esto es "hasta que se arregle", es "mientras el WAF
  * bloquee esa cadena", y la medición está escrita para que se pueda repetir.
  */
-const HOSTS_CON_WAF_QUE_RECHAZA_NODE: ReadonlySet<string> = new Set([
+export const HOSTS_CON_WAF_QUE_RECHAZA_NODE: ReadonlySet<string> = new Set([
   "lagenterula.com",
   "www.lagenterula.com",
 ]);

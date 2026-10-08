@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getEventoBySlug } from "@/lib/agenda";
 import { formatDate, shortTime } from "@/lib/utils";
-import { radioImagenPromo, TAMANO_PROMO } from "@/lib/promo";
+import { urlImagenPromo, TAMANO_PROMO } from "@/lib/promo";
 
 export const runtime = "nodejs";
 export const revalidate = 1800;
@@ -20,7 +20,11 @@ export async function GET(_req: Request, { params }: Ctx) {
   // poder romperse de forma visible, no servir un rectángulo que no dice nada.
   if (!evento) return new Response("no encontrado", { status: 404 });
 
-  const imagen = radioImagenPromo(evento.image);
+  // `urlImagenPromo` y no `radioImagenPromo`: el renderizador descarga con el `fetch` de
+  // Node y La Genterula devuelve 403 a cualquier User-Agent con "node", así que la URL
+  // cruda dejaba un rectángulo del color del fondo en la tarjeta. La función lo manda
+  // por `/api/img`. El motivo entero está en `lib/promo.ts`, no aquí.
+  const imagen = urlImagenPromo(evento.image);
   const { day, month } = formatDate(evento.date);
 
   return new ImageResponse(

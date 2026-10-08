@@ -1,4 +1,5 @@
 import { IMAGE_HOSTS } from "./image-hosts";
+import { debeUsarProxy } from "./image-proxy";
 
 /**
  * Lo que tienen en común las tarjetas del paquete de redes.
@@ -44,6 +45,51 @@ export function radioImagenPromo(url: string | undefined | null): string | null 
   const m = /^https?:\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/.exec(url);
   if (!m) return null;
   return HOSTS.includes(m[1].toLowerCase()) ? url : null;
+}
+
+/**
+ * La URL que hay que darle a `ImageResponse` para que pinte la imagen, o nada.
+ *
+ * **`radioImagenPromo` no sirve para esto, y la diferencia es el bug que arregla esta
+ * función.** `radioImagenPromo` contesta a "de qué hosts sé descargar"; esta contesta a
+ * "qué URL puede descargar este renderizador en concreto". Son dos preguntas y desde el
+ * 8 de octubre de 2026 dan dos respuestas distintas para La Genterula.
+ *
+ * **El motivo, medido y no deducido.** `ImageResponse` descarga las imágenes con el
+ * `fetch` de Node, cuyo User-Agent lleva la cadena "node". La Genterula tiene un WAF que
+ * devuelve 403 a cualquier User-Agent que la contenga. Con una tarjeta real de
+ * `app/api/promo`, a 1080×1350 y sobre una imagen de ese host: 31795 bytes con la URL
+ * cruda y 31795 bytes sin imagen. Idénticas, porque lo que se ve en el post es el
+ * rectángulo del fondo y no un error. Por el mismo proxy, 700427 bytes. La Genterula son
+ * 65 de las 111 imágenes de la home, así que esto no era un caso raro: era la mitad de
+ * las diapositivas de un post normal.
+ *
+ * **Por qué el proxy y no reintentar con otro User-Agent.** `next/og` acepta un `fetch`
+ * propio, pero eso es una línea por ruta y una lista de cabeceras que alguien tendría
+ * que mantener. `/api/img` ya existe, ya pone un User-Agent de navegador, ya está en la
+ * lista blanca de hosts y ya lo usan las trece tarjetas de la web. La imagen la descarga
+ * el sitio, no el renderizador, y por lo tanto sale por el mismo camino que todo lo
+ * demás.
+ *
+ * **Y por qué el `null` se decide antes que la ruta.** `/api/img` responde 400 a un host
+ * que no está en `IMAGE_HOSTS`, así que mandar ahí una URL que no va a ser servida
+ * convierte un 403 en un 400 y no arregla nada. Primero `radioImagenPromo`, y solo
+ * después la pregunta de por dónde va.
+ *
+ * **Por qué sale absoluta.** `ImageResponse` no tiene origen contra el que resolver una
+ * ruta relativa: `<img src="/logo.svg">` no la descarga. Para las rutas del propio sitio,
+ * que `radioImagenPromo` acepta porque el logo sí se pinta en la web, eso significa
+ * prefijar `ORIGEN_PROMO`.
+ */
+export function urlImagenPromo(url: string | undefined | null): string | null {
+  const servible = radioImagenPromo(url);
+  if (servible === null) return null;
+
+  if (debeUsarProxy(servible)) {
+    return `${ORIGEN_PROMO}/api/img?url=${encodeURIComponent(servible)}`;
+  }
+
+  return servible.startsWith("/") ? `${ORIGEN_PROMO}${servible}` : servible;
 }
 
 /**
