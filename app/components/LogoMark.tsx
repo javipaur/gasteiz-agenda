@@ -20,8 +20,16 @@
  */
 type LogoMarkProps = {
   className?: string;
-  /** La G. Por defecto el acento de la estación. */
-  g?: string;
+  /**
+   * La espiral, que es la G. Por defecto el acento de la estación.
+   *
+   * **El nombre viene de los tres sitios que la pintan**, y por eso no se llama `g`:
+   * `Header` la pasa como `var(--color-accent)` y `Footer` y `app/suscribete` como
+   * `var(--color-brand-red)`, que es el rojo fijo del icono del PWA. Los tres ya
+   * escribían `spiral` cuando el que se había quedado con el nombre viejo era este
+   * fichero, y el resultado eran tres errores de TypeScript y un build que no salía.
+   */
+  spiral?: string;
   /** Todo lo negro: txapela, nota y cursor. */
   ink?: string;
   /** El pincho. */
@@ -36,7 +44,7 @@ type LogoMarkProps = {
 
 export function LogoMark({
   className,
-  g = "var(--color-accent)",
+  spiral = "var(--color-accent)",
   ink = "currentColor",
   pincho = "#ca8a04",
   gilda = "#65a30d",
@@ -49,7 +57,7 @@ export function LogoMark({
           se lea como letra y no como un anillo roto. */}
       <path
         d="M 85 -85 A 120 120 0 1 0 120 16 L 120 0 L 18 0 L 18 42 L 62 42 A 62 62 0 1 1 44 -44 L 85 -85 Z"
-        fill={g}
+        fill={spiral}
       />
 
       {/* La nota, dentro de la curva de la G. */}
