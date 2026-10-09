@@ -27,6 +27,22 @@ export async function GET(_req: Request, { params }: Ctx) {
   const imagen = urlImagenPromo(evento.image);
   const { day, month } = formatDate(evento.date);
 
+  /*
+   * **`fechaCorta` se compone con una plantilla y se pinta como una interpolación.**
+   *
+   * Era `<div style={{ marginRight: 24 }}>{day} {month}</div>`, y eso **hacía fallar la
+   * ruta entera en producción con un 502**. Al ser dos interpolaciones más el espacio que
+   * las separa, el `<div>` tiene tres hijos y ninguno de ellos declara `display` — que es
+   * exactamente la condición que dispara el error de Satori («Expected `<div>` to have
+   * explicit "display: flex"… if it has more than one child node»).
+   *
+   * La portada de la misma carpeta tenía el fallo espejo: un ternario que podía devolver
+   * un número o una cadena. Los dos están medidos, no supuestos, y los dos llevan meses en
+   * producción; ninguna se vio en `next build` porque las dos rutas son dinámicas y no se
+   * prerenderizan. El detalle completo está en la portada.
+   */
+  const fechaCorta = `${day} ${month}`;
+
   return new ImageResponse(
     (
       <div
@@ -54,7 +70,7 @@ export async function GET(_req: Request, { params }: Ctx) {
         ) : null}
 
         <div style={{ display: "flex", fontSize: 30, color: "#E0A34E", letterSpacing: 4 }}>
-          <div style={{ marginRight: 24 }}>{day} {month}</div>
+          <div style={{ marginRight: 24 }}>{fechaCorta}</div>
           {evento.time ? <div>{shortTime(evento.time)}</div> : null}
         </div>
 
