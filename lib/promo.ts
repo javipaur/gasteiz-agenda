@@ -53,6 +53,46 @@ export function urlDePromo(fecha: string, slug?: string): string {
 }
 
 /**
+ * El post de presentación: quiénes somos. Y no es un plan de hoy.
+ *
+ * **Va en el paquete pero como campo aparte, y no como una diapositiva más.** Es otro
+ * post: este no caduca, mientras que el carrusel de la agenda cambia cada mañana. Si
+ * fuera una diapositiva ocuparía la última posición —justo donde quien publica espera el
+ * plan del sábado— y se publicaría por error. Mandarlo en su propio bloque, con su
+ * propio pie de foto, es lo que evita esa confusión.
+ *
+ * **Solo se incluye cuando hay algo que presentar**, y por eso la decisión es del
+ * script y no de aquí. Una cuenta que ya se conoce no necesita el "quiénes somos" cada
+ * jueves; mandarlo siempre solo consigue que deje de leerse. La variable es
+ * `PROMO_CON_PRESENTACION`.
+ */
+export const URL_PRESENTACION = `${ORIGEN_PROMO}/api/promo/presentacion`;
+
+/**
+ * El pie del post de presentación.
+ *
+ * **Va escrito a mano por el mismo motivo que `textoDelPie`:** un pie de foto es texto de
+ * persona, y no una plantilla. Aquí además no hay ninguna lista que sacar de los datos:
+ * es un texto fijo sobre la cuenta, y eso es justo lo que lo hace legible.
+ *
+ * **Sin `utm_content` con fecha, a diferencia del enlace del carrusel.** El del día lo
+ * lleva porque su pregunta es "qué post trajo visitas", y esa pregunta tiene respuesta
+ * distinta cada día. Aquí el enlace es siempre el mismo, así que el parámetro solo
+ * serviría para distinguir dos posts idénticos.
+ */
+export const TEXTO_PRESENTACION = [
+  "Vitoria-Gasteiz tiene agenda de sobra. Lo que faltaba era alguien que la juntara.",
+  "",
+  "Gasteiz Click recoge lo que pasa en 28 sitios y te dice qué merece la pena.",
+  "Sin registro, sin cuenta y sin que te manden nada.",
+  "",
+  "La agenda entera está aquí abajo 👇",
+].join("\n");
+
+/** El enlace del post de presentación: siempre el mismo, y sin utm. */
+export const ENLACE_PRESENTACION = ORIGEN_PROMO;
+
+/**
  * Un host que la tarjeta pueda pintar, o nada.
  *
  * **El predicado no es `imagenServible` y la diferencia es el motivo.** El de

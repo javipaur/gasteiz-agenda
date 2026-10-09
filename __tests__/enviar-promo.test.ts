@@ -132,8 +132,11 @@ describe("el script del paquete", () => {
     fetchSpy.mockRestore();
     log.mockRestore();
     jest.restoreAllMocks();
-    delete process.env.PROMO_PARA;
-    delete process.env.PROMO_DESTINO;
+delete process.env.PROMO_PARA;
+  delete process.env.PROMO_DESTINO;
+  // La del post de presentación también, o el test que la pone contaminaría a los que
+  // vienen después y todos creerían que viene de serie.
+  delete process.env.PROMO_CON_PRESENTACION;
   });
 
   it("pide el paquete a producción y descarga solo sus imágenes", async () => {
@@ -293,6 +296,102 @@ describe("el script del paquete", () => {
       expect(process.exitCode).toBe(1);
     });
   });
+
+describe("el post de presentación", () => {
+  it("no se manda salvo que PROMO_CON_PRESENTACION=1", async () => {
+    // **Que no salga por defecto es el comportamiento, no una falta.** El post de
+    // presentación no caduca —el carrusel cambia cada mañana—, así que mandarlo todas las
+    // semanas solo consigue que deje de leerse. Quien decide cuándo presentarlo es la
+    // persona, y para eso está la variable.
+    await cargarScript()();
+
+    const opciones = sendMail.mock.calls[0][0] as {
+      attachments: Array<{ filename: string; cid?: string }>;
+      html: string;
+    };
+    expect(opciones.attachments.some((a) => a.filename === "presentacion.png")).toBe(false);
+    expect(opciones.html).not.toContain("presentacion");
+  });
+
+  it("con PROMO_CON_PRESENTACION=1 viaja con su cid, su texto y su enlace", async () => {
+    process.env.PROMO_CON_PRESENTACION = "1";
+
+    await cargarScript()();
+
+    const opciones = sendMail.mock.calls[0][0] as {
+      attachments: Array<{ filename: string; contentDisposition: string; cid?: string }>;
+      html: string;
+    };
+    const suyas = opciones.attachments.filter((a) => a.filename === "presentacion.png");
+
+    // Inline y colgada, como el resto: sin la copia `attachment` el correo llega sin
+    // fotos en el cliente de iOS.
+    expect(suyas).toHaveLength(2);
+    expect(suyas.map((a) => a.contentDisposition).sort()).toEqual(["attachment", "inline"]);
+
+    // **El cid es `presentacion` y no `promo-08`, y el test lo fija.** Es lo que impide
+    // que en el correo se lea como una diapositiva más: numerada, alguien la sube
+    // thinking que es la primera del carrusel.
+    const enLinea = suyas.find((a) => a.contentDisposition === "inline");
+    expect(enLinea?.cid).toBe("presentacion");
+    expect(suyas.some((a) => (a.cid ?? "").startsWith("promo-"))).toBe(false);
+
+    expect(opciones.html).toContain("cid:presentacion");
+    expect(opciones.html).toContain("POST ADICIONAL");
+    expect(opciones.html).toContain("tiene agenda de sobra");
+  });
+
+  it("no aparece numerada como diapositiva del carrusel", async () => {
+    // La prueba de que la separación es real y no de aspecto: en el HTML, el bloque de la
+    // presentación va después del pie del carrusel, no intercalado en la lista numerada.
+    process.env.PROMO_CON_PRESENTACION = "1";
+
+    await cargarScript()();
+
+    const opciones = sendMail.mock.calls[0][0] as { html: string };
+    const enLaPresentacion = opciones.html.indexOf("cid:presentacion");
+    const ultimoNumero = opciones.html.lastIndexOf("promo-06");
+
+    expect(enLaPresentacion).toBeGreaterThan(ultimoNumero);
+    // Y el texto del post de presentación está en su propio bloque, con su pie.
+    expect(opciones.html.indexOf("Pie del post de presentación")).toBeGreaterThan(
+      ultimoNumero
+    );
+  });
+
+  it("si la imagen no se baja, el carrusel se manda igualmente", async () => {
+    // **Un fallo aquí no puede tumbar el correo.** La presentación es material de apoyo; el
+    // paquete del día es lo urgente. Es al revés que la puerta de salud, que sí detiene
+    // todo, y el contraste es el motivo: si perder la presentación fuera un error, un 500
+    // de esa ruta dejaría sin publicar un día entero de planes.
+    process.env.PROMO_CON_PRESENTACION = "1";
+    fetchSpy.mockImplementation((async (u: string) => {
+      pedidas.push(String(u));
+      if (u.includes("/api/promo?")) {
+        return { ok: true, status: 200, json: async () => paqueteDePrueba };
+      }
+      if (u.includes("/api/promo/presentacion")) {
+        return { ok: false, status: 500, arrayBuffer: async () => new ArrayBuffer(0) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer,
+      };
+    }) as unknown as typeof fetch);
+
+    await cargarScript()();
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const opciones = sendMail.mock.calls[0][0] as {
+      attachments: Array<{ filename: string }>;
+    };
+    expect(opciones.attachments.some((a) => a.filename === "presentacion.png")).toBe(false);
+    // Y sigue llevando las imágenes del carrusel, que es lo que no puede perderse.
+    expect(opciones.attachments.filter((a) => a.filename === "01-portada.png").length).toBe(2);
+    expect(process.exitCode).toBeUndefined();
+  });
+});
 
 describe("la puerta del mínimo", () => {
     it("con dos planes escribe los ficheros, no manda correo y sale con 1", async () => {

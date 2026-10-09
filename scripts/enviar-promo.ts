@@ -24,6 +24,54 @@ import type { PaquetePromo } from "@/lib/promo";
 const DESTINO_POR_DEFECTO = "data/promo";
 
 /**
+ * La imagen del post de presentación, bajada del despliegue.
+ *
+ * **El `cid` es `presentacion` y no un número, y esa es la parte que importa.** `adjuntosDe`
+ * numera lo que le pasa, así que si esta imagen entrara por ahí saldría como `promo-01` y
+ * en el correo se leería `01 · Presentación`, que es exactamente la confusión que este
+ * bloque existe para evitar: que alguien lo suba como si fuera la primera diapositiva del
+ * carrusel.
+ *
+ * **Un fallo aquí no tumba el correo.** Si la presentación no se baja, lo que se pierde es
+ * el material de apoyo y el carrusel —que es lo urgente— sigue saliendo entero. Es al revés
+ * que la puerta de salud, que sí detiene todo: aquí una imagen que falta no puede impedir
+ * que llegue el paquete del día.
+ */
+async function descargarPresentacion() {
+  const { URL_PRESENTACION, TEXTO_PRESENTACION, ENLACE_PRESENTACION } =
+    await import("@/lib/promo");
+
+  try {
+    const res = await fetch(URL_PRESENTACION);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const content = Buffer.from(await res.arrayBuffer());
+
+    return {
+      texto: TEXTO_PRESENTACION,
+      enlace: ENLACE_PRESENTACION,
+      adjunto: {
+        filename: "presentacion.png",
+        content,
+        contentDisposition: "inline" as const,
+        cid: "presentacion",
+      },
+      adjuntoColgado: {
+        filename: "presentacion.png",
+        content,
+        contentDisposition: "attachment" as const,
+      },
+    };
+  } catch (error) {
+    console.warn(
+      `[promo] La presentación no se pudo bajar (${
+        error instanceof Error ? error.message : String(error)
+      }). El carrusel se manda igualmente.`
+    );
+    return null;
+  }
+}
+
+/**
  * El paquete, pidiéndoselo a quien dibuja las imágenes.
  *
  * **Por qué se pide y no se calcula aquí. Medido, no razonado:** el script llegaba a
@@ -209,12 +257,43 @@ export async function main() {
   const { sendMail } = await import("@/lib/mail");
   const { asuntoDelCorreo, htmlDelCorreo } = await import("@/lib/promo-correo");
 
+  /*
+   * **La presentación se baja aparte y con su propio `cid`, y va después del carrusel.**
+   *
+   * Su `cid` es `presentacion` y no `promo-08` a propósito: el número es para las
+   * diapositivas, y una imagen sin número es justo la señal de que esto no es una más.
+   * En `htmlDelCorreo` aparece en su propia sección, con su pie de foto, para que no se
+   * confunda con el plan del último día.
+   *
+   * **Se manda cuando `PROMO_CON_PRESENTACION` lo dice y no por defecto.** El post de
+   * presentación no caduca —el carrusel de la agenda cambia cada mañana—, así que
+   * mandarlo todas las semanas solo consigue que deje de leerse. Quien decide cuándo
+   *.presentar es el editorial, no el calendario.
+   */
+  const conPresentacion = process.env.PROMO_CON_PRESENTACION?.trim() === "1";
+  const adjuntoPresentacion = conPresentacion
+    ? await descargarPresentacion()
+    : null;
+
   const res = await sendMail({
     to: para,
     subject: asuntoDelCorreo(desde, hasta, titulos.length),
-    html: htmlDelCorreo(paquete, titulos),
+    html: htmlDelCorreo(
+      paquete,
+      titulos,
+      // Solo el texto y el enlace llegan al HTML; los adjuntos van aparte, en la lista de
+      // `attachments`. Es la misma imagen en dos sitios, no dos imágenes.
+      adjuntoPresentacion
+        ? { texto: adjuntoPresentacion.texto, enlace: adjuntoPresentacion.enlace }
+        : undefined
+    ),
     text: `${paquete.texto}\n\n${paquete.enlace}`,
-    attachments: adjuntosDe(imagenes),
+    attachments: [
+      ...adjuntosDe(imagenes),
+      ...(adjuntoPresentacion
+        ? [adjuntoPresentacion.adjunto, adjuntoPresentacion.adjuntoColgado]
+        : []),
+    ],
   });
 
   if (!res.ok) {
@@ -225,6 +304,22 @@ export async function main() {
   }
 
   console.log(`[promo] Mandado a ${para}. ${titulos.length} diapositivas más la portada.`);
+
+  /*
+   * **Se dice si la presentación-travel o no, y no solo si falló.**
+   *
+   * Sin esta línea, un correo con la presentación dentro y otro sin ella dan exactamente
+   * la misma salida, y la única forma de saberlo es abrir el correo y contar. Y no es
+   * un detalle: mandarla es una decisión editorial y tiene que poder comprobarse desde
+   * el log, que es donde se mira cuando algo no cuadra.
+   */
+  if (conPresentacion) {
+    console.log(
+      adjuntoPresentacion
+        ? "[promo] Con el post de presentación al final, en su propia sección."
+        : "[promo] Se pidió la presentación pero no se pudo incluir."
+    );
+  }
 }
 
 // Solo cuando el fichero es el programa que se ejecuta. Importado desde un test —o desde
