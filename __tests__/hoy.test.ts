@@ -1,5 +1,6 @@
 import React from "react";
 import { mockSoloMunicipal, ymdEnDias } from "./helpers";
+import { MAX_DIAPOSITIVAS } from "@/lib/promo";
 
 /**
  * **Los dos scrapers que no pasan por `fetch` están mockeados, y no es opcional.**
@@ -136,5 +137,21 @@ describe("/hoy", () => {
     const html = await texto(await renderizar({ fecha: "1990-01-01" }));
 
     expect(html).toMatch(/no hay nada recomendado para esa fecha/i);
+  });
+
+  it("pinta tantos como el post enseña, ni uno menos", async () => {
+    // **Este es el bug que cierra la promesa del paquete.** El post de Instagram
+    // lleva hasta `MAX_DIAPOSITIVAS` diapositivas y esta página lleva
+    // `LIMITE_POR_DEFECTO`, que son 8. Con 9 planes en el finde, el noveno sale en la
+    // imagen del carrusel y quien la sigue no lo encuentra en la página a la que
+    // llegaba: el enlace prometía 9 y entregaba 8.
+    //
+    // Medido el 9 de octubre de 2026 sobre el finde del 10 y 11: `/api/promo` daba 9
+    // imágenes y `/hoy` pintaba 8 tarjetas.
+    const html = await texto(await renderizar({ fecha: FECHA }));
+
+    // El fixture trae muchos más que nueve, así que lo que decide es el tope, no
+    // que falten eventos.
+    expect(titulos(html)).toHaveLength(MAX_DIAPOSITIVAS);
   });
 });

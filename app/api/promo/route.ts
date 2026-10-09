@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAgendaEventos } from "@/lib/agenda";
 import { recomendados } from "@/lib/recomendados";
-import { ORIGEN_PROMO, urlDePromo, textoDelPie } from "@/lib/promo";
+import { MAX_DIAPOSITIVAS, ORIGEN_PROMO, urlDePromo, textoDelPie } from "@/lib/promo";
 import { localDateStr } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const revalidate = 1800;
-
-/** Instagram no acepta más de diez diapositivas, y una es la portada. */
-const MAX_DIAPOSITIVAS = 9;
 
 /**
  * El paquete del día, listo para copiar y publicar.

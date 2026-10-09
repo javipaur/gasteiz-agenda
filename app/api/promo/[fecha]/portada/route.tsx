@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getAgendaEventos } from "@/lib/agenda";
 import { recomendados } from "@/lib/recomendados";
-import { TAMANO_PROMO } from "@/lib/promo";
+import { MAX_DIAPOSITIVAS, TAMANO_PROMO } from "@/lib/promo";
 
 export const runtime = "nodejs";
 // Es una imagen que se puede cachear un rato: el mismo día da la misma portada.
@@ -13,7 +13,15 @@ export async function GET(_req: Request, { params }: Ctx) {
   const { fecha } = await params;
 
   const eventos = await getAgendaEventos();
-  const lista = recomendados(eventos, { desde: fecha, hasta: fecha, limite: 9 });
+  // `MAX_DIAPOSITIVAS` y no un `9` a pelo: la portada cuenta lo mismo que el paquete,
+  // y dos números escritos en dos sitios son dos números que un día no coinciden. Este
+  // estaba a pelo y el otro en `app/api/promo/route.ts`, y solo se veían distintos si
+  // alguien miraba los dos.
+  const lista = recomendados(eventos, {
+    desde: fecha,
+    hasta: fecha,
+    limite: MAX_DIAPOSITIVAS,
+  });
 
   // `T12:00:00` y no medianoche: una fecha sin hora la parsea el motor como UTC, y en
   // `Europe/Madrid` eso es las dos de la mañana del día anterior. A mediodía el día no

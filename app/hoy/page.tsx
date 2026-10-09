@@ -3,6 +3,7 @@ import { getAgendaEventos } from "@/lib/agenda";
 import { recomendados } from "@/lib/recomendados";
 import { EventCard, InViewWrapper } from "@/lib/shared";
 import { localDateStr } from "@/lib/utils";
+import { MAX_DIAPOSITIVAS } from "@/lib/promo";
 
 export const metadata: Metadata = {
   title: "Recomendados para hoy",
@@ -42,7 +43,12 @@ export default async function HoyPage({ searchParams }: Props) {
   const hasta = uno(q.hasta) ?? desde;
 
   const eventos = await getAgendaEventos();
-  const lista = recomendados(eventos, { desde, hasta });
+  // `MAX_DIAPOSITIVAS` y no el `LIMITE_POR_DEFECTO` del selector, que son 8. **Esta
+  // página es la que lleva el post de Instagram**, así que no puede enseñar menos de
+  // lo que el post enseña: con 9 planes en el finde, la novena diapositiva prometía una
+  // tarjeta que no estaba. Medido el 9 de octubre de 2026 sobre el finde del 10 y 11: el
+  // paquete daba 9 imágenes y esta página pintaba 8.
+  const lista = recomendados(eventos, { desde, hasta, limite: MAX_DIAPOSITIVAS });
 
   return (
     // Un `<div>` y no un `<main>`: `app/layout.tsx` ya envuelve la página en

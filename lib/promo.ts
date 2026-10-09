@@ -14,6 +14,25 @@ import { debeUsarProxy } from "./image-proxy";
  */
 export const TAMANO_PROMO = { width: 1080, height: 1350 } as const;
 
+/**
+ * Cuántos eventos entran en un post, y por qué es un solo número para todos.
+ *
+ * **Instagram no acepta más de diez diapositivas, y una es la portada.** De ahí el
+ * nueve.
+ *
+ * **El número estaba escrito en tres sitios y no coincidían**: aquí, `LIMITE_POR_DEFECTO`
+ * en `lib/recomendados.ts` —que son 8— y un `limite: 9` a pelo en la ruta de la
+ * portada. La consequence medida fue que el post del finde del 10 y 11 de octubre
+ * llevaba 9 diapositivas y la página a la que enlazaba pintaba 8 tarjetas: **el
+ * noveno evento salía en la imagen del carrusel y no estaba donde el enlace
+ * prometía.** Por eso `/hoy` usa este número y no el del selector: la página a la
+ * que lleva un post no puede enseñar menos que el post.
+ *
+ * **`LIMITE_POR_DEFECTO` sigue siendo 8** y no se toca: es el valor por defecto de un
+ * selector genérico, y este número es de un canal concreto.
+ */
+export const MAX_DIAPOSITIVAS = 9;
+
 /** La base pública del sitio. Es la de `metadataBase` en `app/layout.tsx`. */
 export const ORIGEN_PROMO = "https://gasteizclick.javierpalacio.es";
 
