@@ -12,8 +12,8 @@
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "newsletter:send": "npx tsx scripts/send-newsletter.ts",
-    "promo:send": "npx tsx scripts/enviar-promo.ts",
+    "newsletter:send": "tsx scripts/send-newsletter.ts",
+    "promo:send": "tsx scripts/enviar-promo.ts",
     "push": "node scripts/send-push.mjs"
   },
   "dependencies": {
@@ -30,6 +30,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
+    "tsx": "^4.23.15",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
