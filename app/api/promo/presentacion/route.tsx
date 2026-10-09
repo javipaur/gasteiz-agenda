@@ -102,17 +102,28 @@ export async function GET() {
             <span>GASTEIZ</span>
             <span style={{ color: "#dc2626" }}>CLICK</span>
           </div>
+          {/*
+           * **Dos líneas cortadas a mano, y no un salto automático.** A 42 px el
+           * titular no cabe en los 888 px que quedan entre los márgenes, y Satori lo
+           * parte donde le sale: «TODO VITORIA-GASTEIZ, EN UN SOLO / SITIO», que deja
+           * «SITIO» solo al final de la línea y se lee como un descuido. Con dos
+           * `<span>` en un `flex column` el corte es el que queríamos —una afirmación
+           * en dos tiempos— y además aguanta si mañana el titular crece una palabra.
+           */}
           <div
             style={{
-              fontSize: 42,
+              display: "flex",
+              flexDirection: "column",
+              fontSize: 44,
               fontWeight: 800,
               color: "#a16207",
-              letterSpacing: "0.06em",
+              letterSpacing: "0.04em",
               marginTop: 26,
-              lineHeight: 1.25,
+              lineHeight: 1.2,
             }}
           >
-            TODO VITORIA-GASTEIZ, EN UN SOLO SITIO
+            <span>TODO VITORIA-GASTEIZ</span>
+            <span>EN UN SOLO SITIO</span>
           </div>
         </div>
 
