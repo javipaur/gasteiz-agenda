@@ -17,15 +17,18 @@ import { mkdtemp, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { PaquetePromo } from "@/lib/promo";
 import { ventanaDelDia } from "@/lib/promo";
 import { localDateStr } from "@/lib/utils";
 
-const getAgendaEventos = jest.fn();
+// **Solo `getAgendaSalud`, y el motivo es que el script ya no pide los eventos.** Antes el
+// script montaba la lista en local y necesitaba `getAgendaEventos`; ahora pide el paquete
+// ya montado y lo único que lee del agregador es la puerta de salud. Dejar el otro mock
+// sin usar daría a entender una dependencia que ya no está.
 const getAgendaSalud = jest.fn();
 const sendMail = jest.fn();
 
 jest.mock("@/lib/agenda", () => ({
-  getAgendaEventos: () => getAgendaEventos(),
   getAgendaSalud: () => getAgendaSalud(),
 }));
 
@@ -74,6 +77,7 @@ describe("el script del paquete", () => {
   let destino: string;
   let dirEsperado: string;
   let pedidas: string[];
+  let paqueteDePrueba: PaquetePromo;
   let fetchSpy: jest.SpyInstance;
   let log: jest.SpyInstance;
 
@@ -87,8 +91,26 @@ describe("el script del paquete", () => {
     process.env.PROMO_DESTINO = destino;
 
     pedidas = [];
+    // El paquete que "devuelve producción". Sus URLs son las de `ORIGEN_PROMO` de verdad,
+    // así que el test comprueba la cadena entera —pedir el paquete y bajar sus imágenes—
+    // sin tocar la red. Cada imagen se sirve con la firma del PNG, que es lo que
+    // distingue un 200 de un 404 en la vida real.
+    paqueteDePrueba = {
+      portada: "https://gasteizclick.javierpalacio.es/api/promo/2026-01-01/portada",
+      imagenes: eventos(5).map((e) =>
+        `https://gasteizclick.javierpalacio.es/api/promo/2026-01-01/evento/${e.slug}`
+      ),
+      titulos: eventos(5).map((e) => e.title),
+      pie: "https://gasteizclick.javierpalacio.es/hoy?desde=2026-01-01&hasta=2026-01-01",
+      texto: "HOY en Vitoria-Gasteiz: 5 planes que recomendamos.",
+      enlace: "https://gasteizclick.javierpalacio.es/hoy?desde=2026-01-01&hasta=2026-01-01",
+    };
+
     fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation((async (u: string) => {
       pedidas.push(String(u));
+      if (u.includes("/api/promo?")) {
+        return { ok: true, status: 200, json: async () => paqueteDePrueba };
+      }
       return {
         ok: true,
         status: 200,
@@ -101,7 +123,6 @@ describe("el script del paquete", () => {
     jest.spyOn(console, "error").mockImplementation(() => {});
     jest.spyOn(console, "warn").mockImplementation(() => {});
 
-    getAgendaEventos.mockReset().mockResolvedValue(eventos(5));
     getAgendaSalud.mockReset().mockResolvedValue(BIEN);
     sendMail.mockReset().mockResolvedValue({ ok: true });
   });
@@ -115,16 +136,64 @@ describe("el script del paquete", () => {
     delete process.env.PROMO_DESTINO;
   });
 
-  it("las únicas peticiones son las imágenes del paquete, nunca su propio despliegue", async () => {
-    // Este es el test que muerde. Si alguien vuelve a pedir `/api/promo` o
-    // `/api/actividades/*` por HTTP, esto falla aunque las rutas sigan públicas.
-    // El `toBeGreaterThan(0)` no es decorativo: sin él un `every()` sobre un array
-    // vacío pasa sin comprobar nada, y ese fue el primer borrador de este test.
+  it("pide el paquete a producción y descarga solo sus imágenes", async () => {
+    // Este test cambió de signo a propósito, y conviene que se sepa por qué.
+    //
+    // Antes afirmaba lo contrario: que el script **nunca** debía pedir `/api/promo`,
+    // porque el criterio era que un script del repo no debe depender de su despliegue.
+    // Ese criterio era correcto aplicado a los **datos**, y quedó equivocado aplicado a
+    // las **imágenes**: el script seguía montando la lista en local mientras pedía las
+    // imágenes al despliegue, y eran dos copias de la misma verdad calculadas en
+    // instantes distintos. Medido: los slugs que la lista local pedía y la caché del
+    // despliegue no conocía devolvían 404, y el correo no salía.
+    //
+    // Lo que se afirma ahora es la regla que evita aquello: **una sola copia de la
+    // lista**, la de quien dibuja. Se pide el paquete una vez, con su ventana, y todas
+    // las URLs que se descargan tienen que venir de ahí.
+    //
+    // El `toBeGreaterThan(0)` no es decorativo: sin él un `every()` sobre un array vacío
+    // pasa sin comprobar nada.
     await cargarScript()();
 
-    expect(pedidas.length).toBeGreaterThan(0);
-    expect(pedidas.every((u) => u.includes("/api/promo/"))).toBe(true);
-    expect(pedidas.some((u) => u.includes("?desde="))).toBe(false);
+    const delPaquete = pedidas.filter((u) => u.includes("/api/promo?"));
+    expect(delPaquete).toHaveLength(1);
+    expect(delPaquete[0]).toContain(`desde=${VENTANA?.desde}`);
+    expect(delPaquete[0]).toContain(`hasta=${VENTANA?.hasta}`);
+
+    // Y se baja la portada **más** las diapositivas del paquete, y nada más. El `+ 1` es la
+    // portada, que va aparte en `paquete.portada` y no está en `imagenes`: si mañana el
+    // script añadiera una URL de su cuenta, el recuento lo delata.
+    const imagenes = pedidas.filter((u) => u.includes("/api/promo/"));
+    expect(imagenes).toHaveLength(paqueteDePrueba.imagenes.length + 1);
+    expect(imagenes).toEqual(expect.arrayContaining(paqueteDePrueba.imagenes));
+    expect(imagenes).toContain(paqueteDePrueba.portada);
+  });
+
+  it("falla con un error claro si el paquete trae más títulos que imágenes", async () => {
+    // El desajuste entre títulos e imágenes es el síntoma del bug que se corrigió: si
+    // el paquete se monta en un sitio y se nombra en otro, aparece como un 404 más
+    // adelante. Se comprueba en la puerta, no al descargar.
+    paqueteDePrueba.titulos = [...paqueteDePrueba.titulos, "un título de más"];
+
+    await expect(cargarScript()()).rejects.toThrow(/títulos para/);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("falla con un error claro si producción no responde", async () => {
+    fetchSpy.mockImplementation((async (u: string) => {
+      pedidas.push(String(u));
+      if (String(u).includes("/api/promo?")) {
+        return { ok: false, status: 503, arrayBuffer: async () => new ArrayBuffer(0) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer,
+      };
+    }) as unknown as typeof fetch);
+
+    await expect(cargarScript()()).rejects.toThrow(/HTTP 503/);
+    expect(sendMail).not.toHaveBeenCalled();
   });
 
   it("escribe portada, diapositivas y paquete.json en disco", async () => {
@@ -225,11 +294,17 @@ describe("el script del paquete", () => {
     });
   });
 
-  describe("la puerta del mínimo", () => {
+describe("la puerta del mínimo", () => {
     it("con dos planes escribe los ficheros, no manda correo y sale con 1", async () => {
-      // Aquí sí se escribe: el paquete existe y solo es fino, y quien lo encuentre en
-      // el disco decide si lo publica.
-      getAgendaEventos.mockResolvedValue(eventos(2));
+      // Aquí sí se escribe: el paquete existe y solo es fino, y quien lo encuentre en el
+      // disco decide si lo publica.
+      //
+      // **El mínimo se cuenta sobre las imágenes del paquete y no sobre una lista local.**
+      // Antes venía de `lista.length`, que el script montaba por su cuenta; ahora el
+      // paquete es lo que dice cuántos planes hay, que es lo que el sitio va a pintar. Un
+      // mínimo medido sobre otra lista volvería a ser una segunda verdad.
+      paqueteDePrueba.imagenes = paqueteDePrueba.imagenes.slice(0, 2);
+      paqueteDePrueba.titulos = paqueteDePrueba.titulos.slice(0, 2);
 
       await cargarScript()();
 

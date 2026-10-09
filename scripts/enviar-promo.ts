@@ -9,13 +9,69 @@
  * recibe decide si el día lo merece y lo sube. Publicar es una decisión editorial, y
  * automatizarla metería una credencial en el repo a cambio de nada.
  *
- * Y lo que sí lee son los eventos del agregador, no de un `fetch` a `/api/*`, por el
- * mismo motivo que `scripts/send-newsletter.ts`: un script del repo no debería depender
- * de que su propio despliegue le deje pasar.
+ * **Depende de que su propio despliegue esté vivo, y es a conciencia.** Se pide el
+ * paquete a `/api/promo` en vez de montarlo en local. El motivo está medido y escrito en
+ * `pedirPaquete`: con las dos copias de la lista, cada imagen que no estuviera en la
+ * caché de producción salía como un 404. Un script que dibuja sus imágenes no depende de
+ * la web para nada; este elige que la web sea la única que sabe qué se publica.
+ *
+ * Y lo que sí lee son los eventos del agregador para la **puerta de salud**, y el paquete
+ * ya montado para las imágenes. Ver `pedirPaquete` para por qué son dos cosas distintas.
  */
+import type { PaquetePromo } from "@/lib/promo";
 
 /** Los ficheros van aquí salvo que `PROMO_DESTINO` diga otra cosa. */
 const DESTINO_POR_DEFECTO = "data/promo";
+
+/**
+ * El paquete, pidiéndoselo a quien dibuja las imágenes.
+ *
+ * **Por qué se pide y no se calcula aquí. Medido, no razonado:** el script llegaba a
+ * producción con una lista montada en local y se pedían sus imágenes. Las dos listas las
+ * calcula el mismo código, pero en instantes distintos y desde cachés distintas —la del
+ * despliegue va con `revalidate: 1800`—, así que no tienen por qué coincidir. Cuando no
+ * coincidían, el script pedía la imagen de un slug que producción **nunca había
+ * dibujado**, y `/api/promo/[fecha]/evento/[slug]` respondía 404. Medido en un jueves
+ * real: la lista local pedía `feria-del-libro-presentacion-y-firma-con-katixa-agirre`, y
+ * ese slug seguía dando 404 mientras los seis que tenía producción bajaban sin problema.
+ *
+ * O sea: el fallo no era de imágenes, era que el script y el sitio tenían **dos copias
+ * de la lista**, y el que dibujaba no era el que la nombraba. Por eso ahora se pide el
+ * paquete ya montado, que es la única forma de que la URL de una imagen y el título que
+ * va debajo suyo sean la misma verdad.
+ *
+ * **La puerta de salud sigue siendo local y a propósito.** `/api/v1/salud` informa de las
+ * fuentes del despliegue, que es exactamente lo que hay que vigilar antes de publicar: si
+ * la lista de producción viene de un agregado a medias, el paquete heredaría ese defecto
+ * y ni el tamaño ni los 404 lo delatarían. Comprobarlo donde nacen los datos —y no
+ * donde se sirven— es lo que hace que esa puerta siga significando algo.
+ */
+async function pedirPaquete(desde: string, hasta: string) {
+  const { ORIGEN_PROMO } = await import("@/lib/promo");
+  const url = `${ORIGEN_PROMO}/api/promo?desde=${desde}&hasta=${hasta}`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`El paquete no se pudo pedir a ${url}: HTTP ${res.status}`);
+  }
+
+  const paquete = (await res.json()) as PaquetePromo;
+
+  // Una respuesta con la forma equivocada pasa el `res.ok` y revienta tres líneas más
+  // abajo, en un sitio que no dice qué la rompió. Se comprueba aquí, donde el error
+  // todavía significa algo.
+  if (!paquete || !Array.isArray(paquete.imagenes) || !Array.isArray(paquete.titulos)) {
+    throw new Error(`El paquete de ${url} no tiene la forma esperada.`);
+  }
+  if (paquete.titulos.length !== paquete.imagenes.length) {
+    throw new Error(
+      `El paquete de ${url} trae ${paquete.titulos.length} títulos para ` +
+        `${paquete.imagenes.length} imágenes.`
+    );
+  }
+
+  return paquete;
+}
 
 export async function main() {
   console.log("[promo] Calculando la ventana de hoy...");
@@ -52,7 +108,10 @@ export async function main() {
   // qué: el agregado no guarda eventos pasados —cualquier ventana en el pasado devuelve
   // 0—, así que la línea base sería 0 y la comparación no se dispararía nunca.
   // `sourcesFallidas` sí lo dice.
-  const { getAgendaEventos, getAgendaSalud } = await import("@/lib/agenda");
+  // **Solo la salud, no los eventos.** El script ya no los pide: el paquete viene montado
+  // de `/api/promo` y sus eventos no se tocan. Lo que queda de lectura local es esta
+  // puerta, y se lee aquí a propósito —está en `pedirPaquete`.
+  const { getAgendaSalud } = await import("@/lib/agenda");
 
   const salud = await getAgendaSalud();
   // `completa` **no es un campo de `AgendaMeta`**: es el `true` que `/api/v1/salud` se
@@ -73,13 +132,12 @@ export async function main() {
     return;
   }
 
-  const { recomendados } = await import("@/lib/recomendados");
-  const { MAX_DIAPOSITIVAS } = await import("@/lib/promo");
+  const paquete = await pedirPaquete(desde, hasta);
 
-  const eventos = await getAgendaEventos();
-  const lista = recomendados(eventos, { desde, hasta, limite: MAX_DIAPOSITIVAS });
-  const { paqueteDePromo } = await import("@/lib/promo");
-  const paquete = paqueteDePromo(lista, { desde, hasta });
+  // Los títulos vienen **en el paquete**, y no de una lista local aparte, porque tienen
+  // que ser los de las imágenes que se mandan. De otro modo el pie puede nombrar un plan
+  // que no está en la diapositiva de al lado, y eso solo se vería después de publicar.
+  const titulos = paquete.titulos;
 
   const { descargarImagenes, escribirPaqueteEnDisco, adjuntosDe } =
     await import("@/lib/promo-ficheros");
@@ -96,8 +154,10 @@ export async function main() {
   // ---------------------------------------------------------------- puerta 2
   // Tres planes es el mínimo. Este paquete existe y solo es fino, así que **sí** se
   // escribe en disco: quien lo encuentre decide si lo publica.
-  if (lista.length < 3) {
-    console.warn(`[promo] Solo ${lista.length} planes en la ventana. No se manda correo.`);
+  if (paquete.imagenes.length < 3) {
+    console.warn(
+      `[promo] Solo ${paquete.imagenes.length} planes en la ventana. No se manda correo.`
+    );
     await preparar();
     console.warn("[promo] El paquete está en disco por si quieres mandarlo a mano.");
     process.exitCode = 1;
@@ -115,11 +175,10 @@ export async function main() {
 
   const { sendMail } = await import("@/lib/mail");
   const { asuntoDelCorreo, htmlDelCorreo } = await import("@/lib/promo-correo");
-  const titulos = lista.map((e) => e.title);
 
   const res = await sendMail({
     to: para,
-    subject: asuntoDelCorreo(desde, hasta, lista.length),
+    subject: asuntoDelCorreo(desde, hasta, titulos.length),
     html: htmlDelCorreo(paquete, titulos),
     text: `${paquete.texto}\n\n${paquete.enlace}`,
     attachments: adjuntosDe(imagenes),
@@ -132,7 +191,7 @@ export async function main() {
     return;
   }
 
-  console.log(`[promo] Mandado a ${para}. ${lista.length} diapositivas más la portada.`);
+  console.log(`[promo] Mandado a ${para}. ${titulos.length} diapositivas más la portada.`);
 }
 
 // Solo cuando el fichero es el programa que se ejecuta. Importado desde un test —o desde

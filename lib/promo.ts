@@ -178,6 +178,21 @@ export function ventanaDelDia(hoy: string): VentanaPromo | null {
 export type PaquetePromo = {
   portada: string;
   imagenes: string[];
+  /**
+   * El título de cada diapositiva, en el mismo orden que `imagenes`.
+   *
+   * **Va en el paquete y no se reconstruye al consumirlo**, y el motivo es que el
+   * cliente de correo necesita poner el nombre de cada plan bajo su imagen. Si el que
+   * lee el paquete calculara los títulos por su cuenta —o los sacara de los slugs—,
+   * tendría su propia copia de la lista, y es justo la copia que se desincroniza: una
+   * lista local puede tener un evento que la de producción todavía no conoce, y de ahí
+   * salen los 404 al descargar. Al viajarlos juntos, **la imagen y su nombre son la misma
+   * verdad**, porque los ha puesto el mismo sitio en el mismo momento.
+   *
+   * El slug es un nombre de fichero, no un título: `l0rna-9-de-octubre-jimmy-jazz-…` no
+   * es lo que hay que poner bajo la diapositiva.
+   */
+  titulos: string[];
   pie: string;
   texto: string;
   enlace: string;
@@ -208,6 +223,7 @@ export function paqueteDePromo(
   return {
     portada: urlDePromo(desde),
     imagenes: lista.map((e) => urlDePromo(desde, e.slug)),
+    titulos: lista.map((e) => e.title),
     pie: ventana,
     texto: textoDelPie(lista, desde, hasta),
     // El `utm_content` lleva la fecha y no un texto fijo, que es lo que permite saber

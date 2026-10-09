@@ -34,12 +34,34 @@ describe("GET /api/promo", () => {
       "pie",
       "portada",
       "texto",
+      "titulos",
     ]);
     expect(typeof body.portada).toBe("string");
     expect(Array.isArray(body.imagenes)).toBe(true);
     expect(typeof body.pie).toBe("string");
     expect(typeof body.texto).toBe("string");
     expect(typeof body.enlace).toBe("string");
+  });
+
+  it("los títulos viajan con las imágenes y en el mismo orden", async () => {
+    // **`titulos` se añadió al paquete para que no haya dos listas.** El script de correo
+    // necesita poner el nombre de cada plan bajo su diapositiva; antes lo sacaba de una
+    // lista que montaba por su cuenta, y esa lista podía no ser la que el despliegue
+    // había dibujado —de ahí los 404 al bajar las imágenes.
+    //
+    // Se comprueba **la longitud y no el contenido**, porque el orden solo se puede
+    // verificar contra la selección del selector, y eso ya lo cubre `promo-paquete`. Lo
+    // que este test fija es que los dos array viajan juntos: si mañana alguien quita
+    // `titulos` y reconstruye los nombres en el cliente, esto cae.
+    const body = await (await pedir()).json();
+
+    expect(Array.isArray(body.titulos)).toBe(true);
+    expect(body.titulos).toHaveLength(body.imagenes.length);
+    for (const titulo of body.titulos) {
+      expect(typeof titulo).toBe("string");
+      // Un título vacío en el pie es un hueco visible en un correo ya enviado.
+      expect(titulo.trim()).not.toBe("");
+    }
   });
 
   it("el enlace lleva la utm con la fecha, y la del competidor no puede", async () => {
