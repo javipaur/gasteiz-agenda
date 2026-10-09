@@ -45,6 +45,16 @@ export type AgendaEvento = {
    * fuente.
    */
   corrobora?: number;
+
+  /**
+   * Los días en que ocurre, cuando son más de uno. Lo rellena
+   * `colapsarDiasConsecutivos` de `lib/recomendados.ts`, no el agregador: el agregado
+   * no sabe qué eventos son el mismo plan en dos fechas.
+   *
+   * **Opcional y sin valor cuando el evento pasa un solo día**, porque en ese caso la
+   * tarjeta ya enseña `date` y un campo que siempre está lleno no informa de nada.
+   */
+  dias?: string[];
 };
 
 /**

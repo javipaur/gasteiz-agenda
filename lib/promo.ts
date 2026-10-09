@@ -1,5 +1,6 @@
 import { IMAGE_HOSTS } from "./image-hosts";
 import { debeUsarProxy } from "./image-proxy";
+import { localDateStr } from "./utils";
 
 /**
  * Lo que tienen en común las tarjetas del paquete de redes.
@@ -22,7 +23,7 @@ export const TAMANO_PROMO = { width: 1080, height: 1350 } as const;
  *
  * **El número estaba escrito en tres sitios y no coincidían**: aquí, `LIMITE_POR_DEFECTO`
  * en `lib/recomendados.ts` —que son 8— y un `limite: 9` a pelo en la ruta de la
- * portada. La consequence medida fue que el post del finde del 10 y 11 de octubre
+ * portada. La consecuencia medida fue que el post del finde del 10 y 11 de octubre
  * llevaba 9 diapositivas y la página a la que enlazaba pintaba 8 tarjetas: **el
  * noveno evento salía en la imagen del carrusel y no estaba donde el enlace
  * prometía.** Por eso `/hoy` usa este número y no el del selector: la página a la
@@ -30,8 +31,14 @@ export const TAMANO_PROMO = { width: 1080, height: 1350 } as const;
  *
  * **`LIMITE_POR_DEFECTO` sigue siendo 8** y no se toca: es el valor por defecto de un
  * selector genérico, y este número es de un canal concreto.
+ *
+ * **Y bajó de nueve a seis.** Instagram admite diez, así que el nueve no lo ponía el
+ * límite sino una decisión de lectura: con seis el carrusel se termina en el móvil sin
+ * desplazar, y un post que hay que arrastrar hasta el final es un post que no se ve
+ * entero. Además con la deduplicación de días, nueve plazas dejaban dos para el mismo
+ * evento en fechas distintas.
  */
-export const MAX_DIAPOSITIVAS = 9;
+export const MAX_DIAPOSITIVAS = 6;
 
 /** La base pública del sitio. Es la de `metadataBase` en `app/layout.tsx`. */
 export const ORIGEN_PROMO = "https://gasteizclick.javierpalacio.es";
@@ -109,6 +116,69 @@ export function urlImagenPromo(url: string | undefined | null): string | null {
   }
 
   return servible.startsWith("/") ? `${ORIGEN_PROMO}${servible}` : servible;
+}
+
+/** La ventana que toca publicar un día dado, o `null` si ese día no se publica. */
+export type VentanaPromo = {
+  desde: string;
+  hasta: string;
+  etiqueta: "HOY" | "ESTE FINDE";
+};
+
+/**
+ * Tres días de siete, y la regla es una tabla del calendario.
+ *
+ * | Día | Publica |
+ * |---|---|
+ * | jueves | ese jueves |
+ * | viernes | ese viernes |
+ * | sábado | ese sábado y el domingo |
+ * | domingo, lunes, martes y miércoles | nada |
+ *
+ * **Un cron diario con una tabla dentro es una entrada en Dokploy que se mantiene sola.**
+ * Tres tareas de cron son tres que hay que configurar y que se desincronizan el día que
+ * una falla sin que nadie lo note.
+ *
+ * **El domingo es `null` a propósito, y es el caso que más conviene mirar.** El sábado
+ * publica el finde entero, así que el domingo volver a publicar mandaría el mismo
+ * carrusel dos días seguidos. Cuando solo se publicaba los viernes el domingo sí
+ * devolvía el finde en curso, y era lo correcto entonces; con tres ventanas es
+ * exactamente el bucle a evitar.
+ *
+ * **La fecha va como argumento y no se lee dentro.** Sin eso la tabla de arriba no se
+ * podría escribir, y una tabla que no se puede probar es una intención.
+ *
+ * **`null` y un error no son lo mismo, y por eso una fecha rota lanza.** Un `null`
+ * significa "hoy no se publica", que es una respuesta correcta y silenciosa; una fecha
+ * inválida tiene que ser un error, porque si no el cron se creería que hoy no toca y
+ * saldría con 0 sin mandar nada, tres viernes seguidos sin que nadie lo advierta.
+ */
+export function ventanaDelDia(hoy: string): VentanaPromo | null {
+  const dia = new Date(`${hoy}T12:00:00`);
+  if (isNaN(dia.getTime())) {
+    throw new Error(`ventanaDelDia necesita una fecha YYYY-MM-DD, y recibió "${hoy}"`);
+  }
+
+  // `getDay()` es 0 el domingo y 6 el sábado. El mediodía evita el borde del cambio de
+  // hora: con medianoche, un día que cambia de hora local se desplaza de sábado a
+  // viernes o al revés.
+  const diaSemana = dia.getDay();
+
+  if (diaSemana === 6) {
+    return { desde: hoy, hasta: sumarDias(hoy, 1), etiqueta: "ESTE FINDE" };
+  }
+  if (diaSemana === 4 || diaSemana === 5) {
+    return { desde: hoy, hasta: hoy, etiqueta: "HOY" };
+  }
+
+  return null;
+}
+
+/** Suma días a una fecha local y la vuelve a escribir como `YYYY-MM-DD`. */
+function sumarDias(ymd: string, dias: number): string {
+  const d = new Date(`${ymd}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  return localDateStr(d);
 }
 
 /**
