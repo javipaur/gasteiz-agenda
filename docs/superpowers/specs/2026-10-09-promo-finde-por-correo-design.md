@@ -1,18 +1,47 @@
-# El resumen del fin de semana, por correo
+# El resumen del día y del finde, por correo
 
-**Fecha:** 2026-10-09
+**Fecha:** 2026-10-09 · **Revisado:** 2026-10-09, tras las decisiones de la segunda ronda
 **Marca:** Gasteiz Click (`gasteizclick.javierpalacio.es`)
 
 ## Qué quiere
 
-Que el viernes por la mañana llegue un correo con el carrusel del fin de semana ya
-hecho: las imágenes numeradas y en orden, el texto del pie para copiar y pegar, y el
-enlace con la utm de la fecha. Quien lo publica abre el correo y monta el post.
+Que llegue un correo cada día de publicación con el carrusel ya hecho: las imágenes
+numeradas y en orden, el texto del pie para copiar y pegar, y el enlace con la utm de la
+fecha. Quien lo publica abre el correo y monta el post.
 
 **No publica el repositorio.** Ni token de Instagram, ni Graph API, ni contenedor, ni
 riesgo de baneo. El repositorio genera el material y lo manda por correo, que es la
 decisión del spec del 6 de octubre (`2026-10-06-cobertura-recomendados-instagram-design.md`,
 Fase 3) con una pieza añadida: el envío.
+
+## La revisión, y por qué cambió
+
+La primera versión de este spec era **un solo post del fin de semana, los viernes**. Tres
+decisiones la cambiaron, y las tres vienen de mirar el paquete real en producción antes de
+escribir una línea de código.
+
+**1. Tres ventanas, no una.** Jueves, viernes y finde. El motivo no es cobertura sino
+cadencia: el viernes sale el finde, y el día que se publique se verá si un post por semana
+es suficiente. Con tres se mide antes de decidir la frecuencia.
+
+**2. Un mismo evento con dos días cuenta una vez.** El paquete del finde del 10 y 11 de
+octubre traía **`visita-guiada-palacio-de-villa-suso` dos veces** — sábado y domingo — con
+la misma foto y la misma línea de texto. Dos diapositivas idénticas en un post publicado
+parecen un error. Ahora se convierte en una entrada que dice los dos días.
+
+**Y por eso la deduplicación va en `lib/recomendados.ts` y no en el paquete.** El selector
+es el único que usan el post, `/hoy` y el riel de la home. Si la hubiera en el paquete, el
+post mostraría un evento y la página dos, que es exactamente el desajuste que se corrigió
+el 9 de octubre (`3da8610`: el post enseñaba 9 planes y la página 8). Una decisión de qué
+enseñar no puede vivir en uno de los tres que la enseñan.
+
+**3. Seis diapositivas, no nueve.** Con nueve plazas, dos se las lleva el mismo evento
+en dos días. Seis es el punto en el que un carrusel se lee entero en el móvil.
+
+**Lo que NO se ha decidido, y es lo más importante que queda:** el selector **no tiene tope
+por categoría**, y en el finde del 10 y 11 de octubre cinco de los nueve planes eran
+conciertos. Se sabe y se acepta: lo que se está midiendo es si la cadencia funciona, y dividir
+por categoría antes de tener una medición es optimizar lo que no se ha observado.
 
 ## Lo que ya funciona y no se vuelve a hacer
 
@@ -88,6 +117,51 @@ en grande, recuperarlas si el correo falla— y no la garantía.
 
 ## Las piezas
 
+### La ventana de cada día
+
+La ventana ya no la decide una función que solo sabe de findes. La decide
+**`ventanaDelDia(fecha)`**, que devuelve `{ desde, hasta, etiqueta } | null`:
+
+| El cron corre un… | Ventana | Etiqueta del texto |
+|---|---|---|
+| Jueves | ese jueves | `HOY` |
+| Viernes | ese viernes | `HOY` |
+| Sábado | ese sábado y el domingo | `ESTE FINDE` |
+| Cualquier otro día | **`null`** | — |
+
+**Un solo cron diario, no tres tareas en Dokploy.** Tres tareas son tres cosas que
+configurar y que se desincronizan el día que una falla; una es una regla de calendario que
+se prueba con una tabla.
+
+**Que devuelva `null` en vez de una ventana vacía es lo que permite que el cron corra los
+siete días.** Los otros tres días el caso no es "no hay planes", es "no toca", y la
+diferencia se ve en la salida: código 0, un aviso en consola y ningún correo. Si en vez
+mandara un correo vacío el martes, la segunda semana dejaría de mirar el correo.
+
+**La tabla de los cinco días no es un adorno.** Es lo que convierte "el jueves publica el
+jueves" en un test y no en una intención, y es lo que da dónde mirar el caso raro del
+domingo, que puede devolver el finde en curso en vez de saltar al siguiente.
+
+### `lib/recomendados.ts`: la deduplicación
+
+**`colapsarDiasConsecutivos(lista)`** recibe los eventos de una ventana y devuelve la
+misma lista con los que comparten título normalizado **fundidos en uno que lleva `dias`**.
+
+`Evento` gana un campo opcional **`dias?: string[]`**: los días en que ocurre, cuando es
+más de uno. Opcional a propósito, porque hay cientos de tests que construyen eventos a
+mano y un campo obligatorio los rompe todos.
+
+**Normalizar el título es la parte que hay que acertar.** Dos eventos con el mismo título
+en días distintos son casi siempre el mismo evento en dos fechas —una visita guiada que
+abre sábado y domingo— y a veces son dos cosas distintas que comparten nombre. **La regla
+es conservadora a propósito**: compara el título en minúsculas, sin acentos y sin
+puntuación, y **solo funde si están en la misma ventana**. Ante la duda enseña las dos: dos
+entradas parecidas son un post feo, y un evento fundido con otro que no era suyo es un dato
+falso en la agenda.
+
+Va en el selector y **no** en el paquete, por lo que explica la revisión: el post, `/hoy` y
+el riel de la home enseñan lo mismo porque son el mismo selector.
+
 ### `lib/promo.ts`: dos funciones puras
 
 **`paqueteDePromo(lista, { desde, hasta })`** devuelve la forma cerrada de cinco
@@ -146,19 +220,20 @@ attachments?: Array<{
 Sin cambios en la regla que ya tiene: sin `EMAIL_USER`/`EMAIL_PASS`, en producción sigue
 devolviendo `ok: false` y no finge. Este spec no la toca.
 
-### `scripts/enviar-promo-finde.ts`
+### `scripts/enviar-promo.ts`
 
-Corre a cron el viernes por la mañana. En orden:
+Corre **todos los días** por cron, y en tres de ellos hay algo que hacer. En orden:
 
-1. **Ventana.** `finDeSemanaDe(hoy)`.
+1. **Ventana.** `ventanaDelDia(hoy)`. Si devuelve `null`, no es un día de publicación:
+   avisa y sale con **0** sin tocar nada más.
 2. **Agregado.** `getAgendaEventos()` y `recomendados` de `lib/recomendados.ts`, el mismo
    selector que la web. No se reimplementa la elección de eventos.
 3. **Puerta 1 — salud.** `getAgendaSalud()`. Si `sourcesFallidas` no está vacío o
-   `completa` es `false`, escribe los ficheros, avisa y sale con código 1.
+   `completa` es `false`, **no escribe nada**, avisa y sale con código 1.
 4. **Puerta 2 — mínimo.** Si la lista tiene menos de tres planes, escribe los ficheros,
    avisa y sale con código 1.
 5. **Descarga.** Baja portada y tarjetas de las URLs que ya son públicas, en orden.
-6. **Disco.** `data/promo/<sábado>/` con `01-portada.png`, `02-…png`, … y `paquete.json`
+6. **Disco.** `data/promo/<desde>/` con `01-portada.png`, `02-…png`, … y `paquete.json`
    al lado. Se escribe **antes** de mandar el correo, no después: si el envío falla, lo
    que se necesita ya está en el disco.
 7. **Correo.** A `PROMO_PARA`. Las imágenes inline **y** adjuntas, el texto del pie en
