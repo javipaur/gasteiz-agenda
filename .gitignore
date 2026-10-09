@@ -56,6 +56,12 @@ next-env.d.ts
 # dejaba el siguiente fichero nuevo ahí sin poder añadirse sin `--force`.
 data/subscribers.json
 
+# Los paquetes del promo: un directorio por día, con las imágenes descargadas y su
+# `paquete.json`. Son artefactos que se regeneran con `npm run promo:send` y además
+# son varios megas por día —una imagen de evento ronda el megabyte—, así que versionar
+# el directorio los metería en el repositorio para siempre.
+data/promo/
+
 # logs y artefactos de test
 dev-server.log
 test-results/
