@@ -42,8 +42,23 @@ export default function HeroSection({
     }).length;
   }, [eventos, ahora]);
 
-  const destacado = useMemo(
-    () => getPopularEvents(eventos, 1, new Date(ahora))[0] ?? null,
+  /**
+   * Cuántos sale. **Tres, no uno, y el motivo es de percepción y no de maquetación.**
+   *
+   * Una tarjeta sola con foto, fecha y una flecha a la derecha es exactamente la
+   * gramática de un hueco patrocinado: un elemento destacado en la primera pantalla
+   * parece comprado. Tres de la misma categoría y del mismo estilo se leen como una
+   * selección editorial, que es lo que es.
+   *
+   * El criterio no cambia: sigue siendo `getPopularEvents` **sin ventana**, así que
+   * puede sacar algo de dentro de la semana. Eso se mantiene a propósito — un destacado
+   * que solo puede ser de hoy esconde lo mejor de la semana — y lo que cambia es
+   * cuántos se enseñan, no cuáles.
+   */
+  const CUANTOS_DESTACADOS = 3;
+
+  const destacados = useMemo(
+    () => getPopularEvents(eventos, CUANTOS_DESTACADOS, new Date(ahora)),
     [eventos, ahora]
   );
 
@@ -77,41 +92,57 @@ export default function HeroSection({
           </div>
         </InViewWrapper>
 
-        {destacado && (
+        {destacados.length > 0 && (
           <InViewWrapper eager delay={0.1} className="hidden lg:block">
-            <Link
-              href={`/evento/${destacado.slug}`}
-              className="group double-bezel rounded-2xl p-4 flex items-center gap-4 card-hover"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={destacado.image}
-                alt=""
-                className="h-20 w-20 rounded-xl object-cover shrink-0"
-              />
-              <div className="min-w-0">
-                <span
-                  className="inline-flex items-center font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: CATEGORY_COLORS[normalizeCategory(destacado.category)] || "var(--fg-subtle)",
-                    color: "var(--on-tint)",
-                  }}
+            {/* **Una lista y no un carrusel**, a propósito. Con una sola tarjeta el
+                hueco parece un patrocinio; con tres apiladas se lee como una selección.
+                Un carrusel aquí volvería al problema que estamos evitando, porque el
+                item que no se ve es el que hace sospechar. */}
+            <div className="flex flex-col gap-3">
+              {destacados.map((destacado) => (
+                <Link
+                  key={destacado.id}
+                  href={`/evento/${destacado.slug}`}
+                  className="group double-bezel rounded-2xl p-4 flex items-center gap-4 card-hover"
                 >
-                  {normalizeCategory(destacado.category)}
-                </span>
-                <h3 className="font-display text-lg font-black text-fg leading-tight mt-1.5 line-clamp-2">
-                  {destacado.title}
-                </h3>
-                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle mt-1 truncate">
-                  {(() => {
-                    const { day, month } = formatDate(destacado.date);
-                    const time = shortTime(destacado.time);
-                    return `${day} ${month}${time ? ` · ${time}` : ""}${destacado.location ? ` · ${destacado.location}` : ""}`;
-                  })()}
-                </p>
-              </div>
-              <span aria-hidden="true" className="ml-auto text-2xl text-fg-subtle group-hover:text-accent transition-colors shrink-0">→</span>
-            </Link>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={destacado.image}
+                    alt=""
+                    className="h-20 w-20 rounded-xl object-cover shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span
+                      className="inline-flex items-center font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          CATEGORY_COLORS[normalizeCategory(destacado.category)] ||
+                          "var(--fg-subtle)",
+                        color: "var(--on-tint)",
+                      }}
+                    >
+                      {normalizeCategory(destacado.category)}
+                    </span>
+                    <h3 className="font-display text-lg font-black text-fg leading-tight mt-1.5 line-clamp-2">
+                      {destacado.title}
+                    </h3>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle mt-1 truncate">
+                      {(() => {
+                        const { day, month } = formatDate(destacado.date);
+                        const time = shortTime(destacado.time);
+                        return `${day} ${month}${time ? ` · ${time}` : ""}${destacado.location ? ` · ${destacado.location}` : ""}`;
+                      })()}
+                    </p>
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="ml-auto text-2xl text-fg-subtle group-hover:text-accent transition-colors shrink-0"
+                  >
+                    →
+                  </span>
+                </Link>
+              ))}
+            </div>
           </InViewWrapper>
         )}
       </div>
