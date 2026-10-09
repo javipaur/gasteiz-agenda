@@ -34,6 +34,7 @@
 | `lib/mail.ts` | Adjuntos. | Modifica |
 | `scripts/enviar-promo-finde.ts` | El programa que corre el cron. | Nuevo |
 | `app/api/promo/route.ts` | Envoltorio de `paqueteDePromo`. | Modifica |
+| `app/api/promo/[fecha]/portada/route.tsx` | Usa `MAX_DIAPOSITIVAS` en vez de un 9 a pelo. **Hecho en `3da8610`.** | Hecho |
 | `__tests__/fin-de-semana.test.ts` | La ventana del fin de semana. | Nuevo |
 | `__tests__/promo-paquete.test.ts` | La hoja pura del paquete, más la ruta. | Modifica |
 | `__tests__/promo-correo.test.ts` | Asunto y cuerpo del correo. | Nuevo |
@@ -337,6 +338,11 @@ import { recomendados } from "./recomendados";
 
 El import de `localDateStr` lo puso la Task 1 y no hay que volver a añadirlo.
 
+> **`MAX_DIAPOSITIVAS` ya está en `lib/promo.ts` desde el commit `3da8610`, con su
+> comentario.** No lo vuelvas a declarar, y no lo declares tampoco en la ruta: la
+> constante vive en un solo sitio. Ese commit arregló que el post enseñara 9 planes y
+> `/hoy` pintara 8, y el `9` a pelo que estaba en la portada también quedó fuera.
+
 El de `recomendados` **no arrastra nada al bundle de cliente**, y conviene saber por
 qué antes de añadirlo: `lib/promo.ts` solo lo importan la ruta de `/api/promo` y los
 tests, ningún componente cliente, y `recomendados` → `popularity` es aritmética pura.
@@ -388,6 +394,10 @@ export function paqueteDePromo(
 ```
 
 - [ ] **Step 4: Dejar la ruta como envoltorio**
+
+Quita del `import` de `@/lib/promo` en `app/api/promo/route.ts` la constante local
+`MAX_DIAPOSITIVAS` que hay ahora mismo debajo de `revalidate`, y bórrala: desde
+`3da8610` la trae `lib/promo`.
 
 Sustituye todo el cuerpo de `app/api/promo/route.ts` por esto:
 
