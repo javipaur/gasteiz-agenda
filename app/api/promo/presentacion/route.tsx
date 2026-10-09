@@ -104,21 +104,23 @@ export async function GET() {
           </div>
           <div
             style={{
-              fontSize: 34,
+              fontSize: 42,
+              fontWeight: 800,
               color: "#a16207",
-              letterSpacing: "0.16em",
-              marginTop: 20,
+              letterSpacing: "0.06em",
+              marginTop: 26,
+              lineHeight: 1.25,
             }}
           >
-            LA AGENDA CULTURAL DE VITORIA-GASTEIZ
+            TODO VITORIA-GASTEIZ, EN UN SOLO SITIO
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {renglon("Qué hay aquí", "conciertos, teatro, cine, deporte y planes con niños")}
-          {renglon("De dónde", "37 fuentes, incluidos el Ayuntamiento y las salas")}
-          {renglon("Cada día", "lo que vale para hoy y para el finde, ya elegido")}
-          {renglon("Cómo", "un clic al plan, con dónde y a qué hora")}
+          {renglon("Qué hay", "conciertos, teatro, cine, deporte y planes con niños")}
+          {renglon("Sin buscar", "no tienes que revolver 30 webs ni grupo de Facebook")}
+          {renglon("Cada día", "te decimos qué merece la pena, y por qué")}
+          {renglon("Gratis", "sin cuenta y sin instalar nada")}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
