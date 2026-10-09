@@ -174,6 +174,49 @@ export function ventanaDelDia(hoy: string): VentanaPromo | null {
   return null;
 }
 
+/** La forma que consume la publicación. Cerrada: un campo que sobra lo lee sin querer. */
+export type PaquetePromo = {
+  portada: string;
+  imagenes: string[];
+  pie: string;
+  texto: string;
+  enlace: string;
+};
+
+/**
+ * El paquete del día o del finde, listo para mandar por correo.
+ *
+ * **Recibe la lista ya seleccionada y no los eventos**, y el motivo es que quien llama
+ * es quien ha llamado al selector: el script necesita quedarse con la lista para poner
+ * el título de cada diapositiva bajo su imagen en el correo. Si esta función recibiera
+ * los eventos y llamara a `recomendados` por dentro, el script tendría que volver a
+ * seleccionar para tener los títulos, y dos llamadas al selector son dos reglas que
+ * divergen el día que se toque una.
+ *
+ * **El paquete deja de definirse en la ruta.** `app/api/promo/route.ts` es un envoltorio
+ * que llama a esta hoja, y el script importa la misma. Dos copias divergirían el día que
+ * se tocara una, y las dos seguirían funcionando: ese es el fallo caro, el que nadie ve.
+ *
+ * **No hay ninguna llamada a la Graph API aquí ni en ninguna parte de este proyecto.**
+ * Publicar es una decisión editorial y la publicación es manual.
+ */
+export function paqueteDePromo(
+  lista: Array<{ slug: string; title: string; location: string }>,
+  { desde, hasta }: { desde: string; hasta: string }
+): PaquetePromo {
+  const ventana = `${ORIGEN_PROMO}/hoy?desde=${desde}&hasta=${hasta}`;
+  return {
+    portada: urlDePromo(desde),
+    imagenes: lista.map((e) => urlDePromo(desde, e.slug)),
+    pie: ventana,
+    texto: textoDelPie(lista, desde, hasta),
+    // El `utm_content` lleva la fecha y no un texto fijo, que es lo que permite saber
+    // después qué post trajo visitas. Solo sirve si `NEXT_PUBLIC_ANALYTICS_URL` está
+    // puesta en Dokploy: `app/components/Analytics.tsx` devuelve `null` sin ella.
+    enlace: `${ventana}&utm_source=ig&utm_medium=social&utm_content=gasteizclick-${desde}`,
+  };
+}
+
 /** Suma días a una fecha local y la vuelve a escribir como `YYYY-MM-DD`. */
 function sumarDias(ymd: string, dias: number): string {
   const d = new Date(`${ymd}T12:00:00`);

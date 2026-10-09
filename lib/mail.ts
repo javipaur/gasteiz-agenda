@@ -30,11 +30,29 @@ function getTransporter(): Transporter | null {
   return cached;
 }
 
+/**
+ * Un adjunto del correo.
+ *
+ * **Los mismos campos que nodemailer, sin transformar.** Las imágenes del paquete
+ * viajan dos veces —una `inline` con `cid` y otra `attachment`— porque no hay un
+ * camino único entre clientes de correo: el que funciona en Gmail no es el que
+ * funciona en el cliente por defecto de iOS. Duplicarlas son 1–3 MB, y el límite de
+ * Gmail son 25 MB.
+ */
+export type Adjunto = {
+  filename: string;
+  content: Buffer;
+  contentDisposition: "inline" | "attachment";
+  /** Solo para `inline`: el `src="cid:..."` del HTML apunta aquí. */
+  cid?: string;
+};
+
 export type SendMailOptions = {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: Adjunto[];
 };
 
 export type SendMailResult =
@@ -51,6 +69,7 @@ export async function sendMail({
   subject,
   html,
   text,
+  attachments,
 }: SendMailOptions): Promise<SendMailResult> {
   const user = process.env.EMAIL_USER;
   const transporter = getTransporter();
@@ -77,6 +96,9 @@ export async function sendMail({
       subject,
       html,
       text: text || undefined,
+      // Se pasa tal cual, o el `cid` de la imagen en línea no llega al HTML y el
+      // correo sale con los huecos donde iban las fotos.
+      attachments: attachments || undefined,
     });
     return { ok: true };
   } catch (error) {

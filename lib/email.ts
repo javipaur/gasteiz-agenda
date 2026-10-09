@@ -49,7 +49,7 @@ function siteUrl(): string {
  * `'` tambien se escapa aunque los atributos del repo usen comillas dobles:
  * un valor con `&#39;` no rompe nada y asi el helper sirve para los dos casos.
  */
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

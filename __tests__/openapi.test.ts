@@ -605,7 +605,7 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 45 rutas: 16 públicas y 29 protegidas", () => {
+  it("la política entera son 46 rutas: 17 públicas y 29 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     //
@@ -628,11 +628,16 @@ describe("la cobertura del documento", () => {
     // paquete: protegerla devolvería 401 a las fotos y saldría el mismo degradado gris del
     // que se queja este arreglo. No está en el YAML porque su consumidor es una etiqueta
     // `<img>` del propio sitio, no un integrador.
+    // 46 = 45 + `/api/promo/presentacion`, la imagen del post de presentación. **No está en
+    // el documento a propósito**: su consumidor es un `<img>` de un correo, no un
+    // integrador, y documentarla obligaría a inventarle un esquema. Pero **sí es pública**,
+    // porque cae bajo el espacio de nombres `/api/promo`, que es lo que permite que el
+    // correo y quien publica la descarguen sin credencial. De 16 a 17 públicas.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 45, publicas: 16, protegidas: ProtectedCount });
+    }).toEqual({ total: 46, publicas: 17, protegidas: ProtectedCount });
   });
 });
 

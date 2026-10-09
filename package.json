@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "newsletter:send": "npx tsx scripts/send-newsletter.ts",
+    "promo:send": "npx tsx scripts/enviar-promo.ts",
     "push": "node scripts/send-push.mjs"
   },
   "dependencies": {
