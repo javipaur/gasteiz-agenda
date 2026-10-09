@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
 import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
 import ShortcutHint from "./ShortcutHint";
-import { LogoMark } from "./LogoMark";
+import { LogoMarkReducido } from "./LogoMarkReducido";
 
 type SearchHit = {
   slug: string;
@@ -350,7 +350,12 @@ export default function Header() {
               aria-label="Gasteiz Click — Inicio"
               className="flex items-center gap-2 shrink-0 text-fg transition-colors duration-300"
             >
-              <LogoMark className="w-6 h-6 md:w-7 md:h-7 shrink-0" spiral="var(--color-accent)" />
+              {/* La variante reducida, no la completa. Este logo se pintaba a
+                  `w-6 h-6`, que son 24 px, y a ese tamaño la marca completa pierde
+                  la nota, la gilda y el cursor: medido rasterizando el SVG, a 24 px
+                  solo sobreviven la G, la txapela y la raya del pincho. Los iconos
+                  del PWA, que se ven a 192 px, siguen con la completa. */}
+              <LogoMarkReducido className="w-6 h-6 md:w-7 md:h-7 shrink-0" />
               <span className="font-display text-lg md:text-xl font-semibold tracking-tight leading-none">
                 Gasteiz<span className="text-accent">Click</span>
               </span>

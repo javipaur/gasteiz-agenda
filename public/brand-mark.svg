@@ -2,13 +2,14 @@
   <!--
     La marca de GasteizClick.
 
-    **De dónde sale y por qué está aquí en vez de solo en el componente.** Es el
-    mismo dibujo que `app/components/LogoMark.tsx`, que es donde se pinta en la
-    cabecera. Son dos ficheros porque el del PWA lo sirve el sistema operativo y
-    `scripts/generate-icons.mjs` saca de aquí los PNG del manifest: un escritorio
-    no puede importar un componente de React ni heredar el tema de la web, así
-    que necesita un SVG plano con el color escrito. La prueba de que los dos son
-    la misma marca está en `__tests__/logo-marca.test.ts`.
+**De dónde sale y por qué está aquí en vez de solo en el componente.** Es el mismo
+    dibujo que `app/components/LogoMark.tsx`, que es donde se pinta en la cabecera, y
+    también que `public/icon-512.svg` e `icon-maskable.svg`, que son los dos ficheros
+    de los que `scripts/generate-icons.mjs` saca los PNG del manifest. Son cuatro
+    ficheros porque cada consumidor necesita lo suyo: un escritorio no puede importar
+    un componente de React ni heredar el tema de la web, y el icono del manifest
+    necesita esquinas redondeadas y una marca más pequeña que el logo. La prueba de
+    que los cuatro son la misma marca está en `__tests__/logo-marca.test.ts`.
 
     Vector de verdad: `<path>`, `<circle>`, `<ellipse>` y `<line>`, sin imágenes
     embebidas y sin degradados. Es lo que lo mantiene en 5 KB y lo que permite

@@ -53,6 +53,22 @@ export function LogoMark({
 }: LogoMarkProps) {
   return (
     <svg className={className} viewBox="0 0 512 512" fill="none" aria-hidden="true">
+      {/*
+       * **Este `translate` no es un adorno: sin él el logo sale cortado.**
+       *
+       * Todas las piezas de abajo están dibujadas alrededor del origen —`M 85 -85`,
+       * `translate(108, 18)`, `translate(-38, -120)`— y el `viewBox` es el cuadrado
+       * entero. El centro del lienzo está en 256, y sin este grupo que lleve las
+       * piezas allí, la marca se pinta pegada a la esquina superior izquierda y de
+       * las 512×512 que pide el viewBox solo se ve el cuadrante de abajo a la derecha.
+       *
+       * `public/brand-mark.svg` sí lo lleva, y por eso el icono de la pantalla de
+       * inicio se veía bien mientras el de la cabecera no: **no era que el logo de la
+       * web tuviera más detalle que el otro, es que estaba encuadrado distinto.** El
+       * test de la marca miraba los colores de cada pieza y por eso no lo cazó; ahora
+       * hay uno que mira el encuadre, en `__tests__/logo-marca.test.ts`.
+       */}
+      <g transform="translate(256, 256)">
       {/* La G: cuenco circular con abertura a la derecha y travesaño, para que
           se lea como letra y no como un anillo roto. */}
       <path
@@ -105,6 +121,7 @@ export function LogoMark({
           strokeWidth="5"
           strokeLinejoin="round"
         />
+      </g>
       </g>
     </svg>
   );
