@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
 import AtAGlanceStrip from "./components/AtAGlanceStrip";
 import SectionsHub from "./components/SectionsHub";
-import TodayStrip from "./components/TodayStrip";
 import NextDaysSection from "./components/NextDaysSection";
 import MoodFilter from "./components/MoodFilter";
 import TopEventsSection from "./components/TopEventsSection";
@@ -116,15 +115,25 @@ async function HeroWithData() {
   return <HeroSection eventos={eventos} ahora={Date.now()} />;
 }
 
+/**
+ * **Aquí estaba `TodayWithData`, y ya no.**
+ *
+ * `TodayStrip` pintaba **los mismos 35 eventos** que la rejilla de `Próximos 7 días`,
+ * medido en producción el 9 de octubre de 2026: cuarenta y dos eventos únicos en la
+ * página y treinta y cinco repetidos en tres secciones. Era un carrusel horizontal de
+ * 222 px delante de una rejilla de 3.845 px, y además el peor de los dos porque
+ * `scrollbar-none` ocultaba la barra, de modo que lo único que decía que se podía
+ * arrastrar era la tarjeta que quedaba cortada.
+ *
+ * El lugar lo ocupa ahora `TopWithData`, el riel de recomendados: mismo criterio que
+ * el post de Instagram y el único que ordena por algo, así que el día queda en una
+ * jerarquía —primero lo que recomendamos, después todo lo que hay— en vez de tres
+ * veces lo mismo.
+ */
 async function NextDaysWithData() {
   const eventos = await getCachedEventos();
   // eslint-disable-next-line react-hooks/purity
   return <NextDaysSection eventos={eventos} ahora={Date.now()} />;
-}
-
-async function TodayWithData() {
-  const eventos = await getCachedEventos();
-  return <TodayStrip eventos={eventos} />;
 }
 
 async function MoodWithData() {
@@ -296,8 +305,8 @@ export default async function HomeEventsPage() {
         <PartidosSection />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <TodayWithData />
+      <Suspense fallback={<CarouselSkeleton />}>
+        <TopWithData />
       </Suspense>
 
       <Suspense
@@ -323,10 +332,6 @@ export default async function HomeEventsPage() {
         }
       >
         <MoodWithData />
-      </Suspense>
-
-      <Suspense fallback={<CarouselSkeleton />}>
-        <TopWithData />
       </Suspense>
 
       <Suspense fallback={<CarouselSkeleton />}>
