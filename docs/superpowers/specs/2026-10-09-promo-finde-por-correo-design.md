@@ -90,9 +90,15 @@ en grande, recuperarlas si el correo falla— y no la garantía.
 
 ### `lib/promo.ts`: dos funciones puras
 
-**`paqueteDePromo(eventos, { desde, hasta, limite })`** devuelve la forma cerrada de cinco
+**`paqueteDePromo(lista, { desde, hasta })`** devuelve la forma cerrada de cinco
 claves —`portada`, `imagenes`, `pie`, `texto`, `enlace`— que hoy construye
-`app/api/promo/route.ts`.
+`app/api/promo/route.ts`. Recibe **la lista ya seleccionada**, no los eventos.
+
+El motivo es que quien la llama es quien ha llamado al selector, y el script necesita
+quedarse con la lista para poner el título de cada diapositiva bajo su imagen en el
+correo. Si `paqueteDePromo` recibiera los eventos y llamara a `recomendados` por dentro,
+el script tendría que volver a seleccionar para tener los títulos, y dos llamadas al
+selector son dos reglas que divergen el día que se toque una.
 
 El paquete **deja de definirse en la ruta**. La ruta pasa a ser un envoltorio de diez
 líneas que llama a la hoja, y el script importa la misma hoja.
@@ -159,8 +165,15 @@ Corre a cron el viernes por la mañana. En orden:
    texto plano para copiar y pegar, el enlace con la utm visible y pulsable.
 8. **Salida.** Código 1 si el envío falla, con la razón.
 
-**Las dos puertas escriben siempre el paquete antes de salir.** Ninguna deja la viernes
-en blanco sin explicación, y el motivo queda en la consola y en el fichero.
+**Las dos puertas no se comportan igual, y no por capricho.** La puerta 2 —menos de tres
+planes— **escribe los ficheros antes de salir**, porque el paquete existe y solo es
+fino: quien lo encuentre en el disco decide si lo publica. La puerta 1 —el agregado
+degradado— **no escribe nada**, porque si `sourcesFallidas` no está vacío el paquete
+que saliera de ahí no es un finde flojo sino medio finde, y dejar medio paquete en
+disco es dejarlo a un clic de publicarse. Solo avisa, con la lista de fuentes que
+fallan, y sale con 1.
+
+Las dos dicen por qué en la consola. Ninguna deja la viernes en blanco sin explicación.
 
 **El script no habla con su propio despliegue.** Llama a `getAgendaEventos()` y a
 `getAgendaSalud()` directamente, como `scripts/send-newsletter.ts` después de la Fase 1.
