@@ -211,6 +211,22 @@ describe("movimiento dirigido por JS y prefers-reduced-motion", () => {
         date: "2030-01-02T20:00:00.000Z",
         link: "https://ejemplo.test/ev-2",
       },
+      /**
+       * El tercero no es decorativo.
+       *
+       * `CategoryCarousel` no se pinta por debajo de `MINIMO_EN_UN_CARRUSEL`, que
+       * son tres, y con dos no llegaba a existir ninguna flecha que pulsar. Este
+       * caso mide el **comportamiento del scroll** con la preferencia de movimiento
+       * reducida puesta, así que lo que necesita es un carrusel de verdad; con dos
+       * tarjetas ni siquiera habría flechas en el caso real.
+       */
+      {
+        id: "ev-3",
+        slug: "ev-3",
+        title: "Un tercer concierto",
+        date: "2030-01-03T20:00:00.000Z",
+        link: "https://ejemplo.test/ev-3",
+      },
     ];
 
     function montar(reduce: boolean) {

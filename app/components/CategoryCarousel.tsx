@@ -6,6 +6,15 @@ import { InViewWrapper, EventCard, type EventCardEvento } from "@/lib/shared";
 import SectionHead from "./SectionHead";
 import { comportamientoDeDesplazamiento } from "./motion";
 
+/**
+ * Cuántos eventos hacen falta para que un carrusel sea un carrusel.
+ *
+ * El número está en el componente y no en la llamada porque es una regla de este
+ * componente, no de las tres páginas que lo usan: un carril con una tarjeta no es un
+ * carril, es un hueco de 470 px.
+ */
+export const MINIMO_EN_UN_CARRUSEL = 3;
+
 function ArrowIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -41,7 +50,21 @@ export default function CategoryCarousel({
     el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: comportamientoDeDesplazamiento() });
   }
 
-  if (events.length === 0) return null;
+  /**
+   * **Tres, y no cero.** Antes era `=== 0`, y con eso `Planes familiares` se pintaba
+   * entero con **una** tarjeta: 470 px, un tercio de pantalla para un club de lectura
+   * infantil. Medido en producción el 9 de octubre de 2026.
+   *
+   * Con dos tampoco hay carrusel que arrastrar: hay dos tarjetas sueltas con un hueco
+   * enorme al lado, que es el mismo problema con la mitad de la culpa visual. Tres es
+   * donde una fila empieza a leerse como fila.
+   *
+   * **No se pierde ningún evento.** Los que no llegan al umbral siguen saliendo en
+   * «Próximos 7 días» y en «Próximos eventos», que son el día y el resto de la agenda.
+   * Lo que se deja de hacer es darles una sección entera para una tarjeta, y el
+   * enlace a la categoría tampoco desaparece: vive en `SectionsHub`, más arriba.
+   */
+  if (events.length < MINIMO_EN_UN_CARRUSEL) return null;
 
   return (
     <section
