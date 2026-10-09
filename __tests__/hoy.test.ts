@@ -127,10 +127,19 @@ describe("/hoy", () => {
 
     expect(html).toContain("Recomendados");
     expect(titulos(html).length).toBeGreaterThan(0);
-    // Y el rango se ve escrito, que es lo que hace que el post del finde no parezca
-    // el de un solo día.
-    expect(html).toContain(AYER);
-    expect(html).toContain(FECHA);
+
+    // Y el rango se ve escrito, que es lo que hace que el post del finde no parezca el
+    // de un solo día.
+    //
+    // **Este test miraba que saliera el ISO** —`expect(html).toContain(AYER)`— y se
+    // puso rojo al arreglar la cabecera de la página. No era un test roto: estaba
+    // defendiendo el defecto. Ahora mira los dos extremos nombrados en castellano, que
+    // es lo que distingue el finde de un día suelto.
+    const parrafo = html.match(/<p class="mt-1[^"]*">([^<]*)<\/p>/)?.[1] ?? "";
+
+    expect(parrafo).toContain(" — ");
+    const dias = parrafo.match(/lunes|martes|miércoles|jueves|viernes|sábado|domingo/gi) ?? [];
+    expect(dias).toHaveLength(2);
   });
 
   it("un día sin nada lo dice, en vez de pintar una página vacía sin explicación", async () => {
@@ -153,5 +162,57 @@ describe("/hoy", () => {
     // El fixture trae muchos más que nueve, así que lo que decide es el tope, no
     // que falten eventos.
     expect(titulos(html)).toHaveLength(MAX_DIAPOSITIVAS);
+  });
+
+  it("la cabecera se aparta el sitio de la barra fija, como todas las demás páginas", async () => {
+    // La `Header` es `fixed` (`Header.tsx:329`), así que **no ocupa sitio en el
+    // flujo**, y `<main>` no lleva `padding-top` (`layout.tsx:143`): cada página
+    // tiene que apartarla por su cuenta. Las otras quince usan `pt-28`; `/hoy` usaba
+    // `py-10`, y medido en móvil son 40 px contra una cabecera de 66: **26 px del
+    // título quedaban debajo de la barra.**
+    //
+    // Se comprueba la clase y no el píxel porque en este entorno no hay
+    // motor de layout: lo que se fija es que la página **siga la convención**, que
+    // es la única forma de que volver a `py-10` se ponga rojo aquí.
+    const html = await texto(await renderizar({}));
+
+    expect(html).toMatch(/class="[^"]*\bpt-28\b/);
+    expect(html).not.toMatch(/class="[^"]*\bpy-10\b/);
+  });
+
+  it("la fecha se escribe en castellano y no en ISO", async () => {
+    const html = await texto(await renderizar({ desde: AYER, hasta: FECHA }));
+
+    // El `2026-10-08 — 2026-10-10` es lo primero que ve quien llega del post de
+    // Instagram, y es un formato de máquinas.
+    //
+    // **No se puede comprobar con `not.toContain(FECHA)`**: los slugs llevan la fecha
+    // dentro —`...-2026-10-10-n9bmim`— y el enlace está en el HTML. Por eso se mira
+    // el párrafo de la cabecera y solo él.
+    const parrafo = html.match(/<p class="mt-1[^"]*">([^<]*)<\/p>/)?.[1] ?? "";
+
+    expect(parrafo).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(parrafo).toMatch(/lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
+  });
+
+  it("el título del navegador dice el finde cuando lo que se pinta es el finde", async () => {
+    // `metadata` era un objeto fijo con `"Recomendados para hoy"`, y en una URL con
+    // `?desde=&hasta=` eso es falso: es la pestaña, y es lo que Google indexa para
+    // esas direcciones.
+    jest.resetModules();
+    mockSoloMunicipal(FECHA);
+    const mod = await import("@/app/hoy/page");
+
+    const finde = await mod.generateMetadata({
+      searchParams: Promise.resolve({ desde: AYER, hasta: FECHA }),
+      params: Promise.resolve({}),
+    });
+    const hoy = await mod.generateMetadata({
+      searchParams: Promise.resolve({}),
+      params: Promise.resolve({}),
+    });
+
+    expect(String(finde.title)).not.toMatch(/para hoy/);
+    expect(String(hoy.title)).toMatch(/para hoy/);
   });
 });
