@@ -1,61 +1,44 @@
-# El paquete de redes de Gasteiz Click.
+# Gasteiz Click · el contenedor del correo
 #
-# **Dos contenedores y una imagen.** La web sirve el sitio; el cron manda el correo una vez
-# al día. La razón de que sean dos está en `scripts/cron-diario.ts`: un scheduler dentro
-# del proceso de la web se muere con ella en cada despliegue, y con el correo eso significa
-# un día entero de planes sin mandar. Aquí un reinicio de la web **no toca el cron**.
+# Este fichero lo subes a Dokploy como una aplicación de tipo Compose.
+# La web NO se declara aquí: Dokploy ya la construye con nixpacks.toml.
 #
-# **La web no se declara aquí a propósito.** Dokploy ya la construye con `nixpacks.toml` y la
-# despliega con su dominio, su volumen y sus variables. Declararla otra vez en este compose
-# significa dos sitios donde cambiar el puerto o la URL, que es la forma más rápida de que
-# uno de los dos se quede atrás. Este compose es **solo el cron**.
-#
-# **Las variables se escriben en Dokploy, no aquí.** `PROMO_PARA`, `EMAIL_USER`,
-# `EMAIL_PASS` y `MEC_TOKEN` van en el panel, con los mismos valores que usa la web. Escribir
-# un secreto en este fichero lo metería en el repositorio, y un secreto en un repositorio
-# hay que revocarlo.
+# En Dokploy, la pestaña Environment de esta aplicación lleva estas cuatro:
+#   PROMO_PARA, EMAIL_USER, EMAIL_PASS, MEC_TOKEN
+# No van aquí a propósito: un secreto en el repositorio hay que revocarlo.
+
 
 services:
   promo-cron:
     build:
-      # La misma imagen, y por tanto el mismo `package.json` y el mismo código. Si el cron
-      # corre con una versión distinta de la web, el fallo aparece un día y no otro.
       context: .
       dockerfile: Dockerfile
     container_name: gasteiz-promo-cron
 
-    # **Los logs se quedan arriba y se ven desde Dokploy.** Es la diferencia entre que el
-    # correo se mande o no y que nadie lo sepa: con `restart: always` y sin más, un cron que
-    # lleva una semana sin publicar es un contenedor verde.
+    # Los logs se quedan arriba y se ven desde Dokploy. Sin esto, un cron que lleva
+    # una semana sin publicar es un contenedor verde y nadie se entera.
     restart: unless-stopped
 
     environment:
-      # **La zona va en la imagen y también aquí.** Es lo que hace que "las nueve" sean las
-      # nueve de Vitoria y no las de UTC: sin esto, en horario de verano el correo saldría a
-      # las once. Es el mismo error que ya tuvo `PUSH_DIGEST_HOUR` y que está escrito en
-      # `lib/scheduler.ts`.
+      # Sin esto, un contenedor Node corre en UTC y "las nueve" serían las once en
+      # horario de verano. Es el mismo error que tuvo PUSH_DIGEST_HOUR.
       TZ: Europe/Madrid
+
+      # Para node:sqlite, que es experimental y lo necesita para arrancar.
       NODE_OPTIONS: --experimental-sqlite
 
-      # La hora del envío, en horario de la zona de arriba. Cambiarla aquí es cambiar el día
-      # de publicación sin tocar código.
+      # La hora del envío. Cambiar aquí es cambiar el día, sin tocar código.
       CROM_PROMO_HORA: "9"
       CROM_PROMO_MINUTO: "0"
 
-      # Dónde se dejan las imágenes que se descargan. **El correo las lleva dentro**, así que
-      # perder este volumen no rompe nada: el disco es la comodidad, el correo es el canal.
+      # Dónde se dejan las imágenes. El correo las lleva dentro, así que perder
+      # este volumen no rompe nada: el disco es la comodidad, el correo es el canal.
       PROMO_DESTINO: /app/data/promo
 
-      # `PROMO_PARA`, `EMAIL_USER`, `EMAIL_PASS` y `MEC_TOKEN` vienen del panel de Dokploy.
+      # PROMO_PARA, EMAIL_USER, EMAIL_PASS y MEC_TOKEN van en el panel de Dokploy.
 
-    # **El contenedor no expone puertos.** No sirve nada: solo ejecuta. Y no monta volumen
-    # de datos más allá de su carpeta, porque su único trabajo es el correo.
     volumes:
       - promo-datos:/app/data
-
-    # **Sin `healthcheck` a propósito.** Un healthcheck que comprueba "el proceso sigue
-    # vivo" no puede distinguir un cron que duerme bien de uno que lleva tres semanas sin
-    # mandar. El que vigila que el correo sale es `npm run doctor`, que se ejecuta a mano.
 
 volumes:
   promo-datos:

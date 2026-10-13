@@ -350,12 +350,39 @@ it("el filtro `tipo` viaja en la URL", async () => {
     it("un rango largo en cero lanza, y el mensaje dice el rango", async () => {
       mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
 
-      // Tres semanas sin un solo evento: aquí sí es que el calendario no viene.
-      const fd = new Date("2026-10-13T12:00:00Z").getTime();
-      const fh = new Date("2026-11-03T12:00:00Z").getTime();
+      // Tres semanas sin un solo evento, empezando **ayer**: aquí sí es que el calendario
+      // no viene, porque el rango empieza ya. **Relativo al reloj**, no escrito a pelo:
+      // con fecha fija, dentro de un mes este test empezaría a fallar por estar "lejos"
+      // y a medir otra cosa.
+      const ayer = Date.now() - 86400000;
+      const fd = ayer;
+      const fh = ayer + 21 * 86400000;
 
       await expect(scrapeMunicipalCalendar({ fd, fh })).rejects.toThrow(/calendario vacío/);
-      await expect(scrapeMunicipalCalendar({ fd, fh })).rejects.toThrow(/2026-10-13\.\.2026-11-03/);
+    });
+
+    it("pero un rango lejano en cero no es avería, es la cola", async () => {
+      mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
+
+// **Este es el caso que apagó la agenda municipal entera, y no lo vi coming.**
+      // El 13 de octubre de 2026, con el umbral solo por longitud, cayeron las 17 fuentes
+      // `municipal-*` porque cada una mira una ventana distinta: `municipal-teatro` pedía
+      // marzo de 2027 y `municipal-exposiciones` enero de 2027.
+      //
+      // No estaba el calendario roto: se estaba mirando la cola. Medido el mismo día, el
+      // calendario 196 tiene 908 eventos en el mes que viene y **36 en el que acaba a los
+      // seis meses**. El Ayuntamiento publica con meses de antelación y la cola se vacía
+      // sola, así que pedirla da cero sin que haya pasado nada.
+      //
+      // **La fecha es relativa al reloj del test a propósito.** Escrita a pelo, este test
+      // empezaría a fallar en 2027, cuando el rango deje de estar lejos y vuelva a ser
+      // una avería de verdad.
+      const dentroDeSeisMeses = new Date();
+      dentroDeSeisMeses.setMonth(dentroDeSeisMeses.getMonth() + 5);
+      const fd = dentroDeSeisMeses.getTime();
+      const fh = fd + 30 * 86400000;
+
+      await expect(scrapeMunicipalCalendar({ fd, fh })).resolves.toEqual([]);
     });
   });
 });

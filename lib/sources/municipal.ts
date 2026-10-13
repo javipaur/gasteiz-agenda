@@ -47,11 +47,29 @@ const FILAS_SOSPECHOSAS = 45;
  * venía vacía.
  *
  * **Una semana es el suelo porque por debajo es un día normal.** Un calendario de teatro
- * puede tener cero eventos un martes, y un festival entero puede caber en un
- * finde. Con siete días, cero resultados en todos los calendarios a la vez sí es una señal
+ * puede tener cero eventos un martes, y un festival entero puede caber en un finde. Con
+ * siete días, cero resultados en todos los calendarios a la vez sí es una señal
  * —y entonces lo dirá el log en vez de dejar la agenda a medias en silencio.
+ *
+ * **Y va con `DIAS_PRESENTE_CALENDARIO`, porque la longitud sola no basta.** Ver el comentario
+ * de la comprobación: sin mirar si el rango empieza ya, la cola de 2027 apagaba las 17
+ * fuentes municipales el mismo día.
  */
 const DIAS_CALENDARIO_VACIO = 7;
+
+/**
+ * Cuánto puede empezar un rango en el futuro para que su cero sea sospechoso.
+ *
+ * **Dos semanas, y el número sale de la curva de eventos.** El calendario pierde la mitad
+ * de sus eventos entre los dos y los tres meses vista, y pasa de 296 a 36 entre los cuatro
+ * y los seis. Con catorce días de margen, todo lo que está dentro del mes siguiente —
+ * que es lo que la agenda publica y lo que `/hoy` muestra— cuenta como avería, y la cola
+ * deja de molestar.
+ *
+ * **Un mes entero.** La agenda municipal se publica por meses, así que un mes a venir que
+ * viene vacío sí es raro; a partir de ahí es la cola y no un fallo.
+ */
+const DIAS_PRESENTE_CALENDARIO = 30;
 
 /**
  * La ventana más estrecha que se pide: medio mes, que es lo que sale de partir un mes
@@ -192,13 +210,27 @@ async function pedirVentana(
    * el `README` dice haber corregido en `rula`, `farmacias` y `search`, y aquí sigue
    * abierto porque `municipal` es la única que se scrapea con una URL por cada calendario.
    *
-   * **El umbral está en días y no en filas, porque el caso real no es "poco" sino "nada".**
-   * Un calendario con dos eventos en un mes es perfectamente normal y no se toca. Solo se
-   * propaga el cero absoluto, y solo cuando el rango es lo bastante largo para que cero sea
-   * sospechoso: un día sin eventos es lo más corriente del mundo.
+   * **El umbral mira si el rango está cerca, y no solo si es largo. Este es el ajuste que
+   * faltaba, y salió de una medición, no de una idea.**
+   *
+   * La primera versión solo miraba la longitud: cero en más de siete días es avería. Con
+   * eso, las 17 fuentes `municipal-*` cayeron el mismo día, porque cada una mira una
+   * ventana distinta y **`municipal-teatro` pedía marzo de 2027 y `municipal-exposiciones`
+   * enero de 2027**. No estaba el calendario roto: se estaba mirando la cola.
+   *
+   * Medido el 13 de octubre de 2026, el calendario 196 tiene 908 eventos en el mes que
+   * viene y **36 en el que acaba a los seis meses**. El Ayuntamiento publica con meses de
+   * antelación y la cola se vacía sola; pedirla por completo no da cero, da muy poco, y
+   * pedir un mes entero de esa cola sí.
+   *
+   * **Por eso ahora se pregunta si el rango empieza ya.** Un mes que ya ha pasado o que
+   * empieza en la semana que viene tiene que estar lleno, y cero ahí sí es una avería. Uno
+   * que empieza dentro de tres meses puede estar vacío sin que pase nada, y tratarlo como
+   * avería apagaba la agenda municipal entera.
    */
   const dias = (fh - fd) / 86400000;
-  if (eventos.length === 0 && dias >= DIAS_CALENDARIO_VACIO) {
+  const empiezaPronto = fd - Date.now() < DIAS_PRESENTE_CALENDARIO * 86400000;
+  if (eventos.length === 0 && dias >= DIAS_CALENDARIO_VACIO && empiezaPronto) {
     throw new Error(
       `municipal: calendario vacío. calendariosID=${calendariosID} ` +
         `${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())} ` +
