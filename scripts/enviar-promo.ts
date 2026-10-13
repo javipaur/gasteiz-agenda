@@ -23,6 +23,28 @@ import type { PaquetePromo } from "@/lib/promo";
 /** Los ficheros van aquí salvo que `PROMO_DESTINO` diga otra cosa. */
 const DESTINO_POR_DEFECTO = "data/promo";
 
+/*
+ * Las fuentes cuya ausencia **no** impide publicar, y por qué son esas y no otras.
+ *
+ * **`rula` es la única tolerable porque es la única que depende de una credencial.** Las
+ * otras 36 son públicas: se consultan con una URL y funcionan o no según esté su sitio
+ * vivo, sin token, sin cuenta y sin nada que mantener. `rula` llama a un API de
+ * La Genterula con `MEC_TOKEN`, así que su disponibilidad depende de un token que puede
+ * caducar y de un tercero que puede caer.
+ *
+ * **Medido: esa dependencia ya ha parado el cron durante días.** Un 500 del API —no un
+ * fallo de código— dejó la fuente caída, la puerta de salud detenía el envío y no había
+ * forma de publicar el paquete del día con las otras 36 fuentes perfectamente sanas.
+ *
+ * **Que sea tolerable no significa que no se note.** El aviso por consola dice cuántas son
+ * y cuáles, porque perder `rula` se ve en el post: es la fuente de eventos de Runa, una de
+ * las que más pesa en el agregado.
+ *
+ * **Añadir una fuente aquí es una decisión editorial y va en un sitio.** Con un `||` en la
+ * condición, el criterio quedaría repartido y no se vería de un vistazo.
+ */
+const FUENTES_TOLERABLES = new Set(["rula"]);
+
 /**
  * La imagen del post de presentación, bajada del despliegue.
  *
@@ -201,16 +223,50 @@ export async function main() {
   // `sourcesOk`— y aun así no haber consultado lo que le tocaba.
   const degradado = salud.sourcesFallidas.length > 0 || salud.sourcesOk < salud.sourcesTotal;
 
-  if (degradado) {
+  /*
+   * **Una fuente caída solo para el correo si no es tolerable. Medido, no supuesto.**
+   *
+   * La regla era "si cae una fuente, no se publica nada", y ha sido correcta: un agregado
+   * a medias es un paquete a medias. El problema es que no distingue **cuántas** han caído
+   * de **cuáles**, y una sola fuente con credencial —que depende de un token y de un
+   * tercero— ya ha dejado el cron sin poder publicar durante días.
+   *
+   * - **Cae solo tolerables** → se publica y se avisa. Se pierde un 3% de los eventos; el
+   *   97% sigue siendo la agenda de Vitoria.
+   * - **Cae alguna no tolerable, o cae más de la mitad** → no se publica, como antes.
+   *
+   * **`rula` es la única tolerable porque es la única con credencial.** Las otras 36 son
+   * públicas y no dependen de un token. Y como es la que más pesa en el agregado, perderla
+   * se nota: el aviso dice cuántas son, no solo que "no pasa nada".
+   *
+   * **La lista es un `Set` y no un `if` por id**, para que añadir una fuente a esa lista sea
+   * una decisión visible en un sitio y no un `||` repartido por la condición.
+   */
+  const caidas = salud.sourcesFallidas.map((s) => s.id);
+  const noTolerables = caidas.filter((id) => !FUENTES_TOLERABLES.has(id));
+
+  // `degradado` se conserva entero para lo que mide: una fuente puede responder con lista
+  // vacía sin llegar a fallar, y eso solo lo ve `sourcesOk < sourcesTotal`. Con una sola
+  // vacía entre tolerables tampoco se para, porque `caidas` no la lista.
+  const sinMedioAgregado = salud.sourcesOk < salud.sourcesTotal / 2;
+
+  if (noTolerables.length > 0 || sinMedioAgregado || (degradado && caidas.length === 0)) {
     console.error(
       `[promo] El agregado está degradado (${salud.sourcesOk}/${salud.sourcesTotal}).`,
-      `Fuentes caídas: ${salud.sourcesFallidas.map((s) => s.id).join(", ")}`
+      `Fuentes caídas: ${caidas.join(", ") || "sin registrar"}`
     );
     console.error(
       "[promo] No se manda nada. Con el agregado a medias, el paquete sería medio día."
     );
     process.exitCode = 1;
     return;
+  }
+
+  if (caidas.length > 0) {
+    console.warn(
+      `[promo] Faltan ${caidas.length} fuentes tolerables (${caidas.join(", ")}). ` +
+        "Se publica igualmente: el resto de la agenda está completa."
+    );
   }
 
   const paquete = await pedirPaquete(desde, hasta);

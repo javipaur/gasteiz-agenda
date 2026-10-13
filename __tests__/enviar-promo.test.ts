@@ -318,18 +318,78 @@ delete process.env.PROMO_PARA;
   });
 
   describe("la puerta de salud", () => {
-    it("con una fuente caída no manda correo, no escribe nada y sale con 1", async () => {
+    it("con una fuente no tolerable caída no manda correo, no escribe nada y sale con 1", async () => {
       // Ni ficheros: si el agregado está a medias, el paquete que saliera de ahí es
       // medio día, y dejar medio paquete en disco es dejarlo a un clic de publicarse.
+      //
+      // **Usa `vam` y no `rula` a propósito.** La versión anterior de este test usaba
+      // `rula`, y `rula` pasó a ser tolerable —es la única fuente con credencial—, así que
+      // el test que fijaba "una fuente caída para el envío" dejó de describir el
+      // comportamiento. Un ejemplo que se queda viejo sin que nadie lo note es la razón por
+      // la que los casos intolerance se nombran de forma explícita.
       getAgendaSalud.mockResolvedValue({
         ...BIEN,
         sourcesOk: 36,
-        sourcesFallidas: [{ id: "rula", error: "sin token" }],
+        sourcesFallidas: [{ id: "vam", error: "500" }],
       });
 
       await cargarScript()();
 
       expect(existsSync(dirEsperado)).toBe(false);
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+    });
+
+    it("con rula caída sí publica, porque es la única tolerable", async () => {
+      // **Este es el cambio, y el motivo está medido.** `rula` es la única fuente que
+      // depende de `MEC_TOKEN` y de que La Genterula esté en pie. Un 500 suyo dejó el cron
+      // sin poder publicar durante días, con las otras 36 fuentes perfectamente sanas. Se
+      // pierde el 3% de los eventos y se publica el 97%.
+      getAgendaSalud.mockResolvedValue({
+        ...BIEN,
+        sourcesOk: 36,
+        sourcesFallidas: [{ id: "rula", error: "MEC API returned 500" }],
+      });
+
+      await cargarScript()();
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(existsSync(join(dirEsperado, "01-portada.png"))).toBe(true);
+      expect(process.exitCode).toBeUndefined();
+    });
+
+    it("con rula y otra caída no publica, porque ya no es solo la tolerable", async () => {
+      // **La tolerancia no se extiende en cadena.** `rula` cae y es tolerable; `vam` además
+      // cae y no lo es. Ahí ya no es "una fuente con credencial", es un agregado a medias de
+      // verdad, y el paquete sería medio día.
+      getAgendaSalud.mockResolvedValue({
+        ...BIEN,
+        sourcesOk: 35,
+        sourcesFallidas: [
+          { id: "rula", error: "500" },
+          { id: "vam", error: "500" },
+        ],
+      });
+
+      await cargarScript()();
+
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(process.exitCode).toBe(1);
+    });
+
+    it("con casi todo caído no publica aunque solo caigan tolerables", async () => {
+      // La mitad del agregado es la línea, y no el recuento. Con `sourcesOk` por debajo de
+      // la mitad el paquete ya no es la agenda de Vitoria por mucho que las que caigan sean
+      // pocas: aquí no hay tolerables, y la comprobación es la del agregado entero.
+      getAgendaSalud.mockResolvedValue({
+        ...BIEN,
+        sourcesTotal: 37,
+        sourcesOk: 10,
+        sourcesFallidas: [{ id: "rula", error: "500" }],
+      });
+
+      await cargarScript()();
+
       expect(sendMail).not.toHaveBeenCalled();
       expect(process.exitCode).toBe(1);
     });
