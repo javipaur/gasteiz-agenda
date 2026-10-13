@@ -39,6 +39,21 @@ const MUNICIPAL_BASE = "https://www.vitoria-gasteiz.org/wb021/was/CalendarioServ
 const FILAS_SOSPECHOSAS = 45;
 
 /**
+ * A partir de cuántos días, cero resultados es una avería y no un día tranquilo.
+ *
+ * **El número sale de lo que se ha visto, no de un redondeo.** El 13 de octubre de 2026
+ * el servlet devolvió `numResultados: 0` para rangos de un mes y 340 para otro calendario
+ * del mismo sitio y en la misma llamada: el calendario no estaba colgado, la consulta
+ * venía vacía.
+ *
+ * **Una semana es el suelo porque por debajo es un día normal.** Un calendario de teatro
+ * puede tener cero eventos un martes, y un festival entero puede caber en un
+ * finde. Con siete días, cero resultados en todos los calendarios a la vez sí es una señal
+ * —y entonces lo dirá el log en vez de dejar la agenda a medias en silencio.
+ */
+const DIAS_CALENDARIO_VACIO = 7;
+
+/**
  * La ventana más estrecha que se pide: medio mes, que es lo que sale de partir un mes
  * por la mitad.
  *
@@ -161,9 +176,39 @@ async function pedirVentana(
     return acc;
   }, []);
 
+  /*
+   * **Cero resultados en un rango largo es una avería, y se propaga como error.**
+   *
+   * Medido el 13 de octubre de 2026: `CalendarioServlet` respondió HTTP 200 con
+   * `numResultados: 0` y `hayMasDatos: false` para un rango de **31 días**, y a la vez
+   * devolvía 340 resultados para otro calendario. O sea: el servlet está vivo, pero ese
+   * calendario concreto viene vacío. Lo normal en una agenda viva es que haya algo en un
+   * mes; cero en un mes largo es que el calendario no está colgado, no que no haya planes.
+   *
+   * **Por qué no bastaba con devolver `[]`.** `Promise.allSettled` no distingue una fuente
+   * que resuelve vacía de una que no publica nada, así que los 17 registros `municipal-*`
+   * quedaban vacíos **sin una sola línea de log**: la salud decía que las fuentes estaban
+   * bien y el correo publicaba una agenda municipal a medias. Es el mismo modo de fallo que
+   * el `README` dice haber corregido en `rula`, `farmacias` y `search`, y aquí sigue
+   * abierto porque `municipal` es la única que se scrapea con una URL por cada calendario.
+   *
+   * **El umbral está en días y no en filas, porque el caso real no es "poco" sino "nada".**
+   * Un calendario con dos eventos en un mes es perfectamente normal y no se toca. Solo se
+   * propaga el cero absoluto, y solo cuando el rango es lo bastante largo para que cero sea
+   * sospechoso: un día sin eventos es lo más corriente del mundo.
+   */
+  const dias = (fh - fd) / 86400000;
+  if (eventos.length === 0 && dias >= DIAS_CALENDARIO_VACIO) {
+    throw new Error(
+      `municipal: calendario vacío. calendariosID=${calendariosID} ` +
+        `${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())} ` +
+        `devuelve 0 resultados en ${Math.round(dias)} días`
+    );
+  }
+
   if (eventos.length < FILAS_SOSPECHOSAS) return eventos;
 
-  const dias = (fh - fd) / 86400000;
+  if (profundidad >= 2 || dias < GRANO_MINIMO_DIAS) return eventos;
 
   // El tope son dos particiones —meses y medios meses— y el grano mínimo es medio mes,
   // que es donde para la segunda. Por debajo de medio mes no hay subdivisión que

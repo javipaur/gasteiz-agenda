@@ -324,4 +324,38 @@ it("el filtro `tipo` viaja en la URL", async () => {
       expect(meses[i][0]).toBe(meses[i - 1][1]);
     }
   });
+
+  describe("un calendario vacío", () => {
+    /*
+     * **Cero resultados es un dato por debajo de una semana y una avería por encima, y el
+     * umbral sale de un caso medido.**
+     *
+     * El 13 de octubre de 2026 el servlet respondió HTTP 200 con `numResultados: 0` para
+     * un mes y con 340 para otro calendario del mismo sitio, en la misma llamada. El
+     * calendario no estaba colgado. Con cero resolviéndose como lista vacía, los 17
+     * registros `municipal-*` quedaban vacíos **sin una línea de log** y la salud decía que
+     * todo estaba bien.
+     */
+    it("un rango corto en cero es un dato y devuelve lista vacía", async () => {
+      mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
+
+      // Un día: un teatro puede no tener nada hoy, y eso no es una avería. `fd` y `fh`
+      // son milisegundos, que es lo que espera `CalendarioServlet`.
+      const dia = new Date("2026-10-15T12:00:00Z").getTime();
+      const eventos = await scrapeMunicipalCalendar({ fd: dia, fh: dia });
+
+      expect(eventos).toEqual([]);
+    });
+
+    it("un rango largo en cero lanza, y el mensaje dice el rango", async () => {
+      mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
+
+      // Tres semanas sin un solo evento: aquí sí es que el calendario no viene.
+      const fd = new Date("2026-10-13T12:00:00Z").getTime();
+      const fh = new Date("2026-11-03T12:00:00Z").getTime();
+
+      await expect(scrapeMunicipalCalendar({ fd, fh })).rejects.toThrow(/calendario vacío/);
+      await expect(scrapeMunicipalCalendar({ fd, fh })).rejects.toThrow(/2026-10-13\.\.2026-11-03/);
+    });
+  });
 });

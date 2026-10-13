@@ -195,22 +195,30 @@ describe("las dos rutas del calendario municipal", () => {
         expect(body.data).toBeUndefined();
       });
 
-      it("sí responde con lista vacía cuando el calendario responde sin actividades", async () => {
-        // El otro lado de la frontera, que es el que hay que seguir respetando: un
-        // origen que contesta bien y no trae nada **es** un dato. `{}` son las
-        // secciones sin `resultados`, que es lo que devuelve el aplanado cuando no
-        // hay nada que aplanar.
+            it("pero un rango largo en cero sí es una avería, y se propaga", async () => {
+        // **La diferencia entre este test y el de arriba es el rango, y medido es todo.**
+        // El 13 de octubre de 2026 el servlet respondió HTTP 200 con `numResultados: 0`
+        // para un mes entero y con 340 resultados para otro calendario del mismo sitio y
+        // en la misma llamada: el calendario no estaba colgado. Con cero resolviéndose como
+        // lista vacía, los 17 registros `municipal-*` quedaban vacíos **sin una línea de
+        // log**, la salud decía que todo estaba bien y el correo publicaba una agenda
+        // municipal a medias.
+        //
+        // Estas rutas piden un rango de un año, así que cero ahí no es "hoy no hay nada".
+        // El umbral de 7 días vive en `lib/sources/municipal.ts` y está probado en
+        // `__tests__/sources/municipal.test.ts`, donde sí se puede pedir un rango corto.
+        //
+        // Y el error sale **redactado**, que es lo que hace esta ruta con cualquier fallo:
+        // el motivo va al log del servidor, no al JSON, porque el cliente móvil no tiene
+        // nada que hacer con él. El test del motivo concreto está en el scraper.
         mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
 
         const res = await get(nombre);
+        const body = (await res.json()) as { error?: string; data?: unknown };
 
-        expect(res.status).toBe(200);
-        expect(await res.json()).toEqual({
-          source: "vitoria-gasteiz",
-          category: "eventos",
-          count: 0,
-          data: [],
-        });
+        expect(res.status).toBeGreaterThanOrEqual(500);
+        expect(body.error).toBeTruthy();
+        expect(body.data).toBeUndefined();
       });
     });
   }
