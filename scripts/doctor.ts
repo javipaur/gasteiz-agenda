@@ -372,7 +372,7 @@ async function comprobarCasting(fecha: string): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+async function mainDoctor(): Promise<void> {
   const { prepararEntornoScript } = await import("./entorno");
   await prepararEntornoScript();
 
@@ -412,7 +412,7 @@ async function main(): Promise<void> {
   console.log("  Todo correcto.\n");
 }
 
-void main().catch((error) => {
+void mainDoctor().catch((error) => {
   console.error("[doctor] Fallo grave:", error);
   process.exitCode = 1;
 });
