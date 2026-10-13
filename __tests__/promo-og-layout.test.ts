@@ -34,6 +34,9 @@ const RUTAS_IMAGEN = [
   "app/api/promo/presentacion/route.tsx",
   "app/api/promo/[fecha]/portada/route.tsx",
   "app/api/promo/[fecha]/evento/[slug]/route.tsx",
+  // La historia entró después y comparte las dos reglas: su lugar y su número son
+  // interpolaciones calculadas antes, y el `cid` de la imagen del evento tampoco.
+  "app/api/promo/[fecha]/historia/route.tsx",
 ];
 
 /** Un `<div>` con estos `display` es válido con cualquier número de hijos. */

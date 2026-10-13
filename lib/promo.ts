@@ -16,6 +16,21 @@ import { localDateStr } from "./utils";
 export const TAMANO_PROMO = { width: 1080, height: 1350 } as const;
 
 /**
+ * El tamaño de una historia: 1080×1920, que es 9:16.
+ *
+ * **No es el de las historias de Instagram**, que occupies pantalla completa y cambian
+ * según el móvil. Es el formato de origen de un Reel o de un vídeo, y es el único que
+ * genera `ImageResponse` con una proporción fija. Se sube como imagen y se recorta por
+ * arriba y por abajo en cada pantalla.
+ *
+ * **Va en su propia constante y no como un segundo `TAMANO_*` en cada ruta.** El error
+ * concreto que evita: cambiar la proporción de las tarjetas del feed y que las historias
+ * sigan en 4:5, o al revés. Son dos formatos con dos gramáticas, y un solo número de
+ * tamaño sería uno solo para las dos.
+ */
+export const TAMANO_HISTORIA = { width: 1080, height: 1920 } as const;
+
+/**
  * Cuántos eventos entran en un post, y por qué es un solo número para todos.
  *
  * **Instagram no acepta más de diez diapositivas, y una es la portada.** De ahí el
@@ -50,6 +65,17 @@ const HOSTS: readonly string[] = IMAGE_HOSTS.map((h) => h.hostname.toLowerCase()
 export function urlDePromo(fecha: string, slug?: string): string {
   const base = `${ORIGEN_PROMO}/api/promo/${fecha}`;
   return slug ? `${base}/evento/${slug}` : `${base}/portada`;
+}
+
+/**
+ * La URL de la historia del día, en vertical.
+ *
+ * **Vive en la hoja y no se escribe a mano en el correo.** Es lo mismo que hizo mal el
+ * enlace del post cuando estaba duplicado en tres sitios: una URL escrita en dos ficheros
+ * es una URL que un día apunta a un sitio y al otro a nada.
+ */
+export function urlHistoria(fecha: string): string {
+  return `${ORIGEN_PROMO}/api/promo/${fecha}/historia`;
 }
 
 /**
@@ -166,32 +192,59 @@ export type VentanaPromo = {
 };
 
 /**
- * Tres días de siete, y la regla es una tabla del calendario.
+ * Qué días se publica, y qué ventana lleva cada uno.
  *
  * | Día | Publica |
  * |---|---|
+ * | domingo, lunes, martes y miércoles | ese día |
  * | jueves | ese jueves |
  * | viernes | ese viernes |
  * | sábado | ese sábado y el domingo |
- * | domingo, lunes, martes y miércoles | nada |
  *
- * **Un cron diario con una tabla dentro es una entrada en Dokploy que se mantiene sola.**
- * Tres tareas de cron son tres que hay que configurar y que se desincronizan el día que
- * una falla sin que nadie lo note.
+ * **Antes eran tres días de siete y ahora son siete, y el motivo está medido.** Los tres
+ * días originales —jueves, viernes y sábado— eran una decisión editorial tomada cuando
+ * el objetivo era no cansar. Midiendo la agenda del 13 al 26 de octubre sale que **los
+ * catorce días tienen los seis planes completos**: no hay un día flojo en el calendario, y
+ * el veto de cuatro días no respondía a que faltara contenido sino a que sobraban correos.
  *
- * **El domingo es `null` a propósito, y es el caso que más conviene mirar.** El sábado
- * publica el finde entero, así que el domingo volver a publicar mandaría el mismo
- * carrusel dos días seguidos. Cuando solo se publicaba los viernes el domingo sí
- * devolvía el finde en curso, y era lo correcto entonces; con tres ventanas es
- * exactamente el bucle a evitar.
+ * **La tabla está en un `Record` y no en un `if` para que sea un dato y no una decisión
+ * repartida por el código.** Cambiar la cadencia es cambiar esta constante, y el cambio
+ * se lee de un vistazo. Un `switch` con siete casos parece lo mismo y no lo es: con un
+ * `switch` habría que tocar la función y acordarse de añadir el día nuevo a dos sitios.
  *
- * **La fecha va como argumento y no se lee dentro.** Sin eso la tabla de arriba no se
- * podría escribir, y una tabla que no se puede probar es una intención.
+ * **`lunes` a `miércoles` devuelven ese mismo día, y no el día anterior.** Es lo que
+ * distingue este cambio de un simple "publicar el finde también entre semana": el
+ * contenido cambia cada día y el enlace lleva la `utm` de esa fecha, así que el miércoles
+ * enlaza al miércoles. Reutilizar la ventana del sábado mandaría el mismo carrusel cinco
+ * días con la misma `utm`, y los cinco aparecerían como el mismo post en las estadísticas.
+ */
+const VENTANAS_POR_DIA: Record<number, (hoy: string) => VentanaPromo | null> = {
+  // `getDay()` es 0 el domingo. El mediodía evita el borde del cambio de hora: con
+  // medianoche, un día que cambia de hora local se desplaza de sábado a viernes o al revés.
+  0: (hoy) => ({ desde: hoy, hasta: hoy, etiqueta: "HOY" }),
+  1: (hoy) => ({ desde: hoy, hasta: hoy, etiqueta: "HOY" }),
+  2: (hoy) => ({ desde: hoy, hasta: hoy, etiqueta: "HOY" }),
+  3: (hoy) => ({ desde: hoy, hasta: hoy, etiqueta: "HOY" }),
+  4: (hoy) => ({ desde: hoy, hasta: hoy, etiqueta: "HOY" }),
+  5: (hoy) => ({ desde: hoy, hasta: hoy, etiqueta: "HOY" }),
+  6: (hoy) => ({ desde: hoy, hasta: sumarDias(hoy, 1), etiqueta: "ESTE FINDE" }),
+};
+/**
+ * La ventana de un día, o `null` si ese día no se publica.
  *
- * **`null` y un error no son lo mismo, y por eso una fecha rota lanza.** Un `null`
- * significa "hoy no se publica", que es una respuesta correcta y silenciosa; una fecha
- * inválida tiene que ser un error, porque si no el cron se creería que hoy no toca y
- * saldría con 0 sin mandar nada, tres viernes seguidos sin que nadie lo advierta.
+ * **La tabla decide y esta función solo la consulta**, y por eso no hay un `if` con los
+ * días dentro: `VENTANAS_POR_DIA` es el sitio donde se cambia la cadencia, y aquí solo se
+ * traduce "qué día es hoy" a "qué ventana hay".
+ *
+ * **Un día sin entrada en la tabla devuelve `null`, y no hay ninguna ahora mismo.** El
+ * `?? null` está para que añadir un día no pueda olvidarse de esta función, y para que un
+ * error de dedo en la tabla se vea como "no publica" en vez de como una excepción que tumba
+ * el cron.
+ *
+ * **Una fecha rota lanza, y no devuelve `null`.** `null` significa "hoy no se publica", que
+ * es una respuesta correcta y silenciosa; una fecha inválida es un error, porque si no el
+ * cron se creería que hoy no toca y saldría con 0 sin mandar nada, siete días seguidos sin
+ * que nadie lo advierta. Con siete días publicando, ese falso silencio es mucho más caro.
  */
 export function ventanaDelDia(hoy: string): VentanaPromo | null {
   const dia = new Date(`${hoy}T12:00:00`);
@@ -199,19 +252,10 @@ export function ventanaDelDia(hoy: string): VentanaPromo | null {
     throw new Error(`ventanaDelDia necesita una fecha YYYY-MM-DD, y recibió "${hoy}"`);
   }
 
-  // `getDay()` es 0 el domingo y 6 el sábado. El mediodía evita el borde del cambio de
-  // hora: con medianoche, un día que cambia de hora local se desplaza de sábado a
-  // viernes o al revés.
-  const diaSemana = dia.getDay();
-
-  if (diaSemana === 6) {
-    return { desde: hoy, hasta: sumarDias(hoy, 1), etiqueta: "ESTE FINDE" };
-  }
-  if (diaSemana === 4 || diaSemana === 5) {
-    return { desde: hoy, hasta: hoy, etiqueta: "HOY" };
-  }
-
-  return null;
+  // El mediodía evita el borde del cambio de hora: con medianoche, un día que cambia de
+  // hora local se desplaza de sábado a viernes o al revés.
+  const construir = VENTANAS_POR_DIA[dia.getDay()];
+  return construir ? construir(hoy) : null;
 }
 
 /** La forma que consume la publicación. Cerrada: un campo que sobra lo lee sin querer. */

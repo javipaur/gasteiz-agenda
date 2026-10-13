@@ -605,7 +605,7 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 46 rutas: 17 públicas y 29 protegidas", () => {
+  it("la política entera son 47 rutas: 18 públicas y 29 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     //
@@ -633,11 +633,16 @@ describe("la cobertura del documento", () => {
     // integrador, y documentarla obligaría a inventarle un esquema. Pero **sí es pública**,
     // porque cae bajo el espacio de nombres `/api/promo`, que es lo que permite que el
     // correo y quien publica la descarguen sin credencial. De 16 a 17 públicas.
+    //
+    // 47 = 46 + `/api/promo/[fecha]/historia`, la imagen vertical del día. Pasa lo mismo
+    // que la presentación, y por el mismo motivo: la sube quien publica, no un integrador.
+    // Cae en el espacio de nombres `/api/promo` y por eso es pública sin credencial, que es
+    // lo que hace que el correo pueda bajarla. De 17 a 18 públicas.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 46, publicas: 17, protegidas: ProtectedCount });
+    }).toEqual({ total: 47, publicas: 18, protegidas: ProtectedCount });
   });
 });
 

@@ -46,13 +46,39 @@ function cargarScript(): Main {
 
 const BIEN = { scrapedAt: "", sourcesTotal: 37, sourcesOk: 37, sourcesFallidas: [] };
 
+const usarReloj = jest;
+
 /**
  * Los eventos van con la fecha de la ventana **real**, calculada con `ventanaDelDia`.
  *
  * La ventana se mueve sola con el calendario, así que con una fecha escrita a pelo el
  * test pasa hoy y tumba dentro de dos días sin que nadie haya tocado nada.
+ *
+ * **Y si hoy no es día de publicar, se usa el jueves siguiente.** El caso de `null` —domingo
+ * a miércoles— no es un borde raro: son cuatro días de cada siete, y el test fallaba los
+ * cuatro. Los scripts no escriben nada porque `ventanaDelDia` dice que hoy no toca, que es
+ * exactamente lo que tienen que hacer: el test estaba probando el día equivocado y
+ * eso se lee como un fallo del script.
+ *
+ * El caso de `null` **no se pierde**: `scripts/casting.ts` y el propio `main` lo tratan
+ * como respuesta correcta, y la tabla de los siete días está en `ventana-del-dia.test.ts`.
  */
-const VENTANA = ventanaDelDia(localDateStr(new Date()));
+function fechaDePrueba(): string {
+  const hoy = localDateStr(new Date());
+  const directa = ventanaDelDia(hoy);
+  if (directa) return directa.desde;
+
+  // Martes: el jueves es el siguiente día que publica.
+  for (let salto = 1; salto <= 7; salto += 1) {
+    const dia = new Date(`${hoy}T12:00:00`);
+    dia.setDate(dia.getDate() + salto);
+    const siguiente = ventanaDelDia(localDateStr(dia));
+    if (siguiente) return siguiente.desde;
+  }
+  throw new Error("ventanaDelDia no devolvió ninguna ventana en siete días");
+}
+
+const VENTANA = { desde: fechaDePrueba(), hasta: fechaDePrueba() };
 
 function evento(i: number) {
   return {
@@ -63,7 +89,9 @@ function evento(i: number) {
     category: "Conciertos",
     source: "jimmyjazz",
     // Un título largo a propósito: el fundido de días no toca títulos cortos.
-    date: `${VENTANA?.desde ?? localDateStr(new Date())}T20:00:00`,
+    // `VENTANA.desde` a pelo y no con `?.`: ahora es siempre una fecha que publica, y el
+    // `??` escondía justo el caso que rompía el test.
+    date: `${VENTANA.desde}T20:00:00`,
     image: "https://sarrerak.jimmyjazzgasteiz.com/cartel.jpg",
   };
 }
@@ -86,8 +114,24 @@ describe("el script del paquete", () => {
     process.exitCode = undefined;
     process.env.PROMO_PARA = "yo@ejemplo.test";
 
+    /*
+     * **El reloj se fija en el día que el test está probando.**
+     *
+     * Sin esto, el script decide con la fecha de hoy y no con la del test, y `ventanaDelDia`
+     * dice que no se publica cuatro días de cada siete —domingo a miércoles—. El test
+     * pasaba los jueves y fallaba los demás, y el motivo era que estaba probando el día
+     * equivocado, no que el script estuviera roto.
+     *
+     * Se usa `setSystemTime` y no `jest.spyOn(Date, "now")` porque `localDateStr` construye
+     * un `new Date()` y lee el reloj del sistema. `nextTick` y `queueMicrotask` quedan fuera
+     * del falso porque las promesas del test los usan para resolverse, y `setSystemTime`
+     * solo tiene que fijar la fecha.
+     */
+    usarReloj.useFakeTimers({ doNotFake: ["nextTick", "queueMicrotask"] });
+    usarReloj.setSystemTime(new Date(`${VENTANA.desde}T09:00:00Z`));
+
     destino = await mkdtemp(join(tmpdir(), "promo-"));
-    dirEsperado = join(destino, VENTANA?.desde ?? "");
+    dirEsperado = join(destino, VENTANA.desde);
     process.env.PROMO_DESTINO = destino;
 
     pedidas = [];
@@ -95,15 +139,21 @@ describe("el script del paquete", () => {
     // así que el test comprueba la cadena entera —pedir el paquete y bajar sus imágenes—
     // sin tocar la red. Cada imagen se sirve con la firma del PNG, que es lo que
     // distingue un 200 de un 404 en la vida real.
+    const paqueteDePruebaBase = {
+      pie: "",
+      texto: "HOY en Vitoria-Gasteiz: 5 planes que recomendamos.",
+      enlace: "",
+    };
+    const ventana = `${VENTANA.desde}&hasta=${VENTANA.hasta}`;
     paqueteDePrueba = {
-      portada: "https://gasteizclick.javierpalacio.es/api/promo/2026-01-01/portada",
+      ...paqueteDePruebaBase,
+      portada: `https://gasteizclick.javierpalacio.es/api/promo/${VENTANA.desde}/portada`,
       imagenes: eventos(5).map((e) =>
-        `https://gasteizclick.javierpalacio.es/api/promo/2026-01-01/evento/${e.slug}`
+        `https://gasteizclick.javierpalacio.es/api/promo/${VENTANA.desde}/evento/${e.slug}`
       ),
       titulos: eventos(5).map((e) => e.title),
-      pie: "https://gasteizclick.javierpalacio.es/hoy?desde=2026-01-01&hasta=2026-01-01",
-      texto: "HOY en Vitoria-Gasteiz: 5 planes que recomendamos.",
-      enlace: "https://gasteizclick.javierpalacio.es/hoy?desde=2026-01-01&hasta=2026-01-01",
+      pie: `https://gasteizclick.javierpalacio.es/hoy?desde=${ventana}`,
+      enlace: `https://gasteizclick.javierpalacio.es/hoy?desde=${ventana}`,
     };
 
     fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation((async (u: string) => {
@@ -129,6 +179,9 @@ describe("el script del paquete", () => {
 
   afterEach(() => {
     process.exitCode = exitPrevio;
+    // **El reloj vuelve al real**, o el siguiente describe hereda la fecha fija y mide
+    // el martes un caso que no tiene que ver con los martes.
+    usarReloj.useRealTimers();
     fetchSpy.mockRestore();
     log.mockRestore();
     jest.restoreAllMocks();
@@ -160,8 +213,8 @@ delete process.env.PROMO_PARA;
 
     const delPaquete = pedidas.filter((u) => u.includes("/api/promo?"));
     expect(delPaquete).toHaveLength(1);
-    expect(delPaquete[0]).toContain(`desde=${VENTANA?.desde}`);
-    expect(delPaquete[0]).toContain(`hasta=${VENTANA?.hasta}`);
+    expect(delPaquete[0]).toContain(`desde=${VENTANA.desde}`);
+    expect(delPaquete[0]).toContain(`hasta=${VENTANA.hasta}`);
 
     // Y se baja la portada **más** las diapositivas del paquete, y nada más. El `+ 1` es la
     // portada, que va aparte en `paquete.portada` y no está en `imagenes`: si mañana el
