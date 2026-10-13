@@ -5,16 +5,84 @@ TypeScript estricto, Tailwind v4, 28 fuentes en el registro más 2 catálogos
 sueltos, PWA, push, newsletter. Se despliega en Dokploy con `nixpacks.toml`
 (Node 22).
 
+## Qué es esto y para qué existe
+
+**Esto no es una web de noticias ni un portfolio.** Es una agenda cultural de una
+ciudad que ya tiene agenda, pero que la tenía repartida en 28 sitios sin cruce.
+Aquí se junta, se normaliza y se enseña.
+
+**El objetivo real es Instagram, y todo lo demás es secundario.** El producto
+termina en un post de 1080×1350 que alguien sube a mano. Lo que se automatiza es
+la preparación —elegir, ordenar, escribir el pie, dibujar las imágenes— y lo que
+no se automatiza es la decisión de si el día merece publicarse.
+
+**Quién publica es una persona, y se lee el correo antes de subir.** Esa es la
+regla que manda sobre el diseño entero: ninguna parte del sistema puede publicar
+por su cuenta. Por eso `scripts/enviar-promo.ts` **manda correo y no publica**,
+y por eso el README dice que no hay token de Instagram en ninguna parte del
+proyecto.
+
+**Dos decisiones de negocio que no se deducen del código:**
+
+- **El público objetivo incluye a las familias, no solo a la gente de salir.**
+  Por eso `Infantil` pesa 26 en `lib/popularity.ts` —por encima de Teatro—: una
+  familia no comparte nada con el resto del post, y sin nada para ellas ese
+  público sigue sin aparecer por bueno que sea el resto.
+- **Aparecer más días importa más que aparecer mejor.** El calendario municipal
+  se publica con meses de antelación y su cola se vacía sola; el post sale los
+  siete días porque medido el 13 de octubre de 2026 los catorce días seguidos
+  tenían los seis planes completos.
+
+### Lo que un modelo no puede deducir solo
+
+- **La agenda se publica en euskera y castellano, con la ortografía de origen.**
+  Los títulos vienen de 28 sitios sin esquema y **no se tocan**: ni se traducen,
+  ni se corrigen las erratas, ni se ponen en mayúscula. Aparecen bajo una
+  imagen generada, y un texto que no coincide con lo que se ve es un dato falso.
+- **Una fuente caída y una fuente vacía no son lo mismo, y confundirlas cuesta
+  usuarios.** Es el modo de fallo que este proyecto lleva corrigiendo desde el
+  principio: un `return []` cuando la fuente falla hace que la agenda parezca
+  que no hay nada. `Promise.allSettled` no distingue una cosa de otra.
+- **`/api/actividades/*` es contrato con una app móvil de fuera.** Se consume
+  con `x-api-key` y **la forma de la respuesta no se toca**: cambiar un nombre de
+  campo rompe el cliente sin que nada falle aquí.
+- **Los secretos no van al repositorio, ni en texto ni cifrados.** Por eso
+  `MEC_TOKEN` y las credenciales de correo son variables de entorno y no claves
+  en el código.
+
+### Lo que no se hace aquí
+
+- **No se publica en Instagram automáticamente.** Es una decisión editorial y un
+  token en el repo no la vale. El MCP de Instagram está instalado en la máquina
+  de desarrollo, pero el cron nunca lo usa.
+- **No se pone un Dockerfile a servir la web.** Dokploy la construye con
+  `nixpacks.toml`; el `Dockerfile` que hay es solo para el contenedor del cron.
+
 ## Comandos
 
 ```bash
 npm run dev            # localhost:3000
-npm test               # Jest, 49 suites / 424 tests
+npm test               # Jest
 npm run lint           # ESLint (ver "baseline de lint")
 npm run build
 npx tsc --noEmit --incremental false   # typecheck real
 npm run test:e2e       # Playwright
 ```
+
+Y los del paquete de redes, que son con los que se trabaja a diario:
+
+```bash
+npm run doctor                    # comprueba todo el pipeline; sale con 1 si algo falla
+npm run promo:send                # el cron: arma el paquete y lo manda por correo
+npm run promo:casting [fecha]     # el casting de un día, sin mandar nada
+npm run promo:presentacion        # el post de presentación suelto
+```
+
+**`npm run doctor` es la primera cosa que se ejecuta cuando algo no cuadra.** Se
+puede lanzar en local contra producción, y en el servidor con `cd /app && npm run
+doctor`. Comprueba las cuatro rutas de imagen **leyendo el cuerpo y verificando la
+firma del PNG**, el paquete, el agregado, las variables, que `tsx` y `dotenv`
+estén declaradas y que el modelo del casting responda.
 
 ## Estado (2026-10-01)
 
@@ -345,6 +413,35 @@ in-memory no se arregla sin store compartido.
 
 ## Trampas del repo
 
+- **Una imagen de `ImageResponse` se rompe si un `<div>` tiene más de un hijo y no
+  declara `display: flex`, `display: contents` o `display: none`.** El síntoma es un
+  **502 sin cuerpo** y casi nada en el log, porque el fallo ocurre a mitad del
+  stream. Hay dos formas de dispararlo, y las dos Fallaron en producción:
+  `{dia} {mes}` —dos interpolaciones más el espacio— y un ternario que puede
+  devolver un número o una cadena. **`__tests__/promo-og-layout.test.ts` recorre el
+  JSX con el AST de TypeScript y las cazaría**, porque los tests de estas rutas solo
+  miran cabeceras y `ImageResponse` es perezoso: un test que no lee el cuerpo no
+  puede fallar. Y `next build` tampoco las caza, porque son rutas dinámicas.
+- **Un script suelto con `tsx` no carga el `.env`, y `AsyncLocalStorage` no es
+  global en Node 24.** Los dos se resuelven con `prepararEntornoScript()` de
+  `scripts/entorno.ts`, **y tienen que ir antes de cualquier import de `lib/`**,
+  que es donde revienta. El fallo del segundo es
+  `TypeError: globalThis.AsyncLocalStorage is not a constructor`, y con el apaño
+  original —`typeof ... === "undefined"`, que acepta un valor presente pero no
+  construible— salta más tarde y con un error que no señala el sitio.
+- **`opencode run` no lee el prompt de `argv`, y `execFile` no encadena stdin.** En
+  Windows hace falta `cmd /c` porque `spawn` no lanza un `.cmd`, y `cmd /c` no
+  propaga stdin al proceso de al lado. Todo eso está resuelto en
+  `scripts/opencode.ts`; **se llama desde ahí y no se copia**, porque una copia se
+  queda con la versión vieja y falla con un `Command failed` sin explicación.
+- **La API de `CalendarioServlet` se pide por mes, y la cola se vacía sola.** Un
+  rango vacío **que empieza dentro de un mes** es una avería y se propaga; uno que
+  empieza dentro de tres meses es la cola del calendario y no se toca. Medido el 13
+  de octubre de 2026: 908 eventos en el mes que viene, **36 en el que acaba a los
+  seis meses**. Sin esa distinción, las 17 fuentes `municipal-*` caen el mismo día.
+- **`tsx` y `dotenv` tienen que estar en `dependencies`, no solo en el repo.**
+  `npx` los resuelve en local y por eso la omisión es invisible hasta que el cron
+  corre en el contenedor, que es donde ya no puede bajarlos.
 - **`.tmp/` estaba en `.gitignore` pero no en los ignores de ESLint.** El
   recuento de problemas dependía de qué scripts de un solo uso la máquina de
   quien ejecutaba el lint hubiera dejado ahí. Si añades un directorio de trabajo,
@@ -468,6 +565,32 @@ in-memory no se arregla sin store compartido.
   del Ayuntamiento: hay que interpretarlas como hora local, no como UTC.
   actualmente el mercado no publica nada upcoming —los 24 eventos que devuelve son
   de 2024—, así que no aparece en la agenda y es lo esperado.
+
+## Los fallos que no se ven
+
+Cuatro de los que más caro han salido, y todos tienen la misma forma: **no
+dan error, dan silencio.**
+
+- **`MEC_TOKEN` puede estar caducado y todo parecer bien.** `scrapeRula` devuelve
+  `[]` en vez de fallar, la salud sigue en 37/37 y el correo simplemente no sale.
+  Por eso `npm run doctor` lo pregunta **contra la API** y no comprueba que la
+  variable esté puesta: un chequeo de presencia no sirve para una credencial que
+  puede haber caducado.
+- **Una fuente caída para el correo solo si no es tolerable.** `rula` es la única
+  con credencial, y su caída ya dejó el cron sin poder publicar durante días con
+  36 fuentes sanas. `FUENTES_TOLERABLES` en `scripts/enviar-promo.ts` lo dice en un
+  `Set`, y la tolerancia no se extiende en cadena: `rula` más otra es un agregado
+  a medias de verdad.
+- **`npx` esconde una dependencia que no está declarada.** `tsx` no estaba en
+  `package.json` durante meses y todo funcionaba en local; en producción `npx` lo
+  descargaba en cada ejecución del cron.
+- **La agenda devuelve vacío en silencio cuando falta la fuente que la sostiene.**
+  Una lista vacía es indistinguible de un día sin planes, y por eso hay puertas: la
+  de salud para los datos, el mínimo de tres para el día.
+
+**La forma de todos ellos es la misma: no se depuraron hasta que algo se
+midió.** Por eso `npm run doctor` existe y por eso los tests de estas rutas leen el
+cuerpo en vez de las cabeceras.
 
 ## Commits
 
