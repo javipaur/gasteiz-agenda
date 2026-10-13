@@ -84,11 +84,29 @@ function pesoFuente(source?: string): number {
 export const CATEGORY_WEIGHT: Readonly<Partial<Record<string, number>>> = {
   Música: 30,
   Festival: 26,
+  /**
+   * Infantil sube de 18 a 26, y el motivo es público y no orden.
+   *
+   * **Medido el 13 de octubre de 2026: con 18 no entraba ni uno.** `municipal-infantil`
+   * devolvía 52 eventos y el agregado tenía 43 con pinta de infantil —cuentos, talleres
+   * familiares, teatro infantil, clubes de lectura— y los veinte candidatos del casting eran
+   * cero infantiles. No es que el casting los descartara: es que nunca llegaron a verse.
+   *
+   * **Un evento infantil no compite con un concierto, llega a otra gente.** Un concierto se
+   * publica para quien ya va a Namespace concerts; una cuenta familiar
+   * que no aparece por ninguna otra parte del post, porque no comparte nada con quien va al
+   * teatro. Por eso 18 —el mismo peso que una exposición— era un error de público y no de
+   * orden: valoraba dos planes para la misma persona.
+   *
+   * **26 es por debajo de Música (30) y por encima de Teatro (22).** No es que valga más
+   * que un concierto: es que compite de tú a tú con un taller, y quien elige lo elige por
+   * gusto y no porque le suene.
+   */
+  Infantil: 26,
   Fiestas: 25,
   Teatro: 22,
   Danza: 22,
   Exposiciones: 18,
-  Infantil: 18,
   Gastronomía: 16,
   Visitas: 16,
   Talleres: 16,

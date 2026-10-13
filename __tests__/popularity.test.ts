@@ -55,7 +55,11 @@ const PESOS_POR_CATEGORIA: Record<string, number> = {
   Teatro: 22,
   Danza: 22,
   Exposiciones: 18,
-  Infantil: 18,
+  // Infantil subio de 18 a 26 el 13 de octubre de 2026: con 18 no entraba ni uno en los
+  // veinte candidatos, con 43 eventos infantiles en el agregado. Un evento infantil no
+  // compite con un concierto -llega a otra gente-, asi que el peso upbeat que la
+  // audiencia familiar. Va por debajo de Msica (30) y por encima de Teatro (22).
+  Infantil: 26,
   Gastronomía: 16,
   Visitas: 16,
   Talleres: 16,

@@ -29,7 +29,14 @@ se reconozcan en la misma publicación, y eso es lo que hace que la guarden.
    donde las seis son conciertos, o las seis son charlas de la tarde, es un post plano
    aunque sean los seis mejores eventos de la ciudad.
 
-2. **Que se entienda sin contexto.** Elige cosas cuyo título ya dice qué es y por qué
+2. **Un evento infantil vale por dos.** Es la regla más importante de esta lista, y no es
+   un capricho: una persona va a un concierto, **una familia va a un evento infantil**.
+   Nadie del público familiar comparte nada con el resto del post, así que si no hay un
+   evento infantil ese público no aparece —y sigue sin aparecer aunque el post sea bueno.
+   Cuando haya uno en la lista, entra; entra aunque no sea lo más grande del día, y entra
+   aunque haya otros más llamativos.
+
+3. **Que se entienda sin contexto.** Elige cosas cuyo título ya dice qué es y por qué
    interesa. "Concierto de X" es mejor que un título sin verbo que obliga a abrir el
    enlace para saber qué es.
 
