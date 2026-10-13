@@ -36,6 +36,25 @@ jest.mock("@/lib/mail", () => ({
   sendMail: (...a: unknown[]) => (sendMail as (...x: unknown[]) => unknown)(...a),
 }));
 
+/**
+ * **El casting va mockeado, y es lo correcto.**
+ *
+ * `pedirCasting` llama a `opencode` de verdad, y el tiempo de respuesta del modelo —hasta
+ * tres minutos— no puede estar dentro de un test. Se mockea la misma puerta que el
+ * correo, por el mismo motivo: lo que no tiene sentido en un test es la red y el modelo, no
+ * la lógica de reordenar.
+ *
+ * **El mock devuelve el orden invertido, que es lo que hace visible el fallo.** Si el
+ * script ordenara solo los títulos y no las imágenes con el mismo índice, el test vería
+ * seis títulos en orden inverso y las imágenes en el orden que les tocó —distintos—.
+ */
+const pedirCastingMock = jest.fn();
+
+jest.mock("@/scripts/casting-logica", () => ({
+  pedirCasting: (candidatos: Array<{ id: string }>) =>
+    pedirCastingMock(candidatos.map((c) => c.id)),
+}));
+
 type Main = () => Promise<void>;
 
 function cargarScript(): Main {
@@ -154,6 +173,9 @@ describe("el script del paquete", () => {
       titulos: eventos(5).map((e) => e.title),
       pie: `https://gasteizclick.javierpalacio.es/hoy?desde=${ventana}`,
       enlace: `https://gasteizclick.javierpalacio.es/hoy?desde=${ventana}`,
+      // Sin casting, que es el caso normal: el modelo puede no estar y el paquete se
+      // publica igual con el orden por puntuación.
+      casting: null,
     };
 
     fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation((async (u: string) => {
@@ -175,6 +197,13 @@ describe("el script del paquete", () => {
 
     getAgendaSalud.mockReset().mockResolvedValue(BIEN);
     sendMail.mockReset().mockResolvedValue({ ok: true });
+    // **Sin casting por defecto**, que es el caso normal: si el modelo no está, el paquete
+    // se publica igual. Los tests que necesitan casting lo piden explícitamente.
+    pedirCastingMock.mockReset().mockImplementation(async (ids: string[]) => ({
+      orden: [...ids],
+      motivo: "sin casting",
+      aplicado: false,
+    }));
   });
 
   afterEach(() => {
@@ -317,7 +346,86 @@ delete process.env.PROMO_PARA;
     expect(process.exitCode).toBe(1);
   });
 
-  describe("la puerta de salud", () => {
+  describe("el casting", () => {
+  it("si no hay casting se publica igual, con el orden por puntuación", async () => {
+    // **El caso normal, y no un fallo.** El modelo puede no estar —y con un modelo gratuito
+    // no hay garantía de que siga mañana—. Perder el casting es perder una mejora de la
+    // selección; no es motivo para no publicar el día. Es al revés que la puerta de salud,
+    // que sí detiene todo porque los datos son la agenda.
+    await cargarScript()();
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(process.exitCode).toBeUndefined();
+
+    const opciones = sendMail.mock.calls[0][0] as {
+      attachments: Array<{ filename: string }>;
+    };
+    // Portada más las cinco diapositivas del paquete.
+    expect(opciones.attachments.filter((a) => a.filename === "01-portada.png")).toHaveLength(2);
+  });
+
+  it("reordena títulos e imágenes con el mismo índice", async () => {
+    // **El fallo que este test cierra es el más caro posible aquí**: que las fotos sean de
+    // unos planes y los nombres de otros. Se comprueba que cada imagen descargada
+    // corresponde al título que el casting puso en su posición.
+    pedirCastingMock.mockResolvedValue({
+      orden: ["3", "1", "4", "0", "2"],
+      motivo: "contraste",
+      aplicado: true,
+    });
+
+    await cargarScript()();
+
+    const dir = dirEsperado;
+    const ficheros = (await readdir(dir)).filter((f) => f.endsWith(".png"));
+
+    // Cinco diapositivas más la portada, porque el casting descartó una.
+    expect(ficheros).toHaveLength(6);
+    // La 01 es la portada y las siguientes son las del casting. El casting pidió el orden
+    // `3, 1, 4, 0, 2`, así que la segunda imagen es la que en el paquete venía en la
+    // posición 0, que es `evento-0`. Es lo que hay que comprobar: que el nombre del
+    // fichero siga siendo el del evento colocado en esa posición, y no el de otro.
+    expect(ficheros[1]).toContain("02-evento-3");
+
+    // Y las seis son distintas, que es lo que un orden mal construido delataria.
+    expect(new Set(ficheros).size).toBe(ficheros.length);
+
+    // Y el pie nombra los mismos eventos, **en ese orden**. Se comprueba sobre los ficheros
+    // escritos y no sobre el HTML: el lt de cada imagen lleva tambien el titulo, asi que
+    // buscar un titulo en el HTML lo encuentra dos veces y no dice nada del orden.
+    //
+    // El casting pidio 3, 1, 4, 0, 2, asi que la descarga tiene que empezar por
+    // evento-3 y seguir con evento-1. Si el script ordenara solo los t	ulos, aqui
+    // seguiria evento-0 primero y el post tendria las fotos de unos planes con los
+    // nombres de otros.
+    expect(ficheros[1]).toContain("02-evento-3");
+    expect(ficheros[2]).toContain("03-evento-1");
+    expect(ficheros[3]).toContain("04-evento-4");
+
+    // Y las seis son distintas, que es lo que un orden mal construido delataria.
+    expect(new Set(ficheros).size).toBe(ficheros.length);
+  });
+
+  it("con casting aplicado escribe el motivo en el log", async () => {
+    // **Sin esto, nadie sabe por qué el post de tal día salió en ese orden.** El motivo es
+    // la respuesta a la pregunta que se hace quien publica y lee el log del cron.
+    const log = jest.spyOn(console, "log").mockImplementation(() => {});
+    pedirCastingMock.mockResolvedValue({
+      orden: ["0", "1", "2", "3", "4"],
+      motivo: "seis cosas distintas para seis personas distintas",
+      aplicado: true,
+    });
+
+    await cargarScript()();
+
+    const escrito = log.mock.calls.map((c) => String(c[0])).join("\n");
+    expect(escrito).toMatch(/Casting/);
+    expect(escrito).toContain("seis cosas distintas");
+    log.mockRestore();
+  });
+});
+
+describe("la puerta de salud", () => {
     it("con una fuente no tolerable caída no manda correo, no escribe nada y sale con 1", async () => {
       // Ni ficheros: si el agregado está a medias, el paquete que saliera de ahí es
       // medio día, y dejar medio paquete en disco es dejarlo a un clic de publicarse.

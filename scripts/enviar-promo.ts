@@ -269,7 +269,59 @@ export async function main() {
     );
   }
 
-  const paquete = await pedirPaquete(desde, hasta);
+  const paqueteBase = await pedirPaquete(desde, hasta);
+
+  /*
+   * **El casting reordena el paquete, y solo lo reordena.**
+   *
+   * No se pide aquí la lista de eventos: ya vino del despliegue, y esa lista es la que
+   * tiene las imágenes dibujadas. El casting devuelve **ids que ya están en el paquete** y
+   * lo que se hace es cambiar el orden con el que se descargan y se nombran. Así, imagen y
+   * título siguen siendo la misma verdad aunque el orden lo ponga un modelo.
+   *
+   * **Si el casting no llega, se publica igual.** Es la diferencia con la puerta de salud:
+   * esa para todo porque los datos son la agenda, y el casting es una mejora de la
+   * selección. Un día sin modelo es un día con el orden por puntuación, que es el que
+   * llevaba días funcionando.
+   */
+  const { pedirCasting } = await import("./casting-logica");
+
+  const casting = await pedirCasting(
+    paqueteBase.titulos.map((titulo, i) => ({
+      // El id es la posición: es lo único que la imagen y su título comparten, y lo que
+      // el modelo devuelve. Un id inventado por el modelo no puede colarse en una posición
+      // que existe, que es justo lo que `pedirCasting` descarta.
+      id: String(i),
+      titulo,
+      lugar: "",
+      categoria: "",
+    }))
+  );
+
+  // Reordena títulos e imágenes **con el mismo índice**, que es lo que hace que la imagen
+  // `03` siga siendo la del título que va debajo. Ordenar solo uno de los dos sería el
+  // fallo más caro posible aquí: un post con las fotos de unos planes y los nombres de
+  // otros.
+  //
+  // **Se recorre el casting y se busca por posición, y no al revés.** Un `filter` con un
+  // `Set` de índices conservaría el orden en que venían, que es el orden por puntuación:
+  // se quedarían los mismos eventos pero en el orden viejo, y el casting no habría hecho
+  // nada. Un `Set` **membership** y un `Set` **no** son lo mismo, y aquí hacía falta lo
+  // segundo.
+  const posiciones = casting.orden.map(Number).filter((i) => i >= 0 && i < paqueteBase.titulos.length);
+
+  const paquete = {
+    ...paqueteBase,
+    imagenes: posiciones.map((i) => paqueteBase.imagenes[i]),
+    titulos: posiciones.map((i) => paqueteBase.titulos[i]),
+    casting: casting.aplicado ? { motivo: casting.motivo, aplicado: true } : null,
+  };
+
+  if (!casting.aplicado) {
+    console.log("[promo] Sin casting: se publica con el orden por puntuación.");
+  } else {
+    console.log(`[promo] Casting: ${casting.motivo}`);
+  }
 
   // Los títulos vienen **en el paquete**, y no de una lista local aparte, porque tienen
   // que ser los de las imágenes que se mandan. De otro modo el pie puede nombrar un plan

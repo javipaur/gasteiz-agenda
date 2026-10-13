@@ -280,6 +280,15 @@ export type PaquetePromo = {
   pie: string;
   texto: string;
   enlace: string;
+  /**
+   * El criterio con el que se eligió el orden, y si llegó a aplicarse.
+   *
+   * **Es `null` cuando no hubo casting**, que es un caso normal y no un fallo: el modelo
+   * no respondió, se publica con el orden por puntuación y el pie se lee igual. Se escribe
+   * en el paquete porque es la respuesta a "por qué el post de hoy sale así", y porque
+   * está en `paquete.json` junto a lo demás.
+   */
+  casting: { motivo: string; aplicado: boolean } | null;
 };
 
 /**
@@ -301,13 +310,15 @@ export type PaquetePromo = {
  */
 export function paqueteDePromo(
   lista: Array<{ slug: string; title: string; location: string }>,
-  { desde, hasta }: { desde: string; hasta: string }
+  { desde, hasta }: { desde: string; hasta: string },
+  casting: { motivo: string; aplicado: boolean } | null = null
 ): PaquetePromo {
   const ventana = `${ORIGEN_PROMO}/hoy?desde=${desde}&hasta=${hasta}`;
   return {
     portada: urlDePromo(desde),
     imagenes: lista.map((e) => urlDePromo(desde, e.slug)),
     titulos: lista.map((e) => e.title),
+    casting,
     pie: ventana,
     texto: textoDelPie(lista, desde, hasta),
     // El `utm_content` lleva la fecha y no un texto fijo, que es lo que permite saber

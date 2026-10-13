@@ -29,6 +29,7 @@ describe("GET /api/promo", () => {
     // Conjunto cerrado y no "tiene estas claves": un campo que sobra lo lee el
     // copiador sin querer y uno que falta rompe la publicación.
     expect(Object.keys(body).sort()).toEqual([
+      "casting",
       "enlace",
       "imagenes",
       "pie",
