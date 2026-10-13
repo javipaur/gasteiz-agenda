@@ -75,8 +75,31 @@ Sin `PROMO_PARA` pasa lo mismo: ficheros en disco, código de salida 1.
 
 Las imágenes del finde las genera el sitio en `/api/promo/<fecha>/portada` y
 `/api/promo/<fecha>/evento/<slug>`; la del post de presentación, en
-`/api/promo/presentacion`. Todas son públicas a propósito, porque el correo las baja sin
-credencial.
+`/api/promo/presentacion`; y la vertical de historia, en `/api/promo/<fecha>/historia`.
+Todas son públicas a propósito, porque el correo las baja sin credencial.
+
+### Comprobar que todo está en su sitio
+
+```bash
+npm run doctor
+```
+
+Una pasada de un minuto por todo lo que el paquete necesita: las cuatro rutas de imagen
+**leyendo el cuerpo y comprobando la firma del PNG**, el paquete que baja el correo, el
+agregado, las variables del correo, que `tsx` y `dotenv` estén declaradas y que el modelo
+del casting responda. **Sale con código 1 si algo falla**, que es lo que lo hace usable
+desde el cron sin que nadie tenga que leer la salida.
+
+Existe porque tres cosas se rompieron sin que nada lo dijera. Las rutas de imágenes
+devolvían 502 desde octubre —Satori corta la respuesta a mitad del stream y el cliente solo
+ve un error sin cuerpo—, el script se paraba en la puerta de salud con 36/37 porque no
+cargaba el `.env`, y `tsx` no estaba en `package.json`. Ninguno daba error visible, y los
+tests no los cazaban porque solo miraban las cabeceras.
+
+**`MEC_TOKEN` se prueba contra la API y no se comprueba por estar presente.** Con un token
+caducado, `scrapeRula` devuelve `[]` en vez de fallar, así que la variable está puesta, la
+salud sigue en 37/37 y el token no sirve. Es el único modo de fallo de esta lista que no se
+ve solo.
 
 Sin `EMAIL_USER`/`EMAIL_PASS` el envío de correo **falla de forma explícita** en
 producción (`scripts/send-newsletter.ts` y `scripts/enviar-promo.ts` salen con código 1).

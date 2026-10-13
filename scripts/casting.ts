@@ -76,32 +76,26 @@ async function main(): Promise<void> {
     `Elige como mucho ${MAX_DIAPOSITIVAS}.`,
   ].join("\n");
 
-  const modelo = process.env.CASTING_MODELO?.trim() || "opencode/space-bunny-free";
+  const { modeloDeCasting, preguntarAOpencode } = await import("./opencode");
+  const modelo = modeloDeCasting();
 
   console.log(`[casting] ${entrada.length} candidatos · modelo ${modelo}...`);
 
-/*
-   * **El prompt va por entrada estándar y no como argumento.**
+  /*
+   * **La llamada está en `scripts/opencode.ts`.** Estaba aquí, se copió al médico y la
+   * copia se quedó con `execFile`, que no encadena stdin, así que falló con `Command
+   * failed` sin decir por qué. Dos copias de la misma llamada divergen en cuanto se toca
+   * una, y el síntoma sale en la que no se ha tocado.
    *
-   * Medido: pasado como argumento, `cmd` lo parte por los espacios y por los `>` del
-   * formato del JSON de salida, y opencode recibe una frase y media en vez de las
-   * instrucciones. El fallo parece del modelo —contesta sobre un fragmento— cuando lo
-   * único que falla es cómo se le ha pasado la pregunta.
-   *
-   * En Windows el comando pasa por `cmd /c`: `spawn` no puede lanzar un `.cmd` y devuelve
-   * `EINVAL` desde Node 20. En Linux `cmd /c` tampoco vale, así que el separador se elige
-   * aquí y no en el resto del código.
-   *
-   * **Y se usa `spawn` y no `execFile`, porque `execFile` no encadena stdin.** Medido:
-   * el mismo prompt por `execFile` da `Command failed` sin decir por qué, mientras que a
-   * mano por stdin responde `7` con código 0. `promisify(execFile)` escribe el `input` y
-   * cierra, pero `cmd /c` no lo propaga al proceso de al lado.
+   * **El prompt va por entrada estándar y no como argumento.** Medido: pasado como
+   * argumento, `cmd` lo parte por los espacios y por los `>` del formato del JSON de
+   * salida, y opencode recibe una frase y media en vez de las instrucciones. El fallo
+   * parece del modelo —contesta sobre un fragmento— cuando lo único que falla es cómo se
+   * le ha pasado la pregunta.
    */
-  const esWindows = process.platform === "win32";
-
   let salida: string;
   try {
-    salida = await correrOpencode(esWindows, modelo, mensaje);
+    salida = await preguntarAOpencode(modelo, mensaje);
   } catch (error) {
     const err = error as { message?: string };
     console.error("[casting] El modelo no respondió:", err.message);
@@ -139,75 +133,6 @@ async function main(): Promise<void> {
   });
 }
 
-/**
- * Le pregunta a opencode y devuelve lo que contestó.
- *
- * **`spawn` y no `execFile`, y la diferencia es que este sí encadena stdin.** Medido: el
- * mismo prompt con `execFile` falla con `Command failed` sin más, y a mano por la
- * terminal responde con código 0. `opencode run` lee la instrucción de stdin, y `cmd /c`
- * —necesario en Windows porque `spawn` no lanza un `.cmd`— no lo propaga.
- *
- * **Se corta el diagnóstico a 4 000 caracteres** porque el error de opencode puede venir
- * con el prompt entero dentro, y la línea de "Command failed" sin explicación es menos
- * útil que las 400 primeras letras de lo que pasó.
- */
-async function correrOpencode(
-  esWindows: boolean,
-  modelo: string,
-  mensaje: string
-): Promise<string> {
-  const { spawn } = await import("node:child_process");
-
-  const ejecutable = esWindows ? "cmd" : "opencode";
-  const argumentos = esWindows
-    ? ["/c", "opencode.cmd", "run", "--model", modelo]
-    : ["run", "--model", modelo];
-
-  return new Promise<string>((resolve, reject) => {
-    const hijo = spawn(ejecutable, argumentos, {
-      windowsHide: true,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    let salida = "";
-    let error = "";
-
-    hijo.stdout.on("data", (trozo: Buffer) => {
-      salida += trozo.toString();
-    });
-    hijo.stderr.on("data", (trozo: Buffer) => {
-      error += trozo.toString();
-    });
-
-    // **El prompt va y stdin se cierra.** Sin el `end()`, opencode se queda esperando
-    // más entrada y el cron se cuelga hasta que lo mate el timeout.
-    hijo.stdin.write(mensaje);
-    hijo.stdin.end();
-
-    const temporizador = setTimeout(() => {
-      hijo.kill();
-      reject(new Error("El modelo no respondió en 180 s."));
-    }, 180_000);
-
-    hijo.on("error", (e) => {
-      clearTimeout(temporizador);
-      reject(e);
-    });
-
-    hijo.on("close", (codigo) => {
-      clearTimeout(temporizador);
-      if (codigo !== 0) {
-        reject(
-          new Error(
-            `opencode salió con ${codigo}. ${(error || salida).slice(0, 4000)}`
-          )
-        );
-        return;
-      }
-      resolve(salida);
-    });
-  });
-}
 
 /** Lo único que se acepta: `{ elige: string[], motivo: string }`. */
 type Casting = { elige: string[]; motivo: string };
