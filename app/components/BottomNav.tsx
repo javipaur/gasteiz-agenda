@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Music, Palette, Clapperboard, Heart } from "lucide-react";
+import { Home, Music, Palette, Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 
 const tabs = [
@@ -27,67 +27,48 @@ export default function BottomNav() {
         className="bg-bg-elevated/95 backdrop-blur-xl border-t border-border"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="grid grid-cols-5 max-w-md mx-auto">
+        <div className="grid grid-cols-4 max-w-md mx-auto gap-0">
           {tabs.map(({ href, label, Icon, exact }) => (
             <Link
               key={href}
               href={href}
               aria-current={isActive(href, exact) ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-1 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
+              className={`flex flex-col items-center justify-center gap-0.5 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
                 isActive(href, exact)
                   ? "text-accent"
                   : "text-fg-muted active:text-fg"
               }`}
             >
               <span
-                className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-200 ${
+                className={`flex items-center justify-center w-10 h-6 rounded-full transition-colors duration-200 ${
                   isActive(href, exact) ? "bg-accent-soft" : ""
                 }`}
               >
                 <Icon size={20} strokeWidth={1.5} />
               </span>
-              <span className="text-[10px] font-medium leading-none">{label}</span>
+              <span className="text-[11px] font-medium leading-none">{label}</span>
             </Link>
           ))}
 
           <Link
-            href="/movies"
-            aria-current={pathname.startsWith("/movies") ? "page" : undefined}
-            className={`flex flex-col items-center justify-center gap-1 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
-              isActive("/movies", false)
-                ? "text-accent"
-                : "text-fg-muted active:text-fg"
-            }`}
-          >
-            <span
-              className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-200 ${
-                isActive("/movies", false) ? "bg-accent-soft" : ""
-              }`}
-            >
-              <Clapperboard size={20} strokeWidth={1.5} />
-            </span>
-            <span className="text-[10px] font-medium leading-none">Cartelera</span>
-          </Link>
-
-          <Link
             href="/favoritos"
             aria-current={pathname.startsWith("/favoritos") ? "page" : undefined}
-            className={`relative flex flex-col items-center justify-center gap-1 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
+            className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[56px] transition-all duration-200 active:scale-[0.94] ${
               isActive("/favoritos", false)
                 ? "text-accent"
                 : "text-fg-muted active:text-fg"
             }`}
           >
             <span
-              className={`flex items-center justify-center w-12 h-7 rounded-full transition-colors duration-200 ${
+              className={`flex items-center justify-center w-10 h-6 rounded-full transition-colors duration-200 ${
                 isActive("/favoritos", false) ? "bg-accent-soft" : ""
               }`}
             >
               <Heart size={20} strokeWidth={1.5} />
             </span>
-            <span className="text-[10px] font-medium leading-none">Favoritos</span>
+            <span className="text-[11px] font-medium leading-none">Favoritos</span>
             {count > 0 && (
-              <span className="absolute top-1.5 right-[calc(50%-1.75rem)] bg-accent text-white text-[9px] font-bold min-w-[15px] h-[15px] px-0.5 rounded-full flex items-center justify-center">
+              <span className="absolute top-1.5 right-[calc(50%-1.75rem)] bg-accent text-white text-[10px] font-bold min-w-[15px] h-[15px] px-0.5 rounded-full flex items-center justify-center">
                 {count > 9 ? "9+" : count}
               </span>
             )}

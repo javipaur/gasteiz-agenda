@@ -4,7 +4,7 @@
   "description": "Descubre conciertos, exposiciones, cine, deporte y planes familiares en Vitoria-Gasteiz.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F3EBD4",
+  "background_color": "#0B0E14",
   "theme_color": "#BC0202",
   "orientation": "any",
   "scope": "/",

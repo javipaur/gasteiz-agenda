@@ -76,3 +76,78 @@ export function useInstallPrompt(): boolean {
 export function promptInstall(): Promise<InstallOutcome> {
   return store ? store.prompt() : Promise.resolve("unavailable");
 }
+
+/**
+ * "¿Está ya en la pantalla de inicio?", que es una pregunta distinta de "¿el
+ * navegador me deja instalar?".
+ *
+ * Se separa porque las dos se responden por mecanismos que no se parecen: el
+ * evento `beforeinstallprompt` es de Chromium, y `display-mode` existe en
+ * todos. Aplicar a `beforeinstallprompt` una comprobación de instalación solo
+ * taparía el caso fácil —Chromium ya no dispara el evento para una PWA
+ * instalada— y dejaría preguntando a iPhone, que es donde de verdad hace falta
+ * saberlo.
+ *
+ * Estado propio y no un `useState` porque la respuesta puede cambiar sin que
+ * nadie navegue: al volver de segundo plano con la PWA recién abierta, el
+ * `matchMedia` cambia y con él lo que hay que pintar.
+ */
+export type InstaladoStore = {
+  subscribe: (alCambiar: () => void) => () => void;
+  getInstalado: () => boolean;
+};
+
+/**
+ * Las dos piezas del DOM entran como argumentos y no se leen aquí dentro.
+ * Es lo que permite probar el store en node con un `leer` falso, lo mismo que
+ * `createInstallStore` se prueba sobre un `EventTarget` falso.
+ */
+export function createInstaladoStore(
+  leer: () => boolean,
+  suscribir: (alCambiar: () => void) => () => void
+): InstaladoStore {
+  const suscriptores = new Set<() => void>();
+
+  return {
+    subscribe(alCambiar) {
+      const baja = suscribir(() => suscriptores.forEach((fn) => fn()));
+      suscriptores.add(alCambiar);
+      return () => {
+        suscriptores.delete(alCambiar);
+        baja();
+      };
+    },
+    getInstalado: leer,
+  };
+}
+
+/**
+ * `navigator.standalone` es la API antigua de iOS en modo web app y sigue siendo
+ * la que dice la verdad en un iPhone lanzado antes del modo standalone moderno.
+ */
+function leerInstalado(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      true
+  );
+}
+
+const instaladoStore: InstaladoStore | null =
+  typeof window === "undefined"
+    ? null
+    : createInstaladoStore(leerInstalado, (alCambiar) => {
+        const mq = window.matchMedia("(display-mode: standalone)");
+        mq.addEventListener("change", alCambiar);
+        return () => mq.removeEventListener("change", alCambiar);
+      });
+
+const NO_INSTALADO = () => false;
+
+export function useInstalado(): boolean {
+  return useSyncExternalStore(
+    instaladoStore ? instaladoStore.subscribe : SIN_SUSCRIPCION,
+    instaladoStore ? instaladoStore.getInstalado : NO_INSTALADO,
+    NO_INSTALADO
+  );
+}

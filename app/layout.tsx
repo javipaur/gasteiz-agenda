@@ -140,7 +140,7 @@ export default function RootLayout({
             Saltar al contenido principal
           </a>
           <Header />
-          <main id="main-content" className="min-h-[100dvh]">{children}</main>
+          <main id="main-content" className="min-h-[100dvh] overflow-x-clip">{children}</main>
           <Footer />
           <BottomNav />
           <div

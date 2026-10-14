@@ -1,6 +1,6 @@
 "use client";
 
-import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
+import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
@@ -13,8 +13,9 @@ function DownloadIcon({ className }: { className?: string }) {
 
 export function InstallButton() {
   const available = useInstallPrompt();
+  const instalado = useInstalado();
 
-  if (!available) return null;
+  if (!available || instalado) return null;
 
   return (
     <button

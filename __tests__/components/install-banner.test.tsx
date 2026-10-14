@@ -7,6 +7,26 @@ import { crearMontador, type ReactBits, type Vista } from "../helpers-dom";
 type Outcome = "accepted" | "dismissed";
 
 /**
+ * jsdom implementa `matchMedia` pero devuelve siempre `matches: false`, así que
+ * "ya instalada" no se puede provocar sin sustituirlo. Es lo que permite
+ * comprobar que el banner se calla cuando ya no hace falta instalar nada.
+ */
+let displayModeStandalone = false;
+
+beforeAll(() => {
+  Object.defineProperty(window, "matchMedia", {
+    value: (consulta: string) => ({
+      matches: consulta === "(display-mode: standalone)" && displayModeStandalone,
+      media: consulta,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
+    writable: true,
+    configurable: true,
+  });
+});
+
+/**
  * `lib/useInstallPrompt.ts` construye su store por defecto al importarse y ahí
  * engancha el listener a `window`. Un solo store por fichero significaría que el
  * caso siguiente hereda el evento que el anterior consumió, así que cada uno
@@ -16,7 +36,9 @@ type Outcome = "accepted" | "dismissed";
  * registro de fuera del `isolateModules`, que es otra copia de React de la que
  * usa el componente. Ver la nota de `__tests__/helpers-dom.ts`.
  */
-async function bannerLimpio() {
+async function bannerLimpio({ instalado = false }: { instalado?: boolean } = {}) {
+  displayModeStandalone = instalado;
+
   let bits!: ReactBits;
   let InstallBanner!: (props: Record<string, never>) => unknown;
   let montar!: (nodo: unknown) => Vista;
@@ -131,6 +153,21 @@ describe("InstallBanner", () => {
     await vista.asincrono();
 
     expect(vista.texto()).toContain("Instala Gasteiz Click");
+    vista.desmontar();
+  });
+
+  it("no aparece si la PWA ya está instalada", async () => {
+    // Lo que no se puede probar contra el store del evento: que el banner se
+    // callaba. Chromium no dispara `beforeinstallprompt` para una PWA ya
+    // instalada, así que en ese navegador el `&&` que lo añade no cambia nada y
+    // el test pasaría sin él. iOS es donde sí importa, y ahí no hay evento que
+    // gatee nada.
+    const { vista, disparar } = await bannerLimpio({ instalado: true });
+
+    disparar("accepted");
+    await vista.asincrono();
+
+    expect(vista.texto()).toBe("");
     vista.desmontar();
   });
 

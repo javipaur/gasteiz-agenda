@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
+import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
 
 const STORAGE_KEY = "gasteiz-install-dismissed";
 const REAPARICION_MS = 72 * 60 * 60 * 1000;
@@ -47,6 +47,7 @@ function descartadoReciente(): boolean {
 
 export default function InstallBanner() {
   const disponible = useInstallPrompt();
+  const instalado = useInstalado();
   const [descartado, setDescartado] = useState(descartadoReciente);
 
   const handleInstall = async () => {
@@ -58,7 +59,11 @@ export default function InstallBanner() {
     localStorage.setItem(STORAGE_KEY, String(Date.now()));
   };
 
-  if (!disponible || descartado) return null;
+  // `instalado` va aparte de `disponible` a propósito: los dos contestan a
+  // preguntas distintas y solo una de las dos llega a estar disponible en
+  // Chromium. Sin este `&&`, quien ya tiene la PWA en la pantalla de inicio se
+  // la sigue viendo preguntar por ella.
+  if (!disponible || descartado || instalado) return null;
 
   return (
     <section className="px-5 sm:px-6 py-8 max-w-7xl mx-auto">

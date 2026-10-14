@@ -274,6 +274,12 @@ export default async function HomeEventsPage() {
         <AtAGlanceWithData />
       </Suspense>
 
+      {/* Va aquí y no al final de la lista de eventos porque, al final, en un
+          móvil de 390 px cae a más de veinte mil píxeles del origen: medido en
+          producción, el botón quedaba a 9.776 px y la home no mostraba nada
+          instalable sin hacer scroll. Arriba de la agenda es donde se ve. */}
+      <InstallBanner />
+
       <Suspense
         fallback={
           <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
@@ -358,7 +364,6 @@ export default async function HomeEventsPage() {
         <EventsWithData />
       </Suspense>
 
-      <InstallBanner />
       <Newsletter />
     </>
   );

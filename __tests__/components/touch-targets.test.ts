@@ -62,6 +62,7 @@ const CONTROLES: { fichero: string; marcador: string; queEs: string }[] = [
   { fichero: "app/components/CategoryCarousel.tsx", marcador: 'aria-label="Siguiente"', queEs: "la flecha del riel" },
   { fichero: "app/components/TopEventsSection.tsx", marcador: 'aria-label="Anterior"', queEs: "la flecha del riel" },
   { fichero: "app/components/CookieConsent.tsx", marcador: "onClick={accept}", queEs: "el botón de aceptar" },
+  { fichero: "app/instalar/InstallGuide.tsx", marcador: 'href={PLAY_STORE}', queEs: "el enlace a Google Play" },
 ];
 
 /**

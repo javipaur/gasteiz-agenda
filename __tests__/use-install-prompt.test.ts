@@ -1,4 +1,4 @@
-import { createInstallStore } from "@/lib/useInstallPrompt";
+import { createInstallStore, createInstaladoStore } from "@/lib/useInstallPrompt";
 
 /**
  * `beforeinstallprompt` es de un solo uso por carga de página: el navegador lo
@@ -140,5 +140,68 @@ describe("el store de beforeinstallprompt", () => {
     await uno.prompt();
     expect(uno.getAvailable()).toBe(false);
     expect(otro.getAvailable()).toBe(true);
+  });
+});
+
+/**
+ * `display-mode` no es un evento: es una media query que puede cambiar sola,
+ * sola y sin que nadie navegue. Por eso este store no se construye sobre un
+ * `EventTarget` como el del prompt —ahí no hay a quién escuchar—, sino sobre
+ * las dos piezas que sí existen: una que lee y otra a la que suscribirse.
+ *
+ * Las dos entran como argumentos, y con un `leer` falso esto se prueba entero
+ * en node, sin jsdom.
+ */
+describe("el store de ya-instalada", () => {
+  it("no está instalada hasta que el navegador lo dice", () => {
+    const store = createInstaladoStore(() => false, () => () => {});
+    expect(store.getInstalado()).toBe(false);
+  });
+
+  it("refleja el estado que lee, y puede cambiar sin que nadie navegue", () => {
+    let instalado = false;
+    const store = createInstaladoStore(() => instalado, () => () => {});
+
+    expect(store.getInstalado()).toBe(false);
+    // Al volver de segundo plano con la PWA recién abierta, el `matchMedia`
+    // cambia solo. Un store que guardara el valor seguiría mintiendo.
+    instalado = true;
+    expect(store.getInstalado()).toBe(true);
+  });
+
+  it("avisa a los suscriptores cuando cambia, y solo a los que siguen", () => {
+    let avisar: (() => void) | null = null;
+    const store = createInstaladoStore(
+      () => false,
+      (fn) => {
+        avisar = fn;
+        // La baja no anula `avisar` a propósito: para comprobar que el
+        // suscriptor ya no escucha hay que poder **disparar** el cambio después
+        // de darse de baja, y si el doble desaparece no queda nada que disparar.
+        return () => {};
+      }
+    );
+
+    const cambios = jest.fn();
+    const baja = store.subscribe(cambios);
+
+    avisar!();
+    expect(cambios).toHaveBeenCalledTimes(1);
+
+    baja();
+    avisar!();
+    expect(cambios).toHaveBeenCalledTimes(1);
+  });
+
+  it("dos stores no comparten estado", () => {
+    // Lo mismo que el store del prompt: aislar el estado es lo que permite
+    // probarlo sin una ventana de verdad.
+    let valor = false;
+    const uno = createInstaladoStore(() => valor, () => () => {});
+    const otro = createInstaladoStore(() => false, () => () => {});
+
+    valor = true;
+    expect(uno.getInstalado()).toBe(true);
+    expect(otro.getInstalado()).toBe(false);
   });
 });

@@ -4,12 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { propsImagen } from "@/lib/image-proxy";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Heart } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
-import { useInstallPrompt, promptInstall } from "@/lib/useInstallPrompt";
+import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
 import ShortcutHint from "./ShortcutHint";
 import { LogoMarkReducido } from "./LogoMarkReducido";
 
@@ -137,21 +137,10 @@ export default function Header() {
   const [searching, setSearching] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const installAvailable = useInstallPrompt();
-  const isStandalone = useSyncExternalStore(
-    useCallback((onChange: () => void) => {
-      const mq = window.matchMedia("(display-mode: standalone)");
-      mq.addEventListener("change", onChange);
-      return () => mq.removeEventListener("change", onChange);
-    }, []),
-    useCallback(
-      () =>
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as Navigator & { standalone?: boolean })
-          .standalone === true,
-      []
-    ),
-    () => false
-  );
+  // El store vive en `lib/useInstallPrompt.ts` y no aquí. Estaba escrito en este
+  // componente y `InstallBanner` no lo consultaba, con lo que un usuario con la
+  // PWA instalada seguía viendo el banner pidiéndole instalarla.
+  const isStandalone = useInstalado();
   const { count } = useFavorites();
   const visibleNavItems = getVisibleNavItems();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -713,8 +702,29 @@ export default function Header() {
             </li>
             {!isStandalone && (
               <li
+                className="mt-1"
                 style={{
                   transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(visibleNavItems.length + 1) * 0.07}s`,
+                  opacity: isMenuOpen ? 1 : 0,
+                  transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
+                }}
+              >
+                {/* Va a una página y no a un evento: en iOS no hay `beforeinstallprompt`
+                    que pulsar, así que el destino es lo que puede explicar los pasos. */}
+                <Link
+                  href="/instalar"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-center gap-3 w-full text-center py-3 min-h-[44px] text-lg text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300"
+                >
+                  <DownloadIcon className="w-4 h-4" />
+                  Instalar la app
+                </Link>
+              </li>
+            )}
+            {!isStandalone && (
+              <li
+                style={{
+                  transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(visibleNavItems.length + 2) * 0.07}s`,
                   opacity: isMenuOpen ? 1 : 0,
                   transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
                 }}

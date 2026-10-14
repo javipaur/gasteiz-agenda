@@ -234,6 +234,85 @@ escrito, y el calendario municipal perdió su cuarto fetch a mano.
   hidratación que tapar porque en servidor `useInstallPrompt()` ya devuelve
   `false` y el banner no se pinta.
 
+## Hecho: la instalación de la PWA se ve (2026-10-14)
+
+El PWA **ya era instalable** y el botón **ya existía**. Lo que no se veía. Tres
+cosas distintas, y la que de verdad cuesta es la primera.
+
+### iOS no tiene `beforeinstallprompt`, y eso no es un bug
+
+Es un hecho de la plataforma: Safari no dispara el evento y no ha implementado
+la instalación programática de una PWA. Como `InstallBanner` e `InstallButton`
+estaban los dos gateados por `useInstallPrompt()`, **en iPhone e iPad el UI de
+instalación no llegaba a renderizarse nunca** — no era que estuviera escondido,
+era que no existía. Y el móvil que más usa el público de esta agenda es un
+iPhone.
+
+- `lib/install.ts` es **puro**: no lee `navigator`, no importa React, no toca el
+  DOM. `esIOS(userAgent, maxTouchPoints)` y `metodoDeInstalacion(entrada)` se
+  prueban enteros en node, en `__tests__/install-platform.test.ts`. Lo que sí
+  necesita del navegador se le pasa dentro de `EntradaInstalacion`.
+- **El iPad en Modo Escritorio** se anuncia como `Macintosh` y solo se
+  distingue por el táctil. Sin ese caso, el iPad de quien usa un teclado físico
+  cae en la rama de escritorio y se le ofrece un botón que nunca va a funcionar.
+- **No hay animación que finja la hoja de compartir de iOS.** Miente, y iOS 26
+  la rediseñó, así que el mock quedaría mal en el móvil de la mitad del público.
+- **En iOS no se enseña el enlace a Google Play**, que en un iPhone es un sitio
+  que no instala nada.
+
+### El banner estaba a 21.000 píxeles del origen
+
+Medido en producción el 14 de octubre de 2026: el documento en móvil de 390 px
+mide **21.028 px**, y el botón "Instalar" estaba en el **`y=9776`**. En Chromium
+el evento sí dispara —`Page.getInstallabilityErrors` devuelve `[]`, el service
+worker está `activated`— pero once pantallas más abajo da igual. `InstallBanner`
+bajaba de `app/page.tsx:361`, después de `EventsWithData`.
+
+- `Header.tsx` tiene el icono de instalar en `hidden md:flex`, y el menú móvil
+  solo ofrecía "App Android". En móvil no había ninguna superficie de
+  instalación sobre el fold.
+- Ahora hay tres: la entrada "Instalar la app" del menú móvil, la página
+  `/instalar` y el banner subido tras `AtAGlanceWithData`.
+
+### `display-mode` no es un evento, y por eso no es el mismo store
+
+`createInstaladoStore(leer, suscribir)` **no** se construye sobre un
+`EventTarget` como el del prompt, porque ahí no hay a quién escuchar:
+`display-mode` es una media query. Las dos piezas que sí existen entran como
+argumentos, y con un `leer` falso se prueba en node. Estado aparte y no un
+`useState` porque la respuesta cambia sola: al volver de segundo plano con la
+PWA recién abierta.
+
+- El `isStandalone` que estaba escrito dentro de `Header.tsx` era una **tercera
+  copia** de "¿estoy instalada?" que `InstallBanner` e `InstallButton` no
+  consultaban. Los tres consumen ahora `useInstalado()`.
+- Aplicar `display-mode` al store del prompt habría tapado solo el caso fácil:
+  Chromium ya no dispara el evento para una PWA instalada. iOS es donde importa,
+  y ahí no hay evento que gatee nada.
+
+### El fallo que sale al pulsar "Instalar"
+
+`prompt()` consume el evento en cuanto se pulsa. Con la página derivando la
+tarjeta del método, el momento siguiente el botón se convertía en **"este
+navegador no instala esto"** con el diálogo del navegador todavía delante.
+`InstallGuide` guarda el estado del intento (`reposo`/`pidiendo`/`instalada`/
+`descartado`) y **`accepted` se toma como instalada sin esperar al
+`matchMedia`**, porque es el propio navegador diciendo que ya está. Dos tests lo
+fijan: aceptar y descartar.
+
+### Lo que sigue sin verificar
+
+**Nada de esto se ha probado en un teléfono físico.** Todo lo anterior está
+medido contra producción con Chromium headless a viewport 390 px, y el
+heuristic de *user engagement* que Chrome aplica antes de disparar el evento no
+se puede comprobar desde aquí. Sigue siendo un paso antes de dar esto por bueno.
+
+Y quedan **dos superficies con el enlace a Play Store que se muestran en iOS**,
+preexistentes y fuera de lo que se tocó: `Footer.tsx:67` y el "App Android" del
+menú móvil (`Header.tsx`). En un iPhone ese enlace no instala nada. La regla
+correcta ya existe y está probada — `muestraAppNativa()`—; lo que falta es
+aplicarla ahí.
+
 ### La Blanca saca el año de los datos
 
 El año estaba escrito en **cinco** sitios de `lib/sources/fiestas-blanca.ts` y en
@@ -452,6 +531,14 @@ in-memory no se arregla sin store compartido.
   Por eso `__tests__/helpers-push.ts` crea un directorio por test y **no** borra
   entre ellos; limpia todos al final y traga el fallo. Un `afterEach` que limpia
   tumba la suite entera por un fichero abierto.
+- **Todas las páginas usan `pt-28` por el header fijo, y no es una preferencia de
+  espaciado.** Con `py-12` el H1 de `/instalar` quedó medio tapado; se vio
+  renderizando a 390 px, no leyendo el código. El motivo largo está escrito en
+  `app/hoy/page.tsx` y las otras quince páginas copian el valor.
+- **Un `{/* … */}` de JSX entre atributos no compila**, y el error que sale es un
+  500 con `Expected '</', got '}'` en la página entera. Pasa por debajo de
+  `npm test` si se edita después de la última pasada, así que la comprobación de
+  que sigue valiendo es **mirar la página**, no volver a correr los tests.
 - **`process.env.NODE_ENV` es de solo lectura en los tipos**, y los tests de mail
   necesitan cambiarlo para mirar los dos lados de la regla del mock. Se escribe con
   un cast a `Record<string, string|undefined>` en vez de un `// @ts-expect-error`
