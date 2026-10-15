@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { esEvento, EVENTOS } from "@/lib/metricas";
 import { anotar, porRuta, resumen } from "@/lib/metricas-store";
+import { consume, ipDe } from "@/lib/api-rate-limit";
 
 /**
  * Dónde se anotan las visitas y las instalaciones.
@@ -75,6 +76,27 @@ function ahoraDelCliente(bruto: unknown, respaldo: number): number {
 }
 
 export async function POST(req: Request) {
+  /*
+   * El límite va **primero**, antes de leer el cuerpo, porque una petición
+   * infladora se reconoce por el volumen y no por lo que trae: leer el cuerpo de
+   * un attack que manda diez mil peticiones por minuto es trabajo gratis para
+   * quien lo manda.
+   *
+   * Y va aquí, y no en el middleware, por lo que dice `lib/api-rate-limit.ts`:
+   * el limitador del middleware está **después** de `isPublicApiRoute`, así que a
+   * esta ruta nunca llega. Su `POST` tiene que protegerse.
+   */
+  const limite = consume(ipDe(req));
+  if (!limite.ok) {
+    return NextResponse.json(
+      { error: "Demasiadas peticiones de métrica desde esta IP" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limite.reintentarEn) },
+      }
+    );
+  }
+
   const declarado = Number(req.headers.get("content-length"));
   if (Number.isFinite(declarado) && declarado > MAX_CORPO_BYTES) {
     return NextResponse.json({ error: "cuerpo demasiado grande" }, { status: 413 });

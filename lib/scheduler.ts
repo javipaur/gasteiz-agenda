@@ -89,26 +89,64 @@ const DIAS_DE_METRICAS = 400;
  * debajo, y lo que un test necesita para poder mirar una decisión sin esperar diez
  * minutos.
  */
-export async function tick(): Promise<void> {
+/**
+ * Qué partes del scheduler hay que arrancar.
+ *
+ * Cada una tiene su puerta en `instrumentation.ts` y su motivo escrito allí, y por
+ * eso esto son dos banderas y no un interruptor: el digest se puede querer apagado
+ * sin que la tabla de métricas deje de podarse, que era exactamente lo que pasaba
+ * cuando compartían puerta.
+ */
+export type SchedulerOpciones = {
+  /** Digest diario de push. */
+  push: boolean;
+  /** Poda diaria de `metricas.db`. */
+  metricas: boolean;
+};
+
+/**
+ * Lo que se arranca cuando nadie dice nada.
+ *
+ * El push es lo que estaba detrás de `ENABLE_PUSH_SCHEDULER`; las métricas son lo
+ * nuevo, y por defecto sí, porque una tabla que crece sin poda solo molesta cuando
+ * ya es un problema.
+ */
+const TODO_POR_DEFECTO: SchedulerOpciones = { push: true, metricas: true };
+
+export async function tick(
+  opciones: SchedulerOpciones = TODO_POR_DEFECTO
+): Promise<void> {
   /*
-   * La poda va **antes** del digest y fuera de su `try`, por dos razones.
+   * La poda va **antes** del digest, en su propio `try`, y **protegida por su
+   * propia puerta** en vez de depender de la del push.
    *
-   * Una: si el digest lanza —que lanza, si un scraper está caído— el `catch` se
-   * come el error y la poda no llegaría a ejecutarse nunca en un día con la agenda
-   * rota, que es justo el día que más falta hace no accumulation.
+   * Antes estaba detrás de la del digest, así que apagar `ENABLE_PUSH_SCHEDULER`
+   * apagaba también la poda: sin push no arrancaba este módulo, `podarSiToca()` no
+   * se llamaba nunca y `metricas.db` crecía para siempre. No salía ningún error,
+   * porque no fallaba nada: simplemente nadie pasaba por ahí. Es el modo de fallo
+   * que este repo lleva corrigiendo desde el principio —el que no da error, da
+   * silencio— y por eso el `if` va con su motivo y no como un detalle.
    *
-   * Dos: `podarSiToca` es idempotente por día y no depende de nada del digest, así
-   * que mezclarla en el mismo `try` la haría depender de un servicio que no tiene
-   * por qué ver.
+   * El `try` aparte es por lo otro: si el digest lanza —que lanza, si un scraper
+   * está caído— el `catch` de abajo se come el error, y la poda no llegaría a
+   * ejecutarse en un día con la agenda rota, que es justo el día en que más falta
+   * hace que la tabla no crezca.
    */
-  try {
-    const podadas = podarSiToca(DIAS_DE_METRICAS);
-    if (podadas !== null && podadas > 0) {
-      console.log(`[metricas] poda: ${podadas} filas de más de ${DIAS_DE_METRICAS} días`);
+  if (opciones.metricas) {
+    try {
+      const podadas = podarSiToca(DIAS_DE_METRICAS);
+      if (podadas !== null && podadas > 0) {
+        console.log(
+          `[metricas] poda: ${podadas} filas de más de ${DIAS_DE_METRICAS} días`
+        );
+      }
+    } catch (err) {
+      console.error("[metricas] error en la poda:", err);
     }
-  } catch (err) {
-    console.error("[metricas] error en la poda:", err);
   }
+
+  /* Sin push no hay digest, y esta función no hace nada más. */
+  if (!opciones.push) return;
 
   try {
     const zona = zonaDelProceso();
@@ -150,10 +188,22 @@ export async function tick(): Promise<void> {
   }
 }
 
-export function startScheduler() {
-  console.log(
-    `[push] scheduler activo · digest a las ${horaDelDigest()}:00 (${zonaDelProceso()})`
-  );
-  setTimeout(tick, 30_000);
-  setInterval(tick, CHECK_INTERVAL);
+/**
+ * Arranca el temporizador, y dice qué ha arrancado.
+ *
+ * El mensaje del arranque lleva las dos partes porque es el primer log que se lee
+ * cuando algo no cuadra: sin él, un despliegue con el push apagado y las métricas
+ * activas muestra una línea que habla solo del push, y parecería que no hay nada
+ * corriendo cuando en realidad la poda sí está.
+ */
+export function startScheduler(opciones: SchedulerOpciones = TODO_POR_DEFECTO) {
+  const partes = [
+    opciones.push
+      ? `digest a las ${horaDelDigest()}:00 (${zonaDelProceso()})`
+      : "sin digest",
+    opciones.metricas ? `poda de métricas cada día` : "sin poda",
+  ];
+  console.log(`[scheduler] activo — ${partes.join(", ")}`);
+  setTimeout(() => tick(opciones), 30_000);
+  setInterval(() => tick(opciones), CHECK_INTERVAL);
 }

@@ -1,4 +1,5 @@
 import { dbDePrueba, limpiarDbsDePrueba } from "./helpers-metricas";
+import { reiniciaLimite } from "@/lib/api-rate-limit";
 
 /**
  * La ruta de `/api/metric`.
@@ -35,6 +36,10 @@ beforeEach(async () => {
   dbDePrueba();
   jest.resetModules();
   process.env.API_KEY = API_KEY;
+  // El limitador es un `Map` de módulo. Sin reiniciarlo, las peticiones de los
+  // casos anteriores siguen contando y este fichero acaba midiendo el orden en
+  // que Jest ejecuta las pruebas.
+  reiniciaLimite();
   route = await import("@/app/api/metric/route");
   store = await import("@/lib/metricas-store");
 });
@@ -164,6 +169,65 @@ describe("POST", () => {
     }
     expect(store.porRuta().visitasPorRuta).toEqual({});
     expect(store.porRuta().sinRuta).toBe(4);
+  });
+});
+
+describe("el límite del POST", () => {
+  const IP = { "x-forwarded-for": "203.0.113.9" };
+
+  it("rechaza con 429 al pasar el tope y no escribe la fila", async () => {
+    /*
+     * El caso que justifica el limitador. La lista cerrada de `lib/metricas.ts`
+     * impide inventar etiquetas, pero no impide el **volumen**: sin tope, un
+     * script que descubre la ruta escribe las que quiera y el contador deja de
+     * significar nada. Y como una petición aceptada escribe exactamente una fila,
+     * el límite de peticiones es también el de filas.
+     */
+    for (let i = 0; i < 60; i++) {
+      const res = await post({ evento: "visita" }, IP);
+      expect(res.status).toBe(200);
+    }
+    expect(store.resumen().porEvento.visita).toBe(60);
+
+    const rechazado = await post({ evento: "visita" }, IP);
+    expect(rechazado.status).toBe(429);
+    // Lo que se dice no se escribe: si escribiera, el rechazo no valdría de nada.
+    expect(store.resumen().porEvento.visita).toBe(60);
+  });
+
+  it("el 429 dice cuándo reintentar", async () => {
+    for (let i = 0; i < 61; i++) await post({ evento: "visita" }, IP);
+    const res = await post({ evento: "visita" }, IP);
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toMatch(/^\d+$/);
+  });
+
+  it("otra IP no paga la cuenta de la primera", async () => {
+    for (let i = 0; i < 60; i++) await post({ evento: "visita" }, IP);
+    const otra = await post(
+      { evento: "visita" },
+      { "x-forwarded-for": "198.51.100.7" }
+    );
+    expect(otra.status).toBe(200);
+  });
+
+  it("una petición sin cabecera de IP no se rechaza", async () => {
+    // La decisión de diseño, fijada con test: sin IP no hay contra quién contar, y
+    // rechazar dejaría sin métricas a todo el que venga detrás de un proxy que no
+    // manda cabeceras, sin un solo error en ningún log.
+    for (let i = 0; i < 80; i++) {
+      const res = await post({ evento: "visita" });
+      expect(res.status).toBe(200);
+    }
+    expect(store.resumen().porEvento.visita).toBe(80);
+  });
+
+  it("el GET no consume el cupo del POST", async () => {
+    // El panel lee con la clave. Que su lectura contara contra el mismo tope
+    // significaría que refrescar el panel bloquea las métricas de la web que está
+    // en la otra pestaña.
+    for (let i = 0; i < 60; i++) await post({ evento: "visita" }, IP);
+    expect((await get({ "x-api-key": API_KEY, "x-forwarded-for": "203.0.113.9" })).status).toBe(200);
   });
 });
 

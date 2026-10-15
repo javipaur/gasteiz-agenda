@@ -372,6 +372,78 @@ async function comprobarCasting(fecha: string): Promise<void> {
   }
 }
 
+/**
+ * Que el contador de métricas **escriba**, no que la variable exista.
+ *
+ * ## Por qué escribe y no solo mira
+ *
+ * `app/components/Metricas.tsx` se traga el fallo del `fetch` a propósito, para que
+ * un contador caído no pueda dejar de servir la web. El precio de esa decisión es
+ * que un `metricas.db` ilegible —volumen no montado, disco lleno, permisos— **no
+ * produce ningún error en ningún log**: el contador se congela y sigue contando
+ * en apariencia. Semanas después se abre el panel y se ve un número parado que
+ * parece "pocas visitas".
+ *
+ * Es el mismo modo de fallo que ya corrigió el resto del repo, y con la misma
+ * solución que se aplicó a `MEC_TOKEN`: **no comprobar que la variable esté puesta,
+ * sino usarla**. Una presencia no dice nada; una escritura y una lectura sí.
+ *
+ * ## Por qué escribe una fila de verdad
+ *
+ * Podría conformarse con `resumen()` —que lee— y sería la mitad. Se escribe y se
+ * relee porque las dos mitades fallan por motivos distintos: la escritura falla si
+ * el directorio no existe o no hay permisos, y la lectura falla si el esquema está
+ * roto o la base está corrupta. Un contador que escribe y no se lee deja un
+ * `metricas.db` inflado sin que nadie lo note, y al revés.
+ */
+async function comprobarMetricas(): Promise<void> {
+  try {
+    const { anotar: anotarEvento, resumen, podar } = await import(
+      "../lib/metricas-store"
+    );
+
+    const marca = 1_700_000_000_000;
+    /*
+     * `anotarEvento` y no `anotar`: en este fichero `anotar` es la función local
+     * que **registra una comprobación en el informe**, y el `import` la habría
+     * eclipsado dentro de esta función. Es el mismo `import` que hace el store, y
+     * sin el alias el TypeScript lo dice con un error de tipo que no señala la
+     * causa real —que es una sombra, no un tipo mal puesto—.
+     */
+    anotarEvento("visita", marca, "/doctor");
+    const leido = resumen();
+
+    if (leido.porEvento.visita < 1) {
+      anotar(
+        "métricas",
+        "fallo",
+        "Se escribió una fila y `resumen()` no la cuenta. La tabla y el código no hablan el mismo esquema."
+      );
+      return;
+    }
+
+    // Se borra la fila de prueba. Sin esto, cada ejecución del doctor dejaría una
+    // visita más, y `doctor` corre todas las mañanas: el ruido acabaría valiendo
+    // más que las visitas reales de las semanas que costara arreglarlo.
+    const borradas = podar(marca - 1);
+
+    anotar(
+      "métricas",
+      "ok",
+      `Escribe y lee en ${process.env.METRICAS_DB_DIR ?? ".data/metricas.db"}` +
+        (borradas > 0 ? ` (fila de prueba borrada)` : "")
+    );
+  } catch (error) {
+    anotar(
+      "métricas",
+      "aviso",
+      `No se pudo escribir en la base de métricas (${
+        error instanceof Error ? error.message.slice(0, 140) : "?"
+      }). El sitio sigue funcionando y el contador se congela en silencio: es un aviso, no un fallo del envío.`
+    );
+  }
+}
+
 async function mainDoctor(): Promise<void> {
   const { prepararEntornoScript } = await import("./entorno");
   await prepararEntornoScript();
@@ -387,6 +459,7 @@ async function mainDoctor(): Promise<void> {
   await comprobarImagenes(fecha);
   await comprobarPaquete(fecha);
   await comprobarCasting(fecha);
+  await comprobarMetricas();
 
   const simbolo: Record<Estado, string> = { ok: "OK   ", fallo: "FALLO", aviso: "AVISO" };
 
