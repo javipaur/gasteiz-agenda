@@ -29,7 +29,7 @@ const DB_PATH = path.join(DB_DIR, "metricas.db");
  */
 const BUSY_TIMEOUT_MS = 5_000;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
  * Migraciones en orden. Solo hay un paso, pero la lista existe desde el principio
@@ -61,6 +61,20 @@ const MIGRASIONES: readonly { version: number; sql: string }[] = [
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
+    `,
+  },
+  {
+    // La ruta donde pasó el evento. Sin esto el contador decía "40 visitas" y no
+    // decía dónde, que es la mitad del trabajo de un embudo.
+    //
+    // `ALTER TABLE ... ADD COLUMN` y no una tabla nueva, porque las filas que ya
+    // hay no se pueden volver a escribir: se quedan con la columna a `NULL`, que es
+    // lo mismo que "no se sabía", y `porRuta()` lo cuenta aparte en vez de
+    // inventarle un destino.
+    version: 3,
+    sql: `
+      ALTER TABLE eventos ADD COLUMN ruta TEXT;
+      CREATE INDEX IF NOT EXISTS eventos_ruta ON eventos (nombre, ruta);
     `,
   },
 ];
@@ -134,10 +148,68 @@ function getDb(): DatabaseSync {
  * `capturadoEn` explícito desde el `route.ts` para que el reloj sea el del
  * navegador, que es el que experienced el usuario.
  */
-export function anotar(nombre: Evento, capturadoEn: number = Date.now()): void {
+export function anotar(
+  nombre: Evento,
+  capturadoEn: number = Date.now(),
+  ruta?: string
+): void {
   getDb()
-    .prepare("INSERT INTO eventos (nombre, ts) VALUES (?, ?)")
-    .run(nombre, capturadoEn);
+    .prepare("INSERT INTO eventos (nombre, ts, ruta) VALUES (?, ?, ?)")
+    .run(nombre, capturadoEn, ruta ?? null);
+}
+
+/**
+ * Las visitas agrupadas por ruta, y el resto de eventos aparte.
+ *
+ * Esto es un embudo sin third parties: dice dónde se abre el sitio, cuántas
+ * visitas hubo en cada página y qué pasó con la instalación. Lo que **no** hace
+ * es juntar sesiones distintas, porque eso necesitaría un identificador que
+ * sobrevive entre visitas, y ese identificador es una cookie.
+ *
+ * El agrupado es por `(nombre, ruta)` y el índice de `ruta` es compuesto por
+ * `nombre`, así que el `GROUP BY` no repasa la tabla entera.
+ */
+export function porRuta(): {
+  visitasPorRuta: Record<string, number>;
+  instalacionPorRuta: Record<string, number>;
+  sinRuta: number;
+} {
+  const filas = getDb()
+    .prepare(
+      `SELECT nombre, ruta, COUNT(*) AS n
+       FROM eventos
+       WHERE ruta IS NOT NULL
+       GROUP BY nombre, ruta`
+    )
+    .all() as { nombre: string; ruta: string; n: number }[];
+
+  const visitasPorRuta: Record<string, number> = {};
+  const instalacionPorRuta: Record<string, number> = {};
+  let sinRuta = 0;
+
+  for (const fila of filas) {
+    if (fila.nombre === "visita") {
+      visitasPorRuta[fila.ruta] = (visitasPorRuta[fila.ruta] ?? 0) + fila.n;
+    } else if (fila.nombre === "instalada") {
+      instalacionPorRuta[fila.ruta] = (instalacionPorRuta[fila.ruta] ?? 0) + fila.n;
+    }
+  }
+
+  /*
+   * Las filas sin ruta son las anteriores a la migración 3, más las de los
+   * eventos que no la mandan (los del embudo de instalación, que pueden venir de
+   * `/instalar` o del banner de la home indistintamente).
+   *
+   * Se cuentan y se dicen en voz alta en vez de repartirse por la ruta principal:
+   * inventarles un destino haría que `/` pareciera más visitada de lo que es, y
+   * ese es justo el número que se usa para decidir.
+   */
+  const sinRutaFila = getDb()
+    .prepare("SELECT COUNT(*) AS n FROM eventos WHERE ruta IS NULL")
+    .get() as { n: number };
+  sinRuta = sinRutaFila.n;
+
+  return { visitasPorRuta, instalacionPorRuta, sinRuta };
 }
 
 /**

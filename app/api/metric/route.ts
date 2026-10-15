@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { esEvento, EVENTOS } from "@/lib/metricas";
-import { anotar, resumen } from "@/lib/metricas-store";
+import { anotar, porRuta, resumen } from "@/lib/metricas-store";
 
 /**
  * Dónde se anotan las visitas y las instalaciones.
@@ -36,6 +36,26 @@ import { anotar, resumen } from "@/lib/metricas-store";
  */
 const MAX_CORPO_BYTES = 1024;
 
+/**
+ * La ruta, acotada.
+ *
+ * Sin este recorte el `POST` público podría mandar un `ruta` de un megabyte en
+ * cada visita y la tabla —que crece sola— se llenaría de texto inútil. Y no es un
+ * límite puramente teórico: el techo del **cuerpo** es de 1 KB, pero una fila por
+ * visita multiplica ese 1 KB por todas las visitas que haya tenido el sitio.
+ *
+ * 200 es de sobra para cualquier ruta real del sitio, y el corte deja pasar
+ * cualquier query string sin romper la vista por ruta.
+ */
+const MAX_RUTA_CHARS = 200;
+
+function rutaDelCliente(bruto: unknown): string | null {
+  if (typeof bruto !== "string") return null;
+  const ruta = bruto.trim();
+  if (ruta.length === 0) return null;
+  return ruta.slice(0, MAX_RUTA_CHARS);
+}
+
 /** De dónde sale el reloj, y por qué no se usa el del servidor. */
 function ahoraDelCliente(bruto: unknown, respaldo: number): number {
   if (typeof bruto !== "number" || !Number.isFinite(bruto)) return respaldo;
@@ -65,9 +85,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "cuerpo demasiado grande" }, { status: 413 });
   }
 
-  let datos: { evento?: unknown; ts?: unknown };
+  let datos: { evento?: unknown; ts?: unknown; ruta?: unknown };
   try {
-    datos = JSON.parse(cuerpo) as { evento?: unknown; ts?: unknown };
+    datos = JSON.parse(cuerpo) as { evento?: unknown; ts?: unknown; ruta?: unknown };
   } catch {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
@@ -80,7 +100,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    anotar(datos.evento, ahoraDelCliente(datos.ts, Date.now()));
+    anotar(datos.evento, ahoraDelCliente(datos.ts, Date.now()), rutaDelCliente(datos.ruta) ?? undefined);
   } catch (err) {
     /**
      * Un 500 aquí no rompe nada de lo que el visitante está viendo — la anotación
@@ -103,6 +123,10 @@ export async function POST(req: Request) {
  * nunca llega a la comprobación de clave. Con `GET` abierto, cualquiera que
  * adivinara la dirección vería cuántas personas entran; con la clave, hace falta
  * el mismo secreto que ya protege `/api/actividades/*`.
+ *
+ * Devuelve también `porRuta`, que es el desglose por página. Va en la misma
+ * respuesta y no en otra ruta porque las dos se leen a la vez y separarlas
+ * obligaría a dos `curl` para leer un embudo que cabe en una pantalla.
  */
 export async function GET(req: Request) {
   const API_KEY = process.env.API_KEY;
@@ -118,5 +142,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json(resumen());
+  return NextResponse.json({ ...resumen(), porRuta: porRuta() });
 }

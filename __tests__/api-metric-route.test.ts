@@ -128,6 +128,43 @@ describe("POST", () => {
     expect(r.primera).toBeGreaterThanOrEqual(antes);
     expect(r.primera).toBeLessThanOrEqual(Date.now());
   });
+
+  it("acepta la ruta y la guarda", async () => {
+    await post({ evento: "visita", ts: Date.now(), ruta: "/instalar" });
+    expect(store.porRuta().visitasPorRuta).toEqual({ "/instalar": 1 });
+  });
+
+  it("una ruta de un megabyte queda acotada a 200 caracteres", async () => {
+    /**
+     * El techo del cuerpo es de 1 KB, así que una ruta enorme **no cabe** en una
+     * petición de las que manda el navegador. Pero el `POST` es público: quien lo
+     * encuentre puede mandar cuerpos legalitos de 1 KB y meterlos muchas veces, y
+     * el recorte por ruta es lo que evita que eso se convierta en una tabla llena
+     * de texto que no sirve para nada.
+     */
+    const larga = "/" + "a".repeat(50_000);
+    const res = await post({ evento: "visita", ruta: larga });
+    // El cuerpo pasa del techo de 1 KB, que es justo lo que se quiere comprobar.
+    expect(res.status).toBe(413);
+
+    // Y una que sí cabe, queda acotada y no se cuela entera.
+    const cabida = "/" + "a".repeat(500);
+    const res2 = await post({ evento: "visita", ruta: cabida });
+    expect(res2.status).toBe(200);
+    const claves = Object.keys(store.porRuta().visitasPorRuta);
+    expect(claves).toHaveLength(1);
+    expect(claves[0].length).toBe(200);
+    expect(claves[0].endsWith("a")).toBe(true);
+  });
+
+  it("una ruta vacía o que no es string cuenta como sin ruta", async () => {
+    for (const ruta of ["", "   ", 42, null]) {
+      const res = await post({ evento: "visita", ruta });
+      expect(res.status).toBe(200);
+    }
+    expect(store.porRuta().visitasPorRuta).toEqual({});
+    expect(store.porRuta().sinRuta).toBe(4);
+  });
 });
 
 describe("GET", () => {

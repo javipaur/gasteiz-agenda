@@ -35,7 +35,7 @@ import type { Evento } from "@/lib/metricas";
  * reintenta, porque reintentar sobre una visita ya contada la contaría dos veces,
  * y un número que se lee en un panel y miente es peor que no tenerlo.
  */
-function enviar(evento: Evento): void {
+function enviar(evento: Evento, ruta?: string): void {
   try {
     void fetch("/api/metric", {
       method: "POST",
@@ -43,7 +43,7 @@ function enviar(evento: Evento): void {
       // El reloj del navegador, que es el que vio la persona. El de un contenedor
       // en Dokploy puede ir desviado, y un contador cuyo orden depende del reloj
       // de la máquina no sirve para nada.
-      body: JSON.stringify({ evento, ts: Date.now() }),
+      body: JSON.stringify({ evento, ts: Date.now(), ruta }),
       // Para que el navegador pueda mandar el evento aunque cierre la pestaña
       // justo después, que es cuando pasa con `instalada`.
       keepalive: true,
@@ -52,8 +52,35 @@ function enviar(evento: Evento): void {
     });
   } catch {
     // El `try` cubre también un `JSON.stringify` que fallara, que aquí no puede,
-    // pero hace el `enviar` impossible que rompa a quien lo llama.
+    // pero hace el `enviar` imposible que rompa a quien lo llama.
   }
+}
+
+/**
+ * De dónde vino la persona, en el sentido de "qué página tenía abierta cuando
+ * decidió instalar".
+ *
+ * Y por eso va en `sessionStorage` y no se lee de `location` en cada evento: sin
+ * identificar a la persona entre páginas, cada evento solo sabe dónde **está**
+ * ahora. Con esta ruta inicial se puede responder "¿la gente instala desde la home
+ * o desde `/instalar`?", que es la pregunta que decide dónde va el botón.
+ *
+ * Y es la misma memoria de pestaña que la visita, por lo mismo: no viaja, no la ve
+ * el servidor y no pide consentimiento.
+ */
+const CLAVE_ORIGEN = "gc:origen";
+
+function fijarOrigen(): string {
+  const ruta = window.location.pathname;
+  try {
+    const guardado = window.sessionStorage.getItem(CLAVE_ORIGEN);
+    if (guardado) return guardado;
+    window.sessionStorage.setItem(CLAVE_ORIGEN, ruta);
+  } catch {
+    // Sin `sessionStorage` se usa la ruta actual, que es una aproximación
+    // razonable: solo importa cuando alguien navega antes de instalar.
+  }
+  return ruta;
 }
 
 /**
@@ -84,7 +111,7 @@ export default function Metricas() {
 
   /* Una visita por pestaña, y solo la primera. */
   useEffect(() => {
-    if (!yaVisitado()) enviar("visita");
+    if (!yaVisitado()) enviar("visita", fijarOrigen());
   }, []);
 
   /*
@@ -97,7 +124,7 @@ export default function Metricas() {
    * y el contador se multiplicaría sin que nadie instalara nada.
    */
   useEffect(() => {
-    if (instalado) enviar("instalada");
+    if (instalado) enviar("instalada", fijarOrigen());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
