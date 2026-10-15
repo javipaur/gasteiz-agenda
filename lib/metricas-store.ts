@@ -29,7 +29,7 @@ const DB_PATH = path.join(DB_DIR, "metricas.db");
  */
 const BUSY_TIMEOUT_MS = 5_000;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 /**
  * Migraciones en orden. Solo hay un paso, pero la lista existe desde el principio
@@ -49,6 +49,18 @@ const MIGRASIONES: readonly { version: number; sql: string }[] = [
       );
       CREATE INDEX IF NOT EXISTS eventos_nombre ON eventos (nombre);
       CREATE INDEX IF NOT EXISTS eventos_ts ON eventos (ts);
+    `,
+  },
+  {
+    // La tabla que dice si la poda de hoy ya está hecha. Es el mismo patrón que
+    // `meta` en `lib/push.ts` con `digest_sent_on`: el scheduler corre cada diez
+    // minutos, y sin este marcador la poda se ejecutaría 144 veces al día.
+    version: 2,
+    sql: `
+      CREATE TABLE IF NOT EXISTS meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
     `,
   },
 ];
@@ -186,6 +198,71 @@ export function podar(antes: number): number {
     .prepare("DELETE FROM eventos WHERE ts < ?")
     .run(antes);
   return Number(resultado.changes ?? 0);
+}
+
+const CLAVE_PODA = "poda_hecha_el";
+
+function leerMeta(clave: string): string | null {
+  const fila = getDb()
+    .prepare("SELECT value FROM meta WHERE key = ?")
+    .get(clave) as { value?: string } | undefined;
+  return fila?.value ?? null;
+}
+
+/**
+ * La poda, pero **una vez al día** y solo si toca.
+ *
+ * Existe porque `podar()` sin más no sirve en el sitio donde tendría que vivir: el
+ * scheduler de `lib/scheduler.ts` corre un tick cada diez minutos, así que llamarla
+ * desde ahí sin más la ejecutaría 144 veces al día para borrar cero filas las 143
+ * últimas. Es el mismo problema que resolvió `digest_sent_on` para el digest.
+ *
+ * El día se calcula con `Intl` en la zona del proceso, no con `toISOString()`, por
+ * el mismo motivo escrito en `lib/scheduler.ts`: `toISOString()` es UTC, y en un
+ * contenedor sin `TZ` eso cae a la medianoche UTC, con lo que la poda se
+ * adelantaría una tarde en horario de verano. Con la zona explícita, "hoy" es hoy a las nueve de la mañana y
+ * a las tres de la tarde.
+ *
+ * Devuelve cuántas filas se fueron, o `null` si no tocaba. El `null` no es un
+ * error: es la respuesta normal de 143 de las 144 llamadas al día.
+ */
+export function podarSiToca(dias: number, ahora: number = Date.now()): number | null {
+  const dia = diaEnZona(ahora);
+  if (leerMeta(CLAVE_PODA) === dia) return null;
+
+  const borradas = podar(ahora - dias * 24 * 60 * 60 * 1000);
+  getDb()
+    .prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+    .run(CLAVE_PODA, dia);
+  return borradas;
+}
+
+/**
+ * El día de calendario en `Europe/Madrid`.
+ *
+ * Va en su propia función y no en línea por dos razones: `podarSiToca` tiene que
+ * poder probarse con un `ahora` fijo, y un `toISOString().slice(0, 10)` escondido en
+ * una línea es justo el tipo de cosa que se relee mal dentro de seis meses.
+ */
+function diaEnZona(ahora: number): string {
+  const zona = process.env.TZ?.trim() || "Europe/Madrid";
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: zona,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(ahora));
+  } catch {
+    // Una `TZ` mal escrita no puede dejar la poda sin hacer para siempre: cae a
+    // la zona por defecto, que es la que la imagen define.
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Madrid",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(ahora));
+  }
 }
 
 /** Los cinco nombres, para que quien llama no duplique la lista. */

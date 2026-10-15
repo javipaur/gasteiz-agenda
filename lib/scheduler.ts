@@ -1,5 +1,6 @@
 import { shouldSendDailyDigest, markDigestSent, sendToAll } from "./push";
 import { buildDailyDigest } from "./digest";
+import { podarSiToca } from "./metricas-store";
 
 const CHECK_INTERVAL = 10 * 60 * 1000;
 
@@ -68,6 +69,20 @@ function horaDelDigest(): number {
 }
 
 /**
+ * Cuánto se guarda el contador de visitas, en días.
+ *
+ * El mismo presupuesto que el resto de las cosas que se guardan, y por el mismo
+ * motivo: lo que interesa es la tendencia reciente, y una fila por visita son
+ * unos 40 bytes, así que un año son quince megabytes y dos años treinta. Un mes
+ * da para comparar meses; un año da para comparar con el mismo mes del año pasado.
+ *
+ * De donde sale el 400 **no es de este repositorio**: es el horizonte que se mira
+ * en el panel. Si algún día hace falta más historia, se sube aquí y en ningún otro
+ * sitio.
+ */
+const DIAS_DE_METRICAS = 400;
+
+/**
  * Un tick del digest. Exportado para poder probarlo sin arrancar el temporizador.
  *
  * `startScheduler` es lo que se llama en `instrumentation.ts`; esto es lo que hay
@@ -75,6 +90,26 @@ function horaDelDigest(): number {
  * minutos.
  */
 export async function tick(): Promise<void> {
+  /*
+   * La poda va **antes** del digest y fuera de su `try`, por dos razones.
+   *
+   * Una: si el digest lanza —que lanza, si un scraper está caído— el `catch` se
+   * come el error y la poda no llegaría a ejecutarse nunca en un día con la agenda
+   * rota, que es justo el día que más falta hace no accumulation.
+   *
+   * Dos: `podarSiToca` es idempotente por día y no depende de nada del digest, así
+   * que mezclarla en el mismo `try` la haría depender de un servicio que no tiene
+   * por qué ver.
+   */
+  try {
+    const podadas = podarSiToca(DIAS_DE_METRICAS);
+    if (podadas !== null && podadas > 0) {
+      console.log(`[metricas] poda: ${podadas} filas de más de ${DIAS_DE_METRICAS} días`);
+    }
+  } catch (err) {
+    console.error("[metricas] error en la poda:", err);
+  }
+
   try {
     const zona = zonaDelProceso();
     if (horaEn(new Date(), zona) < horaDelDigest()) return;
