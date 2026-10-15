@@ -638,11 +638,17 @@ describe("la cobertura del documento", () => {
     // que la presentación, y por el mismo motivo: la sube quien publica, no un integrador.
     // Cae en el espacio de nombres `/api/promo` y por eso es pública sin credencial, que es
     // lo que hace que el correo pueda bajarla. De 17 a 18 públicas.
+    //
+    // 48 = 47 + `/api/metric`, el contador de visitas e instalaciones. Es pública porque
+    // la llama `Metricas` desde el navegador, que no tiene `API_KEY` en el bundle; lo que
+    // impide que sea un contador inflable es que la ruta solo acepta nombres de una lista
+    // cerrada y limita el tamaño del cuerpo. Su `GET` sí exige la clave, comprobada en la
+    // propia ruta porque el middleware no ve una ruta pública. De 18 a 19 públicas.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 47, publicas: 18, protegidas: ProtectedCount });
+    }).toEqual({ total: 48, publicas: 19, protegidas: ProtectedCount });
   });
 });
 

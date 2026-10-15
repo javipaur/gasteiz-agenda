@@ -683,3 +683,83 @@ cuerpo en vez de las cabeceras.
 
 Estilo conventional commits, scope en castellano, descripción en inglés.
 Ejemplos: `feat(scrapers): enrich euskadi pagination and municipal fields`.
+
+## Hecho: se puede contar cuánta gente entra y cuánta instala (2026-10-15)
+
+La pregunta era "cuántas personas visitan la web y cuántas se instalan la
+aplicación", y las dos cosas ya se sabían en algún sitio pero en ninguno que se
+pudiera mirar.
+
+### El dato que faltaba ya se estaba midiendo y se tiraba a la basura
+
+`useInstalado()` lee `display-mode: standalone`, que es exactamente la pregunta
+"¿está esta PWA instalada?". Lo que pasa es que **eso no viaja en ninguna
+petición**: el servidor ve un `GET /` de una PWA instalada y el mismo `GET /` de
+una pestaña de Chrome, y para él son la misma línea de log. Por eso el contador
+sale del navegador (`app/components/Metricas.tsx`, montado en el layout al lado
+del `<Analytics />` que ya existía) y no de un middleware.
+
+### `Analytics.tsx` ya estaba y nunca se había puesto
+
+`app/components/Analytics.tsx` monta un `<Script>` externo con
+`NEXT_PUBLIC_ANALYTICS_URL` y `data-domain`, o sea la forma de Plausible. La
+variable **no está definida en ningún `.env`**, así que el componente devuelve
+`null` y no carga nada. Se deja como estaba: es el hueco correcto para un
+script externo si algún día lo quieres, y ahora mismo no duplica nada porque un
+script de terceros contaría visitas a `/instalar`, **no instalaciones**.
+
+### La asimetría del `POST` y el `GET` es el diseño entero
+
+`/api/metric` está en `PUBLIC_API_ROUTES`, así que el middleware la deja pasar
+**antes** de mirar la clave. De ahí las dos mitades:
+
+- El `POST` lo llama el navegador desde un componente cliente, que no puede
+  traer `API_KEY` porque no se publica. Exigírsela haría que cada visita
+  devolviera 401 y el contador no subiera nunca: el mismo modo de fallo que
+  escondía los `console.warn` del cliente hasta que `/api/log` se añadió.
+- El `GET` **sí** exige la clave, comprobada **a mano en la ruta**, porque una
+  ruta que el middleware ya dejó pasar nunca llega a su comprobación. Sin eso,
+  cualquiera que adivinara la dirección vería cuánta gente entra.
+
+Y lo que hace insecurizable el `POST` no es la ruta sino el cuerpo: el nombre tiene
+que estar en la lista cerrada de `lib/metricas.ts` y el techo es de 1 KB. Con un
+`string` libre, cualquiera que descubriera la ruta inflaría la tabla, y **un
+contador inflado es peor que no tener contador** porque es un número que miente y
+que nadie va a mirar dos veces.
+
+### `visita` no es "personas", y el código lo dice
+
+No hay cookie ni huella. `sessionStorage` es memoria de la pestaña: no viaja, no la
+ve el servidor, no pide consentimiento y desaparece al cerrar. El coste es que
+`visita` cuenta **pestañas**, no gente, y quien recargue cinco veces cuenta
+cinco. La cifra que sí es de fiar es `instalada`, y no por ser un contador sino
+porque **sólo la emite quien está en modo standalone**: es un estado del navegador,
+no una acción que alguien pueda fingir desde la red.
+
+### El `ts` del cliente se acota, y por qué el recorte no es opcional
+
+`anotar()` recibe el `ts` del navegador, no el del servidor, porque el reloj de
+un contenedor en Dokploy puede ir desviado. Pero un `POST` público con un `ts` de
+`0` pondría la fila tan atrás que la primera poda se la comería, y uno de `1e18` la
+dejaría fuera del alcance de cualquier poda: los dos vacían o congelan el
+contador. `ahoraDelCliente` acota a ±1 h y cae al reloj del servidor.
+
+### Lo que `promptInstall()` no notificaba
+
+`InstallButton` y `InstallGuide` consumen el resultado de `promptInstall()` cada
+uno con su propio estado, así que quien solo quería **contar** no tenía a quién
+escuchar. `alResultado(oyente)` en `lib/useInstallPrompt.ts` resuelve el hueco, y
+la notificación sale del store y no de un `CustomEvent` en `window` porque el
+store es el único sitio donde está la respuesta.
+
+### Verificado, no supuesto
+
+- `tsc` 0 · **1112/1112** tests · lint 0 errores (16 warnings, baseline) · build 0.
+- En navegador de verdad: dos cargas de `/` en la misma pestaña emiten **un**
+  `POST`, y el `GET` sin `x-api-key` devuelve **401**.
+- El panel con la clave devuelve `{"visita":2,...}`: las filas llegaron a la base.
+
+Las dos guardas que rompieron al añadir la ruta son las que existen para esto:
+`__tests__/middleware.test.ts` exige la lista **exacta** de públicas con su motivo
+(el caso se llama "catorce" y el número está en el nombre), y
+`__tests__/openapi.test.ts` contrasta el recuento del documento contra el disco.

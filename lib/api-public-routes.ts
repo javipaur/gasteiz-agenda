@@ -95,6 +95,21 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
       "el logger del navegador no tiene la clave y sin esto sus avisos se pierden",
   },
 
+  // El contador de visitas e instalaciones. Lo llama `Metricas`, un componente
+  // cliente del layout, por el mismo motivo que el logger de arriba: sin `API_KEY`
+  // en el bundle no hay forma de mandarla, así que exigirla haría que cada visita
+  // devolviera 401 y el contador no subiera nunca.
+  //
+  // Que el `POST` sea público **no** significa que el `GET` lo sea: la ruta
+  // comprueba la clave a mano, porque una ruta que sale del middleware antes de
+  // mirar la clave nunca llega a esa comprobación. Lo que protege al `POST` es
+  // `lib/metricas.ts`, que no acepta un nombre que no sea uno de los cinco, y el
+  // techo de tamaño del cuerpo.
+  {
+    path: "/api/metric",
+    motivo: "el contador de visitas lo llama Metricas desde el navegador",
+  },
+
   // El newsletter. El alta viene del formulario, y confirmar y darse de baja son
   // enlaces que se abren en el navegador del destinatario desde su cliente de
   // correo: no hay componente cliente al que colgarles la clave.

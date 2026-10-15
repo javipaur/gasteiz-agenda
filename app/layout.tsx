@@ -8,6 +8,7 @@ import BottomNav from "./components/BottomNav";
 import ScrollToTop from "./components/ScrollToTop";
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
 import Analytics from "./components/Analytics";
+import Metricas from "./components/Metricas";
 import CookieConsent from "./components/CookieConsent";
 import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 import { getAccentSeason } from "@/lib/season";
@@ -131,6 +132,7 @@ export default function RootLayout({
       <body className="bg-bg text-fg antialiased">
         <ServiceWorkerRegistration />
         <Analytics />
+        <Metricas />
         <FavoritesProvider>
           <ToastProvider>
           <a

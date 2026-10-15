@@ -73,8 +73,52 @@ export function useInstallPrompt(): boolean {
   );
 }
 
+/**
+ * Quién quiere saber **cómo acabó** el diálogo, no solo si se puede abrir.
+ *
+ * `useInstallPrompt()` contesta "¿puedo instalar?" y `promptInstall()` devuelve el
+ * resultado, así que en apariencia no hacía falta nada más. Lo que faltaba era el
+ * hueco entre los dos: `promptInstall()` lo consume quien lo llama —`InstallButton`
+ * y `InstallGuide`—, y ese consumidor decide qué hacer con el resultado según su
+ * propio estado. Quien solo quiere **contar**.results no tiene a quién escuchar,
+ * y su única forma de enterarse era monkey-patchear `window.prompt`, que se rompe
+ * en cuanto alguien reorganiza el componente.
+ *
+ * Por eso la notificación sale del store y no de un `CustomEvent` en `window`: el
+ * store es el único sitio donde está la respuesta, y un evento global sería un
+ * segundo canal para lo mismo.
+ */
+type Oyente = (outcome: InstallOutcome) => void;
+
+const oyentes = new Set<Oyente>();
+
+/**
+ * Se suscribe a los resultados de `promptInstall()`.
+ *
+ * Devuelve la baja, como cualquier `subscribe`, para que un `useEffect` pueda
+ * devolverla sin tener que envolverla en una función.
+ *
+ * La lista es de módulo y no de store porque `promptInstall()` es una función
+ * suelta que llama al singleton de `window`: si la lista viviera en el store, un
+ * test que construya su propio `createInstallStore` con un `EventTarget` falso
+ * estaría escuchando a otro sitio distinto del que escribe el código real.
+ */
+export function alResultado(oyente: Oyente): () => void {
+  oyentes.add(oyente);
+  return () => {
+    oyentes.delete(oyente);
+  };
+}
+
 export function promptInstall(): Promise<InstallOutcome> {
-  return store ? store.prompt() : Promise.resolve("unavailable");
+  if (!store) return Promise.resolve("unavailable");
+  return store.prompt().then((outcome) => {
+    // Notificar **después** de resolver, no antes: al que escucha le interesa el
+    // desenlace, y `accepted` solo es `accepted` cuando el `userChoice` ha
+    // respondido de verdad.
+    oyentes.forEach((oyente) => oyente(outcome));
+    return outcome;
+  });
 }
 
 /**
