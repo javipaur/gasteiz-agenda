@@ -2,6 +2,44 @@
 
 Agenda cultural de Vitoria-Gasteiz. API REST + web frontend (Next.js 16).
 
+**[Web](https://gasteizclick.javierpalacio.es)** · **[Google Play](https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick)**
+
+## Qué es
+
+La ciudad ya tenía agenda, pero repartida en **más de 15 fuentes sin cruce**. Aquí se
+agrega, se normaliza, se deduplica y se publica en una PWA, en un feed RSS y en
+una API REST. Se actualiza cada pocos minutos.
+
+Más allá del listado:
+
+- **PWA instalable**, con app Android en Google Play y guía de instalación
+  específica para iOS, que no dispara `beforeinstallprompt`.
+- **Push notifications** (Web Push / VAPID) y **newsletter** semanal por correo.
+- **API REST** con `x-api-key` y OpenAPI publicado. El middleware comparte una
+  única lista de rutas públicas con el test que la verifica, así que la lista no
+  puede desincronizarse de la realidad.
+- **Búsqueda, favoritos, fichas por evento**, sitemap y OG images dinámicas.
+
+## Stack
+
+Next.js 16 (App Router, RSC) · React 19 · TypeScript estricto · Tailwind v4 ·
+Jest · Playwright · PWA · OpenAPI
+
+## Testing
+
+**1.112 tests** entre unitarios y de componente (Jest) y 7 specs e2e
+(Playwright), con `tsc` y `lint` en verde.
+
+Dos partes que no son el testing de siempre:
+
+- **Accesibilidad como test.** `__tests__/helpers-a11y.ts` monta componentes en
+  jsdom y asserta el árbol: `aria-label` presente y, sobre todo, que **no haya un
+  interactivo dentro de otro**, que es HTML inválido y no un detalle de estilo.
+- **El baseline de lint es un test.** `__tests__/lint-baseline.test.ts` ejecuta
+  ESLint de verdad contra la lista de exentos de `lib/lint-baseline.json`.
+  Contar errores no sirve —arreglar un `any` y añadir otro se cancelan y el rojo
+  no aparece nunca—, así que lo que se vigila es la **lista de ficheros**.
+
 ## Desarrollo local
 
 ```bash
