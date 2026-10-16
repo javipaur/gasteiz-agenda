@@ -124,6 +124,62 @@ describe("podar", () => {
   });
 });
 
+describe("desanotar", () => {
+  it("quita exactamente la fila escrita y deja las vecinas", () => {
+    /*
+     * El caso que importa no es que borre una fila: es que **no borre las otras**.
+     * Por eso hay un vecino en el futuro respecto a la fila de prueba, igual que
+     * una visita real: un `podar(marca + 1)` la habría matado, y es justo el
+     * error que `desanotar` existe para que no se pueda cometer.
+     */
+    const marca = 1_700_000_000_000;
+    store.anotar("visita", marca, "/doctor");
+    store.anotar("visita", marca + 60_000, "/hoy");
+    store.anotar("visita", marca + 120_000, "/buscar");
+
+    expect(store.desanotar("visita", marca, "/doctor")).toBe(1);
+    expect(store.resumen().porEvento.visita).toBe(2);
+  });
+
+  it("no se lleva por delante filas de otros eventos", () => {
+    // La identidad es el triple entero, no solo el reloj: una instalación que
+    // compartiera marca con la fila de prueba tiene que quedarse.
+    const marca = 1_700_000_000_000;
+    store.anotar("visita", marca, "/doctor");
+    store.anotar("instalada", marca, "/doctor");
+
+    expect(store.desanotar("visita", marca, "/doctor")).toBe(1);
+    expect(store.resumen().porEvento.instalada).toBe(1);
+  });
+
+  it("devuelve 0 cuando esa fila no está, y eso no es un fallo", () => {
+    // El `doctor` ejecuta esto al final, y la fila puede no estar porque otro
+    // `doctor` —o la poda de las 24 h— ya la quitó. Anunciar eso como problema
+    // sería gritar por una fila que no existe.
+    expect(store.desanotar("visita", 1, "/nunca")).toBe(0);
+  });
+
+  it("borra también la fila cuya ruta es nula", () => {
+    /*
+     * `ruta = NULL` **nunca** es cierto en SQLite —ni siquiera con `= NULL`, que es
+     * el caso que más gente comprueba—. Por eso la comparación es `IS`. Si aquí se
+     * hubiera puesto `=`, el `DELETE` no tocaría nada y devolvería `0` sin error:
+     * el fallo más silencioso de los tres, porque un `0` con la base perfectamente
+     * sana parece una fila que ya no estaba.
+     */
+    store.anotar("visita", 1_000, undefined);
+    expect(store.desanotar("visita", 1_000, undefined)).toBe(1);
+    expect(store.resumen().porEvento.visita).toBe(0);
+  });
+
+  it("no confusiona una ruta nula con la cadena vacía", () => {
+    // `IS` distingue `NULL` de `''`, y por eso pasar `""` no borra la fila nula.
+    store.anotar("visita", 1_000, undefined);
+    expect(store.desanotar("visita", 1_000, "")).toBe(0);
+    expect(store.resumen().porEvento.visita).toBe(1);
+  });
+});
+
 describe("una fila con un nombre que ya no existe en la lista", () => {
   it("no aparece en el resumen", () => {
     // Se escribe saltándose el filtro a propósito, que es lo que haría una versión

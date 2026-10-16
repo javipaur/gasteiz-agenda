@@ -5,6 +5,7 @@ import {
   reutilizarDbDePrueba,
   suscripcion,
 } from "./helpers-push";
+import type { SchedulerOpciones } from "@/lib/scheduler";
 
 /**
  * `lib/scheduler.ts`: cuándo se manda el digest, en qué hora y si se da por
@@ -36,7 +37,14 @@ import {
  */
 type Modulo = {
   tick: () => Promise<void>;
-  startScheduler: () => void;
+  /*
+   * La firma **de verdad** y no la de antes de las banderas. Este `as unknown as`
+   * es lo que hace peligroso mantenerla a mano: un tipo declarado aquí que ya no
+   * coincide con el módulo compila igual, y el fallo sale cuando alguien llama con
+   * un argumento que el código no espera. Es el mismo motif que el alias de
+   * `anotarEvento` en `doctor.ts`, del revés.
+   */
+  startScheduler: (opciones?: SchedulerOpciones) => void;
 };
 type Push = typeof import("@/lib/push");
 
@@ -339,10 +347,39 @@ describe("la hora del digest", () => {
 
       const linea = log.mock.calls
         .map((c) => String(c[0]))
-        .find((t) => t.includes("scheduler activo"));
+        .find((t) => t.includes("[scheduler] activo"));
 
       expect(linea).toMatch(/Asia\/Tokyo/);
       expect(linea).not.toMatch(/del servidor/);
     });
+  });
+
+  it("el log de arranque dice qué partes han quedado encendidas", async () => {
+    /*
+     * La razón por la que el mensaje se reescribió para llevar las dos partes.
+     *
+     * Con el texto viejo, un despliegue con `ENABLE_PUSH_SCHEDULER` apagado y la
+     * poda de métricas activa imprimía una línea que hablaba solo del digest, y
+     * quien la leyera concluiría que no había nada corriendo. El número de la línea
+     * es el primer log que se mira cuando algo no cuadra, así que tiene que
+     * describir lo que hace, no lo que hizo la última vez que se escribió.
+     */
+    jest.useFakeTimers();
+    const log = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    await enZona("Europe/Madrid", async () => {
+      const mod = (await import("@/lib/scheduler")) as unknown as Modulo;
+      mod.startScheduler({ push: false, metricas: true });
+      jest.clearAllTimers();
+    });
+
+    const linea = log.mock.calls
+      .map((c) => String(c[0]))
+      .find((t) => t.includes("[scheduler] activo"));
+
+    // Sin push, la línea **no** puede prometer un digest, y tiene que decir que la
+    // poda está: ese par es el que hace imposible leer "no hay nada corriendo".
+    expect(linea).toMatch(/sin digest/);
+    expect(linea).toMatch(/poda de métricas/);
   });
 });

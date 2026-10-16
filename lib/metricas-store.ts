@@ -265,6 +265,35 @@ export function resumen(): Resumen {
  * comando cuando la tabla crezca, y para que exista una forma de acotarla sin
  * reescribir `anotar`.
  */
+/**
+ * La inversa exacta de `anotar`: borra **esa** fila y ninguna más.
+ *
+ * Existe porque `podar()` no puede servir para deshacer una escritura de prueba, y
+ * su tentación es peligrosa. `podar(antes)` corta por tiempo, así que para quitar
+ * una fila de `ts = t` hay dos opciones y las dos están mal:
+ *
+ * - `podar(t - 1)` no la quita, porque `t < t - 1` es falso. La fila se queda
+ *   para siempre, que es lo que hacía `doctor` antes de existir esta función: una
+ *   visita de más por cada vez que se ejecutaba.
+ * - `podar(t + 1)` sí la quita, y de paso **borra la tabla entera**, porque toda
+ *   visita real es más nueva que la marca de prueba. Un chequeo que se lleva por
+ *   delante los datos para no dejar ruido no es un chequeo.
+ *
+ * Por eso esto no corta por tiempo sino por identidad: los tres valores que se
+ * escribieron, con `IS` y no `=` porque en SQLite `ruta = NULL` nunca es cierto y
+ * una comparación mal puesta deja la fila justo cuando más falta hace quitarla.
+ *
+ * Devuelve cuántas se fueron. Un `0` es una respuesta legítima —nadie escribió esa
+ * fila, o alguien la podó antes— y no un error: quien llama necesita saber si su
+ * prueba se limpió, no si la base está bien.
+ */
+export function desanotar(nombre: Evento, ts: number, ruta?: string): number {
+  const resultado = getDb()
+    .prepare("DELETE FROM eventos WHERE nombre = ? AND ts = ? AND ruta IS ?")
+    .run(nombre, ts, ruta ?? null);
+  return Number(resultado.changes ?? 0);
+}
+
 export function podar(antes: number): number {
   const resultado = getDb()
     .prepare("DELETE FROM eventos WHERE ts < ?")

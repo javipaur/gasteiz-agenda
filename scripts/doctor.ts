@@ -398,7 +398,7 @@ async function comprobarCasting(fecha: string): Promise<void> {
  */
 async function comprobarMetricas(): Promise<void> {
   try {
-    const { anotar: anotarEvento, resumen, podar } = await import(
+    const { anotar: anotarEvento, resumen, desanotar } = await import(
       "../lib/metricas-store"
     );
 
@@ -410,10 +410,19 @@ async function comprobarMetricas(): Promise<void> {
      * sin el alias el TypeScript lo dice con un error de tipo que no señala la
      * causa real —que es una sombra, no un tipo mal puesto—.
      */
+    const antes = resumen().porEvento.visita;
     anotarEvento("visita", marca, "/doctor");
-    const leido = resumen();
+    const despues = resumen().porEvento.visita;
 
-    if (leido.porEvento.visita < 1) {
+    /*
+     * El **delta**, y no "hay más de cero". Con un absoluto, una base que ya
+     * tuviera visitas detrás daría `500 < 1 === false` y el doctor anunciaría
+     * `[OK]` con la escritura fallando en silencio: una comprobación que no puede
+     * fallar no comprueba nada. Comparando antes y después, lo único que puede
+     * explicar que el número no se mueva es que la fila no entró.
+     */
+    if (despues - antes !== 1) {
+      desanotar("visita", marca, "/doctor");
       anotar(
         "métricas",
         "fallo",
@@ -422,16 +431,20 @@ async function comprobarMetricas(): Promise<void> {
       return;
     }
 
-    // Se borra la fila de prueba. Sin esto, cada ejecución del doctor dejaría una
-    // visita más, y `doctor` corre todas las mañanas: el ruido acabaría valiendo
-    // más que las visitas reales de las semanas que costara arreglarlo.
-    const borradas = podar(marca - 1);
+    /*
+     * Se borra **esa** fila con `desanotar`, no con `podar`. `podar` corta por
+     * tiempo, y para quitar una fila de `marca` hay que elegir entre `marca - 1`,
+     * que no la quita, y `marca + 1`, que se lleva por delante toda visita real —
+     * todas más nuevas que la marca. Un `0` aquí significa que otro `doctor` ya la
+     * había quitado; no es un fallo y no se anuncia como tal.
+     */
+    const borrada = desanotar("visita", marca, "/doctor");
 
     anotar(
       "métricas",
       "ok",
       `Escribe y lee en ${process.env.METRICAS_DB_DIR ?? ".data/metricas.db"}` +
-        (borradas > 0 ? ` (fila de prueba borrada)` : "")
+        (borrada > 0 ? ` (fila de prueba borrada)` : "")
     );
   } catch (error) {
     anotar(
