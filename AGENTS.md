@@ -652,6 +652,24 @@ in-memory no se arregla sin store compartido.
   del Ayuntamiento: hay que interpretarlas como hora local, no como UTC.
   actualmente el mercado no publica nada upcoming —los 24 eventos que devuelve son
   de 2024—, así que no aparece en la agenda y es lo esperado.
+- **`podar()` corta por reloj y no por identidad**, así que no sirve para deshacer
+  una fila concreta, y la tentación de usarlo para eso es una trampa de las dos
+  malas: `podar(t - 1)` no quita la fila de `ts = t` porque `t < t - 1` es falso, y
+  `podar(t + 1)` se lleva **toda la tabla**, porque cualquier fila real es más
+  nueva que una marca de prueba. Para quitar exactamente una fila está
+  `desanotar(nombre, ts, ruta)`, que va por identidad y usa `ruta IS ?` y no `=`
+  —en SQLite `= NULL` nunca es cierto, así que el `=` equivocado devuelve `0`
+  contra una base sana y parece "la fila ya no estaba"—.
+- **El limitador de `middleware.ts` no llega a las rutas públicas**, porque
+  `isPublicApiRoute` devuelve mucho antes de la comprobación de clave y por tanto
+  también antes del limitador. Una ruta en `PUBLIC_API_ROUTES` tiene que protegerse
+  sola si está abierta a propósito: hoy solo la protege `lib/api-rate-limit.ts` en
+  el `POST` de `/api/metric`, con 60 por minuto. Sin IP **no** se rechaza, y esa
+  decisión tiene test a propósito.
+- **Una comprobación con un absoluto no distingue "no funciona" de "ya había datos".**
+  El caso fue `resumen().porEvento.visita < 1`: con 500 visitas de fondo daba
+  `false` y anunciaba `[OK]` con la escritura rota. Cuando la pregunta sea "mi
+  escritura entró", lo que la responde es el **delta** entre antes y después.
 
 ## Los fallos que no se ven
 
@@ -763,3 +781,99 @@ Las dos guardas que rompieron al añadir la ruta son las que existen para esto:
 `__tests__/middleware.test.ts` exige la lista **exacta** de públicas con su motivo
 (el caso se llama "catorce" y el número está en el nombre), y
 `__tests__/openapi.test.ts` contrasta el recuento del documento contra el disco.
+
+## Hecho: el contador deja de depender del push (2026-10-16)
+
+Tres arreglos que comparten una forma: **una puerta que controla dos cosas, y una
+comprobación que no puede fallar.** Los dos son silenciosos, que es la razón por la
+que están aquí.
+
+### Apagar el push apagaba también la poda
+
+`instrumentation.ts` tenía `if (ENABLE_PUSH_SCHEDULER !== "1") return` **antes** de
+arrancar nada, y de ahí colgó después la poda de métricas. El efecto: sin push no
+arrancaba `lib/scheduler.ts`, así que `podarSiToca()` no se llamaba nunca y
+`metricas.db` crecía para siempre. No salía ningún error, porque no fallaba nada:
+simplemente nadie pasaba por ahí.
+
+Y apagar el push es razonable —es una función opcional, y hay despliegues que no
+quieren el digest—, así que una decisión sobre una función no puede silenciar una
+tabla que crece sin límite en el mismo volumen.
+
+Ahora hay dos banderas (`SchedulerOpciones`) con su puerta cada una, y **cada `if`
+lleva su motivo escrito**, porque "por qué está esto aquí" es la pregunta que se
+hace en la revisión y con un solo motivo no la responde.
+
+La poda va además en su propio `try`, antes del digest: si un scraper está caído y
+el digest lanza, el `catch` de abajo se come el error y la poda no llegaría a
+ejecutarse en un día con la agenda rota, que es justo el día en que más falta hace
+que la tabla no crezca.
+
+### El limitador del middleware no llegaba a las rutas públicas
+
+`middleware.ts` limita a 100 peticiones por minuto y por IP, y está bien puesto
+para las rutas **protegidas**. Pero devuelve mucho antes, en `isPublicApiRoute`: una
+ruta pública nunca llega a la comprobación de clave, y por tanto tampoco al
+limitador. Con `/api/metric` en la lista, el `POST` del contador quedaba **sin
+ningún límite**, y esa ruta está abierta por necesidad —la llama un componente
+cliente que no puede traer `API_KEY`—.
+
+`lib/api-rate-limit.ts` es un `Map` en memoria con 60 por minuto. Son 60 y no 600
+porque cada petición aceptada escribe **exactamente una** fila, así que el límite
+de peticiones es también un límite de filas; y el tráfico real del sitio es de
+unas 2.000 visitas al día entre todo, y ningún visitante legítimo manda más de uno,
+porque `Metricas` no reintenta.
+
+**Sin IP no se rechaza, y esa decisión tiene test.** Sin IP no hay contra quién
+contar, y las dos salidas son malas: rechazar deja el sitio entero sin métricas sin
+un solo error, y dejar pasar deja un hueco. Se elige el hueco porque un hueco se
+ve —el contador no cuadra— y un rechazo silencioso no.
+
+La limitación de ser un `Map` en memoria es la misma que ya tiene anotada el
+limitador del middleware: en varios procesos cada uno lleva su cuenta. Aquí es
+aceptable porque el objetivo no es contabilidad exacta sino que el número no se
+pueda inflar sin factura.
+
+### El `doctor` comprueba que las métricas **escriben**
+
+`Metricas.tsx` se traga el fallo del `fetch` a propósito, para que un contador
+caído no pueda dejar de servir la web. El precio es que un `metricas.db`
+ilegible —volumen no montado, disco lleno, permisos— **no produce ningún error en
+ningún log**: el contador se congela y sigue contando en apariencia. Semanas
+después se abre el panel y se ve un número parado que parece "pocas visitas".
+
+Es el mismo modo de fallo que ya corrigió el resto del repo, y con la misma
+solución que se aplicó a `MEC_TOKEN`: **no comprobar que la variable esté puesta,
+sino usarla**.
+
+### Y aquí estaban las dos comprobaciones que no podían fallar
+
+Lo primero que escribí funcionaba y estaba mal en dos sitios a la vez.
+
+**Dejaba una visita falsa por ejecución.** La fila de prueba se limpiaba con
+`podar(marca - 1)`, y `podar` corta por tiempo: `marca < marca - 1` es `false`, así
+que **la fila nunca se borraba**. El contador ganaba una `visita` cada mañana,
+para siempre. Y el arreglo "obvio" es mucho peor: `podar(marca + 1)` sí la quita,
+y con ella **toda visita real jamás registrada**, porque todas son más nuevas que
+la marca. Comprobar que algo está roto y luego borrar los datos no es comprobar.
+
+`desanotar(nombre, ts, ruta)` corta por **identidad**. Y compara `ruta` con `IS` y
+no con `=`, porque `ruta = NULL` nunca es cierto en SQLite: la versión equivocada
+devuelve `0` contra una base perfectamente sana y se lee como "la fila ya no
+estaba". Hay test de las dos mitades —borra la nula, y `""` no confunde con nula.
+
+**El cero de referencia estaba mal.** La comprobación era
+`leido.porEvento.visita < 1`, un absoluto. Con una base que ya tuviera 500 visitas,
+`500 < 1` es `false` y el doctor anunciaba `[OK]` con la escritura fallando en
+silencio. Ahora mide el **delta** entre antes y después, que es lo único que
+distingue "mi fila no entró" de "aquí ya había tráfico".
+
+### Verificado, no supuesto
+
+- `tsc` 0 · **1155/1155** tests · lint 0 errores (16 warnings, baseline) · build 0.
+- Contra una base **real**: dos ejecuciones de `doctor` seguidas dejan
+  `SELECT COUNT(*)` en **0, 0**. Con el código anterior dejaban 1 y luego 2.
+- El mensaje dice ahora `(fila de prueba borrada)`, que antes salía vacío porque
+  `podar` devolvía `0` y no estaba borrando nada.
+- Base inservible (el directorio es un fichero): sale `[AVISO]`, no `[FALLO]`, así
+  que el cron sigue publicando aunque el contador se congele.
