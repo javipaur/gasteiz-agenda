@@ -502,12 +502,32 @@ describe("la puerta de salud", () => {
       expect(process.exitCode).toBe(1);
     });
 
-    it("con una fuente caída sin cambiar el recuento tampoco", async () => {
-      // Las dos mitades del rojo: `sourcesFallidas` no vacío **o** `sourcesOk` por
-      // debajo del total. Mirar solo una de las dos deja un hueco por el que se cuela
-      // un agregado degradado.
+    it("una fuente caída que no es tolerable para con los números cuadrados", async () => {
+      /*
+       * Este caso se llamaba "las dos mitades del rojo" y no lo era. Su comentario
+       * decía que cubría `sourcesFallidas` no vacío **o** `sourcesOk` por debajo
+       * del total, y su fixture —`sourcesOk: 37` con una fuente caída— es un
+       * `AgendaMeta` **imposible**: `lib/agenda.ts` deriva `sourcesOk` como
+       * `total - fallidas`, así que con una caída tiene que ser 36. Nunca se
+       * bloqueó por la rama que decía cubrir, sino por `noTolerables`, igual que
+       * el caso de arriba.
+       *
+       * Y no es un detalle del fixture. Las dos mitades del rojo son **la misma
+       * comprobación**: `sourcesOk < sourcesTotal` ⟺ `sourcesFallidas.length > 0`.
+       * Por eso la tercera disyunción que había en la puerta, `(degradado &&
+       * caidas.length === 0)`, era siempre `false`, y por eso se ha quitado en
+       * `scripts/enviar-promo.ts`. La mitad del rojo que falta es otra: que una
+       * fuente **responda con lista vacía sin caer**, y eso `AgendaMeta` no lo
+       * puede expresar. Ver `__tests__/agenda-salud.test.ts`, donde está dicho a
+       * propósito.
+       *
+       * El `sourcesOk: 36` de aquí es el que podría venir de verdad, y lo que
+       * este caso comprueba es lo único que queda por comprobar: que una sola
+       * fuente no tolerable para el envío sin más.
+       */
       getAgendaSalud.mockResolvedValue({
         ...BIEN,
+        sourcesOk: 36,
         sourcesFallidas: [{ id: "vam", error: "500" }],
       });
 

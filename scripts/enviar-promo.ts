@@ -217,11 +217,28 @@ export async function main() {
   const { getAgendaSalud } = await import("@/lib/agenda");
 
   const salud = await getAgendaSalud();
-  // `completa` **no es un campo de `AgendaMeta`**: es el `true` que `/api/v1/salud` se
-  // calcula para el JSON. Aquí se deriva de los dos campos que sí existen, y se mira
-  // los dos porque no son lo mismo: una fuente puede responder con lista vacía —eso es
-  // `sourcesOk`— y aun así no haber consultado lo que le tocaba.
-  const degradado = salud.sourcesFallidas.length > 0 || salud.sourcesOk < salud.sourcesTotal;
+  /*
+   * `sourcesOk` **no** ve la diferencia entre "respondió con lista vacía" y
+   * "no consultó lo que le tocaba". Y no es que se le escape: por construcción no
+   * puede. `lib/agenda.ts` lo deriva como `ordered.length - sourcesFallidas.length`,
+   * y una fuente que resuelve con `[]` cuenta como cumplida. Por tanto
+   * `sourcesOk < sourcesTotal` es exactamente lo mismo que
+   * `sourcesFallidas.length > 0`, y aquí se escribían las dos como si fueran
+   * comprobaciones distintas.
+   *
+   * La consecuencia es que la tercera disyunción de la puerta de abajo,
+   * `(degradado && caidas.length === 0)`, era una **contradicción**: `degradado`
+   * solo era verdad cuando `caidas` tenía algo. Siempre `false`. Llevaba ahí
+   * respaldada por un comentario que explicaba —con detalle y con una razón que
+   * sonaba buena— por qué hacía falta, y ese comentario describía una capacidad que
+   * los datos de salud no tienen.
+   *
+   * Se quita, no se arregla: no hay forma de escribir esa disyunción que signifique
+   * algo. Lo que sí falta, y es otra decisión, es poder distinguir caída de vacío,
+   * y eso necesita que `AgendaMeta` diga cuántas filas trajo cada fuente. Está
+   * anotado en AGENTS.md; no cabe en un parche de este sitio porque
+   * `/api/v1/salud` es contrato con un cliente de fuera.
+   */
 
   /*
    * **Una fuente caída solo para el correo si no es tolerable. Medido, no supuesto.**
@@ -245,12 +262,12 @@ export async function main() {
   const caidas = salud.sourcesFallidas.map((s) => s.id);
   const noTolerables = caidas.filter((id) => !FUENTES_TOLERABLES.has(id));
 
-  // `degradado` se conserva entero para lo que mide: una fuente puede responder con lista
-  // vacía sin llegar a fallar, y eso solo lo ve `sourcesOk < sourcesTotal`. Con una sola
-  // vacía entre tolerables tampoco se para, porque `caidas` no la lista.
+  // Más de la mitad caída, tolerables o no: el agregado a medias deja de ser la
+  // agenda de Vitoria. Es la mitad del total, no un número de fuentes, y por eso
+  // sale de `sourcesOk` y no de `noTolerables`.
   const sinMedioAgregado = salud.sourcesOk < salud.sourcesTotal / 2;
 
-  if (noTolerables.length > 0 || sinMedioAgregado || (degradado && caidas.length === 0)) {
+  if (noTolerables.length > 0 || sinMedioAgregado) {
     console.error(
       `[promo] El agregado está degradado (${salud.sourcesOk}/${salud.sourcesTotal}).`,
       `Fuentes caídas: ${caidas.join(", ") || "sin registrar"}`
