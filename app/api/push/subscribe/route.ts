@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addSubscription, removeSubscription } from "@/lib/push";
+import { consume, ipDe } from "@/lib/api-rate-limit";
 
 /**
  * Lo que acepta un push service real, y por qué hay un límite de tamaño.
@@ -90,6 +91,30 @@ function isValidSubscription(body: unknown): body is {
 }
 
 export async function POST(request: NextRequest) {
+  /*
+   * El límite va primero, y por el mismo motivo que en `/api/metric`: es la otra
+   * ruta pública que **escribe una fila por petición** y el limitador de
+   * `middleware.ts` no la alcanza, porque `isPublicApiRoute` devuelve antes.
+   *
+   * Aquí la fila es más cara que en el contador de métricas, no solo porque se
+   * acumula: `listSubscriptions()` se la lleva **entera** a memoria en cada digest,
+   * así que una tabla inflada no solo ocupa disco, ralentiza el envío. Y las filas
+   * solo se limpian cuando FCM contesta 404 o 410, o sea cuando el digest llega a
+   * entregarse —con lo que una tabla de basura se sostiene justo mientras el envío
+   * funciona y se nota el día que falla.
+   *
+   * `DELETE` no lleva límite y es a propósito: la baja es idempotente, quitar una
+   * suscripción que no está no cambia nada, y no escribe. Limitarlo solo impediría
+   * a alguien darse de baja.
+   */
+  const limite = consume(ipDe(request));
+  if (!limite.ok) {
+    return NextResponse.json(
+      { error: "Demasiadas peticiones desde esta IP" },
+      { status: 429, headers: { "Retry-After": String(limite.reintentarEn) } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

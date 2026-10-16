@@ -83,13 +83,6 @@ function horaDelDigest(): number {
 const DIAS_DE_METRICAS = 400;
 
 /**
- * Un tick del digest. Exportado para poder probarlo sin arrancar el temporizador.
- *
- * `startScheduler` es lo que se llama en `instrumentation.ts`; esto es lo que hay
- * debajo, y lo que un test necesita para poder mirar una decisión sin esperar diez
- * minutos.
- */
-/**
  * Qué partes del scheduler hay que arrancar.
  *
  * Cada una tiene su puerta en `instrumentation.ts` y su motivo escrito allí, y por
@@ -113,6 +106,17 @@ export type SchedulerOpciones = {
  */
 const TODO_POR_DEFECTO: SchedulerOpciones = { push: true, metricas: true };
 
+/**
+ * Un tick: primero la poda, luego el digest. Exportado para poder probarlo sin
+ * arrancar el temporizador.
+ *
+ * `startScheduler` es lo que se llama en `instrumentation.ts`, y ahí las dos
+ * banderas vienen ya resueltas desde sus puertas. El valor por defecto de aquí
+ * existe **solo para los tests**: en producción nadie llama a `tick()` sin
+ * argumentos, y por eso no importa que en el default esté el push encendido —
+ * si algún día alguien lo llama, lo que quiere decir es "hazlo todo", que es lo
+ * que un test acaba necesitando siempre.
+ */
 export async function tick(
   opciones: SchedulerOpciones = TODO_POR_DEFECTO
 ): Promise<void> {

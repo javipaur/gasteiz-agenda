@@ -30,6 +30,25 @@
  * sobre el limitador del middleware: en varios procesos cada uno lleva su cuenta.
  * Aquí es aceptable porque el objetivo no es contabilidad exacta sino que el
  * número no se pueda inflar sin factura.
+ *
+ * ## De qué depende, y qué no garantiza
+ *
+ * Cuenta por IP leída de `x-forwarded-for`, así que **hereda el supuesto del
+ * middleware**: que el proxy de delante sobrescribe esa cabecera y no deja pasar la
+ * que manda el cliente. Si el despliegue no cumple eso, este limitador se puede
+ * esquivar de dos formas a la vez —mandando un `x-forwarded-for` distinto en cada
+ * petición, que es lo que agota el `Map`— y eso no es solo un agujero aquí: es el
+ * mismo agujero que tiene el limitador de `middleware.ts`, que ya se aceptó
+ * escribir así.
+ *
+ * Por eso el módulo no promete "no se puede inflar", que no puede prometer. Promete
+ * **que no se puede inflar desde una sola IP y sin variar la cabecera**. Un
+ * `uncontador inflado es peor que no tener contador` porque es un número que miente
+ * y que nadie va a mirar dos veces, así que el listón se pone donde se puede
+ * sostener y no donde quiseramos.
+ *
+ * Y las entradas viejas se barren: el `Map` es de módulo y vive para siempre, así
+ * que sin limpieza un ataque con IP cambiante lo dejaría creciendo sin límite.
  */
 
 const VENTANA_MS = 60_000;

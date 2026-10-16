@@ -6,6 +6,10 @@ import {
   suscripcion,
 } from "./helpers-push";
 import type { SchedulerOpciones } from "@/lib/scheduler";
+import {
+  dbDePrueba as metricasDePrueba,
+  limpiarDbsDePrueba as limpiarMetricas,
+} from "./helpers-metricas";
 
 /**
  * `lib/scheduler.ts`: cuándo se manda el digest, en qué hora y si se da por
@@ -36,7 +40,7 @@ import type { SchedulerOpciones } from "@/lib/scheduler";
  * un rojo que dice qué se esperaba.
  */
 type Modulo = {
-  tick: () => Promise<void>;
+  tick: (opciones?: SchedulerOpciones) => Promise<void>;
   /*
    * La firma **de verdad** y no la de antes de las banderas. Este `as unknown as`
    * es lo que hace peligroso mantenerla a mano: un tipo declarado aquí que ya no
@@ -71,6 +75,27 @@ async function schedulerLimpio({
 }> {
   if (mismaBase) reutilizarDbDePrueba();
   else dbDePrueba();
+
+  /*
+   * Y una base de métricas aparte, que antes no había.
+   *
+   * `dbDePrueba()` de `helpers-push` solo aísla `PUSH_DB_DIR`. Como `tick()` se
+   * llama sin argumentos en casi todos los casos, `opciones.metricas` sale del
+   * default —`true`— y `podarSiToca()` escribía su marca `poda_hecha_el` en
+   * **`.data/metricas.db`, la de verdad**. Comprobado: el fichero tenía
+   * `2026-07-16`, tres meses de fecha, puesta por el reloj falso de `aLas()`.
+   *
+   * No es cosmético. Esa marca es la que hace que la poda no se repita 144 veces
+   * al día, así que un test suite que la escribe puede dejar **sin podar un día
+   * entero** de la base real. Y lo hace sin un solo error: es exactamente el modo
+   * de fallo que este repo lleva corrigiendo desde el principio —el que no da
+   * error, da silencio—.
+   *
+   * O sea: un test que desactiva una salvaguarda de producción. Por eso va aquí y
+   * no en un fichero aparte: el que llama a `tick()` tiene que ver el aislamiento.
+   */
+  metricasDePrueba();
+
   jest.resetModules();
 
   const enviado: string[] = [];
@@ -121,6 +146,7 @@ afterEach(() => {
 
 afterAll(() => {
   limpiarDbsDePrueba();
+  limpiarMetricas();
 });
 
 describe("el digest solo se marca si ha salido", () => {
@@ -224,6 +250,57 @@ describe("el digest solo se marca si ha salido", () => {
  * `jest.config.ts`, así que un `getHours()` colado pasaría verde. Por eso el test
  * estructural de `__tests__/huso-deploy.test.ts` exige que no haya ninguno.
  */
+describe("las dos puertas del scheduler", () => {
+  /*
+   * Esta pareja es la que fija el arreglo, y se apoya en una propiedad del store
+   * que hace la prueba barata: `podarSiToca()` devuelve `null` cuando el día ya
+   * está marcado, así que preguntar por `null` después de un `tick()` es preguntar
+   * "¿ha pasado por la poda?". No hace falta ni espiar ni mocker nada, y lo que se
+   * mira es el efecto y no una llamada.
+   *
+   * El test anterior a este solo miraba el texto del log, y ese texto se arma en
+   * `startScheduler` desde `opciones` **antes** de que `tick` mire ninguna bandera.
+   * Poniendo `if (opciones.metricas && opciones.push)` —que es literalmente el bug
+   * que se arregló, la poda colgando del push— todo seguía verde.
+   */
+  const HOY = "2026-07-16T09:00:00Z";
+
+  it("la poda corre aunque el push esté apagado", async () => {
+    aLas(HOY);
+    const { tick } = await schedulerLimpio();
+
+    await tick({ push: false, metricas: true });
+
+    // Misma base, mismo reloj: si `tick` no hubiera podado, esto devolvería un
+    // número y habría marcado el día por su cuenta.
+    const store = await import("@/lib/metricas-store");
+    expect(store.podarSiToca(400)).toBeNull();
+  });
+
+  it("con las métricas apagadas no se poda, y no se marca el día", async () => {
+    aLas(HOY);
+    const { tick } = await schedulerLimpio();
+
+    await tick({ push: false, metricas: false });
+
+    // Y el espejo del anterior: un `0` significa que nadie había marcado el día, o
+    // sea que `tick` no pasó por la poda. Si el `if` se comiera la marca, esto
+    // daría `null` y el fallo sería invisible.
+    const store = await import("@/lib/metricas-store");
+    expect(store.podarSiToca(400)).toBe(0);
+  });
+
+  it("la poda corre con las dos puertas abiertas", async () => {
+    aLas(HOY);
+    const { tick } = await schedulerLimpio();
+
+    await tick({ push: true, metricas: true });
+
+    const store = await import("@/lib/metricas-store");
+    expect(store.podarSiToca(400)).toBeNull();
+  });
+});
+
 describe("la hora del digest", () => {
   async function enZona<T>(zona: string | undefined, fn: () => Promise<T>): Promise<T> {
     const previa = process.env.TZ;

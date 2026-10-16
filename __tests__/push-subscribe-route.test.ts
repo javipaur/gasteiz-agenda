@@ -22,6 +22,7 @@
  */
 
 import { dbDePrueba, limpiarDbsDePrueba, suscripcion } from "./helpers-push";
+import { reiniciaLimite } from "@/lib/api-rate-limit";
 
 type Route = typeof import("@/app/api/push/subscribe/route");
 
@@ -32,10 +33,14 @@ function rutas(): { POST: Route["POST"]; DELETE: Route["DELETE"] } {
   return { POST: mod.POST, DELETE: mod.DELETE };
 }
 
-function pedir(metodo: "POST" | "DELETE", cuerpo: unknown): Request {
+function pedir(
+  metodo: "POST" | "DELETE",
+  cuerpo: unknown,
+  cabeceras: Record<string, string> = {}
+): Request {
   return new Request("https://gasteizclick.test/api/push/subscribe", {
     method: metodo,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...cabeceras },
     body: JSON.stringify(cuerpo),
   });
 }
@@ -62,10 +67,70 @@ function suscripciones() {
 
 beforeEach(() => {
   dbDePrueba();
+  // El limitador es un `Map` de módulo. Sin reiniciarlo, las peticiones de los
+  // casos anteriores siguen contando y este fichero acaba midiendo el orden en
+  // que Jest ejecuta las pruebas.
+  reiniciaLimite();
 });
 
 afterAll(() => {
   limpiarDbsDePrueba();
+});
+
+describe("el límite del alta", () => {
+  const IP = { "x-forwarded-for": "203.0.113.5" };
+
+  it("rechaza con 429 al pasar el tope y no escribe la fila", async () => {
+    /*
+     * La fila de push es más cara que la de métricas: `listSubscriptions()` la
+     * carga entera en memoria en cada digest, y las basura solo se limpian cuando
+     * FCM contesta 404/410 — o sea, cuando el envío funciona. Por eso el límite
+     * va aquí y no solo en `/api/metric`.
+     */
+    const { POST } = rutas();
+
+    for (let i = 0; i < 60; i++) {
+      // Endpoints **distintos** a propósito: el alta deduplica por `endpoint`, así
+      // que repetir el mismo daría siempre una fila y el tope no se notaría. Lo que
+      // se quiere ver es que una fila por petición es exactamente lo que se acota.
+      const res = await POST(
+        pedir(
+          "POST",
+          cuerpoValido({ endpoint: `https://fcm.googleapis.com/fcm/send/${i}` }),
+          IP
+        ) as never
+      );
+      expect(res.status).toBe(201);
+    }
+    expect((await suscripciones()).length).toBe(60);
+
+    const rechazado = await POST(
+      pedir(
+        "POST",
+        cuerpoValido({ endpoint: "https://fcm.googleapis.com/fcm/send/999" }),
+        IP
+      ) as never
+    );
+    expect(rechazado.status).toBe(429);
+    // Lo que no se acepta no se escribe, o el rechazo no valdría de nada.
+    expect((await suscripciones()).length).toBe(60);
+  });
+
+  it("la baja no consume cupo, porque no escribe", async () => {
+    /*
+     * Es la asimetría deliberada del `POST`: darse de baja es idempotente y
+     * quitarla dos veces no cambia nada, así que limitarla solo impediría a alguien
+     * desuscribirse, que es justo cuando más lo necesita.
+     */
+    const { POST, DELETE } = rutas();
+    await POST(pedir("POST", cuerpoValido(), IP) as never);
+
+    for (let i = 0; i < 80; i++) {
+      const res = await DELETE(pedir("DELETE", cuerpoValido(), IP) as never);
+      expect(res.status).toBe(200);
+    }
+    expect((await suscripciones()).length).toBe(0);
+  });
 });
 
 describe("alta de suscripción: lo que se rechaza", () => {
