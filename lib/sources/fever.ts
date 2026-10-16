@@ -147,6 +147,22 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
       signal: AbortSignal.timeout(15000),
     }
   );
+  /*
+   * Faltaba la comprobación de estado, y es la que más cara sale aquí.
+   *
+   * Feverup está detrás de Cloudflare, así que un 403 o un 500 llegan con **HTML de
+   * página de error**, no con un cuerpo vacío. `res.text()` lo devuelve entero, el
+   * `urlPattern` no encuentra ni un enlace `/m/<id>/`, y el scraper sale con `[]`
+   * sin haber mirado nunca el código. Un sitio que responde "no" se lee igual que un
+   * sitio donde no hay nada, que es exactamente la confusión que este repo lleva
+   * corrigiendo desde el principio.
+   */
+  if (!res.ok) {
+    console.error(
+      `[fever] ${res.status} ${res.statusText} en la portada: puede ser un interstitial de Cloudflare, no una agenda vacía`
+    );
+    return [];
+  }
   const html = await res.text();
 
   const urlPattern = /href="([^"]*\/m\/\d+\/[^"]*)"/g;
@@ -165,11 +181,33 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
     [...urls].map(url => timeout(fetchDetailPage(url), 15000))
   );
 
+  /*
+   * Los rechazos se contaban y se callaban.
+   *
+   * `Promise.allSettled` cumple su trabajo: nadie lanza por un detalle que falla. Pero
+   * el `if` de abajo se comía el motivo sin decir nada, así que un evento que no se
+   * pudo cargar y un evento que ya no existe contaban igual, y el total salía más
+   * bajo sin que nadie supiera por qué. El plazo de 15 s también acababa aquí, en
+   * silencio: el guardián existía y su propio fallo era indistinguible de "no hay
+   * eventos esta noche".
+   *
+   * Se cuenta lo que se perdió y se dice, en una línea: es lo que permite que la
+   * diferencia entre "Fever no lista nada" y "Fever nos dejó cojeando" se vea en un
+   * log en vez de deducirse de un número.
+   */
   const allEvents: FeverEvent[] = [];
-  for (const r of results) {
-    if (r.status === "fulfilled" && r.value) {
-      allEvents.push(r.value);
+  const caidos: string[] = [];
+  for (const [i, r] of results.entries()) {
+    if (r.status === "fulfilled") {
+      if (r.value) allEvents.push(r.value);
+      continue;
     }
+    caidos.push(`[${i}] ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
+  }
+  if (caidos.length > 0) {
+    console.error(
+      `[fever] ${caidos.length} de ${results.length} detalles no se pudieron leer: ${caidos.slice(0, 3).join(" | ")}`
+    );
   }
 
   return allEvents;

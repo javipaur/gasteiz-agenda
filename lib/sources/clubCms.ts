@@ -141,11 +141,21 @@ async function fetchGamesItems(url: string): Promise<unknown[]> {
       next: { revalidate: 120 },
       signal: AbortSignal.timeout(20000),
     });
-    if (!res.ok) return [];
+    /*
+   * Antes: `if (!res.ok) return [];` y un `catch` sin variable, sin una sola
+   * línea de log. Como `lib/partidos.ts` lee con `Promise.allSettled` y se queda
+   * solo con los valores cumplidos, un CMS muerto y un CMS que no lista partidos
+   * acababan siendo la misma lista.
+   */
+    if (!res.ok) {
+      console.error(`[clubCms] ${res.status} ${res.statusText} en la API de partidos`);
+      return [];
+    }
     const body = await res.json().catch(() => null);
     const list = (body as { data?: unknown })?.data;
     return Array.isArray(list) ? list : [];
-  } catch {
+  } catch (error) {
+    console.error(`[clubCms] ${error instanceof Error ? error.message : String(error)}`);
     return [];
   }
 }

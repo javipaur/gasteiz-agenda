@@ -158,6 +158,26 @@ export async function tick(
     if (!shouldSendDailyDigest()) return;
 
     const payload = await buildDailyDigest();
+
+    /*
+     * `null` es "no se puede afirmar nada", y **no** se marca el día.
+     *
+     * `buildDailyDigest` devuelve `null` cuando el agregado vino vacío y no puede
+     * distinguirse de una caída. Antes el scheduler no tenía esa rama porque la
+     * función no la tenía: mandaba "Hoy no hay eventos" a los suscriptores y luego
+     * `markDigestSent()` quemaba el día, así que una caída de las fuentes se
+     * decía a toda la lista como un martes sin planes y no había reintento posible.
+     *
+     * El `return` sin marcar es lo importante: el siguiente tick —diez minutos— lo
+     * vuelve a intentar, y si las fuentes se recuperan el digest sale ese mismo día.
+     */
+    if (payload === null) {
+      console.error(
+        "[push] digest NO enviado: el agregado vino vacío y no es fiable. No se marca el día, se reintenta."
+      );
+      return;
+    }
+
     const result = await sendToAll(payload);
 
     /*

@@ -230,7 +230,18 @@ async function fetchAllVamEvents(): Promise<any[]> {
     // esperando en `Promise.allSettled`.
     signal: AbortSignal.timeout(20000),
   });
-  if (!res.ok) return [];
+  /*
+   * Esto alimenta **dos** entradas del registro —`vam` y `vam-conciertos`—, así
+   * que un 500 aquí no pierde una fuente sino dos, y en silencio: la promesa
+   * llegaba cumplida con `[]` a `lib/agenda.ts` y contaba como `sourcesOk`.
+   *
+   * No se propaga porque el contrato de la fuente es devolver lista, pero se dice,
+   * que es lo que faltaba.
+   */
+  if (!res.ok) {
+    console.error(`[vam] ${res.status} ${res.statusText} en la API de eventos`);
+    return [];
+  }
   const data = await res.json();
   return data.events ?? data.data ?? [];
 }

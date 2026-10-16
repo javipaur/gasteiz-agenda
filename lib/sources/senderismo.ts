@@ -56,8 +56,29 @@ export async function scrapeSenderismo(): Promise<Actividad[]> {
     // `/agenda` y `/api/v1/events`.
     signal: AbortSignal.timeout(20000),
   });
+  /*
+   * Aquí el log es lo **único** que queda, y por eso no es opcional.
+   *
+   * Cuando hay caché, este camino devuelve datos y el scraper parece haber
+   * funcionado: la agenda trae las salidas al aire de la última vez y nadie ve un
+   * hueco. Cuando no la hay, devuelve `[]`, que es indistinguible de "esta semana
+   * no hay ninguna salida".
+   *
+   * O sea que los dos fallos se ven igual desde fuera, y el primero de los dos es
+   * el que miente. Con `senderismo` siendo la fuente de 24 h y sin una sola línea de
+   * `console` en el fichero, una caída larga se lee como "no había nada que
+   * organizar" durante semanas. El aviso dice además si se sirvió caché vieja,
+   * porque son dos problemas distintos con dos alcances distintos: sin caché es
+   * una caída, y con caché es un dato caducado que hay que mirar.
+   */
   if (!resp.ok) {
-    if (cache) return cache;
+    if (cache) {
+      console.error(
+        `[senderismo] ${resp.status} ${resp.statusText}: se sirve la caché de hace ${Math.round((Date.now() - lastFetch) / 60000)} min, que puede no ser la agenda vigente`
+      );
+      return cache;
+    }
+    console.error(`[senderismo] ${resp.status} ${resp.statusText} y no hay caché: la agenda sale vacía`);
     return [];
   }
 

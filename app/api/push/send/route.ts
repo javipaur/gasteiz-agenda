@@ -90,7 +90,32 @@ export async function POST(request: NextRequest) {
         url: urlSegura(body.url),
       };
     } else {
-      payload = await buildDailyDigest();
+      /*
+       * `null` es "no se puede afirmar nada con honestidad": el agregado vino vacío
+       * y no se sabe si es un día sin planes o las fuentes caídas.
+       *
+       * Aquí la respuesta es 503 y no un digest vacío, porque esta ruta existe para
+       * poder **reintentar a mano** lo que el scheduler no pudo —y no vale reintentar
+       * si lo que va a mandar es una afirmación que no se sostiene. Un 503 dice
+       * "no se ha enviado nada", que es lo que pasó, y quien lo llamó lo reintenta
+       * cuando las fuentes estén.
+       *
+       * Va en una variable propia y no en `payload` porque el narrowing de `null` no
+       * se aplica a la asignación: si se escribiera `payload = await …` sobre un
+       * `let payload: PushPayload`, el compilador rechaza la asignación por el `null`
+       * antes de que exista el `if` que lo descarta. Un `as PushPayload` lo taparía.
+       */
+      const construido = await buildDailyDigest();
+      if (construido === null) {
+        return NextResponse.json(
+          {
+            error:
+              "El agregado vino vacío y no es fiable: no se envía un digest que afirme que no hay eventos.",
+          },
+          { status: 503 }
+        );
+      }
+      payload = construido;
     }
 
     const result = await sendToAll(payload);

@@ -1,4 +1,4 @@
-import { loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
+import { espiaErrores, loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
 import { scrapeVamEvents, scrapeVamConciertos } from "@/lib/sources/vam";
 
 describe("scrapeVamEvents", () => {
@@ -41,13 +41,17 @@ describe("scrapeVamEvents", () => {
     }
   });
 
-  it("returns an empty array when the API returns an error", async () => {
+  it("returns an empty array when the API returns an error, and says so", async () => {
     mockFetchWith([
       { match: /app\.vamcultura\.es/, content: "", status: 500 },
     ]);
+    const errorSpy = espiaErrores();
 
     const events = await scrapeVamEvents();
     expect(events).toEqual([]);
+    // Esto alimenta `vam` y `vam-conciertos`, así que el silencio quitaba dos
+    // fuentes del agregado de golpe y la salud seguía diciendo que estaban bien.
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/vam/i));
   });
 
   it("includes events whose city is spelled 'Vitoria'", async () => {

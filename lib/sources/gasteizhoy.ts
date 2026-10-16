@@ -87,6 +87,26 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
     fetch(`${BASE_URL}?view=list`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(20000) }).catch(() => null),
   ]);
 
+  /*
+   * La **principal** no miraba el estado, y no por descuido sino porque el `catch`
+   * de al lado la hacía parecer cubierta. No lo está.
+   *
+   * Un 500 devuelve un HTML de error que cheerio carga sin problema, `.mec-calendar-events-sec`
+   * no aparece, el bucle no se ejecuta y el scraper sale con `[]`. O sea, la misma
+   * salida que "el calendario no tiene eventos" —que es el otro motivo por el que
+   * existe `blancaEditionYear`, y no uno al que挂钩 se le pueda quitar por sorpresa.
+   *
+   * El `?view=list` de las imágenes sí puede caerse sin tumbar nada, y su `catch`
+   * está bien como está. Lo que no puede caerse en silencio es la que trae los
+   * eventos.
+   */
+  if (!calendarRes.ok) {
+    console.error(
+      `[gasteizhoy] ${calendarRes.status} ${calendarRes.statusText} en el calendario: la agenda sale vacía, y no es que no haya eventos`
+    );
+    return [];
+  }
+
   const calendarHtml = await calendarRes.text();
   const $ = cheerio.load(calendarHtml);
   const listImages = listRes ? extractListImages(await listRes.text()) : new Map<string, string>();

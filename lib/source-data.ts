@@ -260,3 +260,27 @@ export const SOURCE_LABELS: Partial<Record<string, string>> = Object.fromEntries
 export const SOURCE_GROUPS: Partial<Record<string, string>> = Object.fromEntries(
   SOURCE_DATA.map((e) => [e.id, sourceGroup(e)])
 );
+
+/**
+ * Las fuentes cuya caída **no detiene** un envío a los suscriptores.
+ *
+ * Vive aquí, y no en el script que la usaba primero, por una razón concreta: la
+ * pregunta "si esta fuente cae, ¿paramos o publicamos a medias?" la hacen **dos**
+ * procesos distintos —el cron del correo de Instagram y el digest diario de push— y
+ * con la lista en `scripts/enviar-promo.ts` el segundo no podía ni verla, porque
+ * `lib/` no importa de `scripts/`. Dos copias de la lista habrían sido dos
+ * respuestas distintas a la misma pregunta según quién contestara.
+ *
+ * **`rula` es la única tolerable porque es la única con credencial.** Las otras 36
+ * son públicas y no dependen de un token, así que si caen, lo más probable es que
+ * estén caídas de verdad.
+ *
+ * **La tolerancia no se extiende en cadena.** `rula` cae y es tolerable; `vam`
+ * además cae y no lo es. Ahí ya no es "una fuente con credencial", es un agregado a
+ * medias de verdad.
+ *
+ * **Que sea tolerable no significa que no se note:** los dos sitios avisan por
+ * consola cuántas son y cuáles, porque perder `rula` se ve en el envío —es una de
+ * las que más pesa en el agregado—.
+ */
+export const FUENTES_TOLERABLES: ReadonlySet<string> = new Set(["rula"]);

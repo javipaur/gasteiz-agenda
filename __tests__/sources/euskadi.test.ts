@@ -1,4 +1,4 @@
-import { loadFixture, mockFetchWith } from "../helpers";
+import { espiaErrores, loadFixture, mockFetchWith } from "../helpers";
 import { scrapeEuskadi } from "@/lib/sources/euskadi";
 import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
 
@@ -86,13 +86,20 @@ describe("scrapeEuskadi", () => {
     expect(e.description).not.toContain("<");
   });
 
-  it("returns an empty array when the API returns an error", async () => {
+  it("returns an empty array when the API returns an error, and says so", async () => {
     mockFetchWith([
       { match: /api\.euskadi\.eus/, content: "", status: 500 },
     ]);
+    const errorSpy = espiaErrores();
 
     const events = await scrapeEuskadi();
     expect(events).toEqual([]);
+    /*
+     * La lista vacía no es el contrato: el contrato es "lista vacía **y que se
+     * diga**". Sin esta línea el test pasa igual con el scraper roto, y era
+     * justo lo que pasaba — era la única fuente del registro sin un solo log.
+     */
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/euskadi/i));
   });
 
   it("returns an empty array when the response has no items", async () => {

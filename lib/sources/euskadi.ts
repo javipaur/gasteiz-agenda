@@ -46,7 +46,25 @@ export async function fetchEuskadiPage(page: number): Promise<{
     // nunca y la agenda entera se quede esperando.
     signal: AbortSignal.timeout(20000),
   });
-  if (!res.ok) return { items: [], totalItems: 0 };
+  /*
+   * Antes esto era `if (!res.ok) return { items: [], totalItems: 0 };` sin decir
+   * nada, y era la única fuente del registro sin una sola línea de log en ningún
+   * camino de fallo.
+   *
+   * Con eso, un 500 de Euskadi llegaba a `lib/agenda.ts` como una promesa
+   * **cumplida** con lista vacía, así que contaba como `sourcesOk` y
+   * `/api/v1/salud` contestaba `37/37, completa: true` mientras la fuente no
+   * aportaba nada. No es que la degradación fuera difícil de ver: es que no había
+   * nada que ver.
+   *
+   * Se dice con `console.error` y no propagando, porque el contrato de esta fuente
+   * es devolver lista y no tirar —igual que `jimmyjazz.ts:112`—. Lo que no es
+   * aceptable es que no lo diga nadie.
+   */
+  if (!res.ok) {
+    console.error(`[euskadi] ${res.status} ${res.statusText} en la página ${page}`);
+    return { items: [], totalItems: 0 };
+  }
   const data = await res.json();
   return {
     items: Array.isArray(data?.items) ? data.items : [],
@@ -105,7 +123,8 @@ export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
       }
     }
     return eventos;
-  } catch {
+  } catch (error) {
+    console.error(`[euskadi] ${error instanceof Error ? error.message : String(error)}`);
     return [];
   }
 }

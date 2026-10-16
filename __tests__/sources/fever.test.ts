@@ -1,4 +1,4 @@
-import { loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
+import { espiaErrores, loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
 import { scrapeFever } from "@/lib/sources/fever";
 
 describe("scrapeFever", () => {
@@ -38,13 +38,20 @@ describe("scrapeFever", () => {
     }
   });
 
-  it("returns an empty array when the listing fetch fails", async () => {
+  it("returns an empty array when the listing fetch fails, and says so", async () => {
     mockFetchWith([
       { match: /feverup\.com/, content: "", status: 500 },
     ]);
+    const errorSpy = espiaErrores();
 
     const events = await scrapeFever();
     expect(events).toEqual([]);
+    /*
+     * Este es el caso por el que `fever` no miraba el estado: un 500 de Cloudflare
+     * llega con HTML de página de error, el `urlPattern` no encuentra enlaces y el
+     * scraper salía con `[]` como si la agenda de la noche estuviera vacía.
+     */
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/fever/i));
   });
 
   it("returns an empty array when the listing has no event links", async () => {

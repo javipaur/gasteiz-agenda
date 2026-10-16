@@ -19,31 +19,20 @@
  * ya montado para las imágenes. Ver `pedirPaquete` para por qué son dos cosas distintas.
  */
 import type { PaquetePromo } from "@/lib/promo";
+import { FUENTES_TOLERABLES } from "@/lib/source-data";
 
 /** Los ficheros van aquí salvo que `PROMO_DESTINO` diga otra cosa. */
 const DESTINO_POR_DEFECTO = "data/promo";
 
 /*
- * Las fuentes cuya ausencia **no** impide publicar, y por qué son esas y no otras.
+ * La lista de fuentes tolerables vive en `lib/source-data.ts` y no aquí.
  *
- * **`rula` es la única tolerable porque es la única que depende de una credencial.** Las
- * otras 36 son públicas: se consultan con una URL y funcionan o no según esté su sitio
- * vivo, sin token, sin cuenta y sin nada que mantener. `rula` llama a un API de
- * La Genterula con `MEC_TOKEN`, así que su disponibilidad depende de un token que puede
- * caducar y de un tercero que puede caer.
- *
- * **Medido: esa dependencia ya ha parado el cron durante días.** Un 500 del API —no un
- * fallo de código— dejó la fuente caída, la puerta de salud detenía el envío y no había
- * forma de publicar el paquete del día con las otras 36 fuentes perfectamente sanas.
- *
- * **Que sea tolerable no significa que no se note.** El aviso por consola dice cuántas son
- * y cuáles, porque perder `rula` se ve en el post: es la fuente de eventos de Runa, una de
- * las que más pesa en el agregado.
- *
- * **Añadir una fuente aquí es una decisión editorial y va en un sitio.** Con un `||` en la
- * condición, el criterio quedaría repartido y no se vería de un vistazo.
+ * Aquí estaba porque este cron fue el primero en necesitarla, y el segundo consumidor
+ * —el digest diario de push, en `lib/`— no podía importarla sin romper la regla de que
+ * `lib/` no depende de `scripts/`. Con la lista duplicada, "si esta fuente cae, ¿paramos
+ * o publicamos a medias?" tenía dos respuestas distintas según quién preguntara, y solo
+ * se verían al leer los dos ficheros.
  */
-const FUENTES_TOLERABLES = new Set(["rula"]);
 
 /**
  * La imagen del post de presentación, bajada del despliegue.

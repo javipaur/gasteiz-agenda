@@ -151,3 +151,23 @@ export function mockFetchWith(routes: (Route | RutaDinamica)[]) {
 }
 
 export const EMPTY_HTML = "<html><body></body></html>";
+
+/**
+ * Espía `console.error` y silencia el ruido, devolviendo la espía.
+ *
+ * Existe por una razón concreta: los scrapers devuelven lista vacía **a propósito**
+ * —propagar tumbaría la agenda entera— y durante mucho tiempo lo hicieron también en
+ * silencio. El síntoma era que un `expect(events).toEqual([])` pasaba igual si el
+ * scraper registraba, si no registraba o si estaba roto del todo.
+ *
+ * Y el efecto era el contrario del que se quiere: un arreglo que añadiese logging
+ * no lo detectaba ningún test, y uno que empezase a lanzar rompía el test de la
+ * lista vacía y lo revolvían. Estos tests **fijan que se avisa**, que es lo que
+ * convierte "caída" en algo distinguible de "no había nada".
+ *
+ * El patrón ya existía suelto en `timeout-plazos.test.ts:212`; con seis fuentes
+ * con el mismo problema pasa a ser un helper.
+ */
+export function espiaErrores(): jest.SpyInstance {
+  return jest.spyOn(console, "error").mockImplementation(() => undefined);
+}
