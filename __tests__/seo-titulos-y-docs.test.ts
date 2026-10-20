@@ -90,6 +90,40 @@ describe("/docs no se indexa", () => {
     }).toEqual({ existe: true, declaraNoIndex: true });
   });
 
+  it("carga el preset de Swagger, que va en otro bundle y es otro global", () => {
+    // **La página de la API no enseñaba la API.** Swagger buscaba el layout
+    // `StandaloneLayout` y pintaba su error en su lugar:
+    //
+    //     No layout defined for "StandaloneLayout"
+    //
+    // Medido el 20 de octubre de 2026, contra el servidor en marcha.
+    //
+    // Eran dos fallos encadenados. El primero: el preset va en
+    // `swagger-ui-standalone-preset.js`, **un bundle aparte**, que no se cargaba.
+    // El segundo, y más difícil de ver: el preset **no es una propiedad del
+    // bundle**. Su webpack lo deja en `window.SwaggerUIStandalonePreset`, y
+    // pedirse `SwaggerUIBundle.SwaggerUIStandalonePreset` —que es lo que se
+    // escribía— devuelve `undefined` siempre, exista o no el bundle.
+    //
+    // Los dos se comprueban sobre el código, porque los dos son de "se llama a
+    // una API externa" y eso no se ve en un test de render: lo que se comprueba
+    // es que la página **pide** el bundle y **usa** el global correcto.
+    const pagina = readFileSync(join(ROOT, "app", "docs", "page.tsx"), "utf8");
+    // **El código sin comentarios.** Los comentarios de este fichero explican el
+    // fallo y lo nombran —"SwaggerUIBundle.SwaggerUIStandalonePreset" está en
+    // uno de ellos—, así que buscarlos en el texto entero daría un falso
+    // positivo justo en el fichero que explica el fallo.
+    const codigo = pagina
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+    expect(codigo).toContain("swagger-ui-standalone-preset.js");
+    expect(codigo).toContain("SwaggerUIStandalonePreset");
+    // Y que no se pida como propiedad del bundle, que es lo que no existía.
+    expect(codigo).not.toMatch(/SwaggerUIBundle[^.\n]*\.SwaggerUIStandalonePreset/);
+    expect(codigo).not.toMatch(/SwaggerUIBundle\?\.\s*SwaggerUIStandalonePreset/);
+  });
+
   it("ninguna otra página de cliente intenta exportar metadata", () => {
     // Es el modo de fallo equivalente del punto anterior, comprobado en todos los
     // sitios a la vez: Next avisa de esto en el build, pero en `dev` pasa
