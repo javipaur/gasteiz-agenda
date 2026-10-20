@@ -92,40 +92,75 @@ export function mapToCultureCategory(category: string): string {
   return "agenda";
 }
 
+/**
+ * El color de la categoría, en **relleno profundo**.
+ *
+ * ## De dónde sale
+ *
+ * De una referencia concreta —`cazaplan.app`— y de su regla: **texto claro sobre
+ * relleno saturado**. Ni píldora clara con tinta oscura, ni degradado con foto
+ * debajo: un color hondo y la letra en blanco encima. Es lo que hace que el
+ * titular se lea sin tener que pelearse con la imagen.
+ *
+ * ## Por qué son dos mapas con los mismos valores
+ *
+ * Antes eran distintos: `CATEGORY_COLORS` era el color **claro** de la píldora
+ * pequeña —con tinta oscura encima— y `CATEGORY_FILLS` el **hondo** de los chips
+ * grandes, con texto blanco. Con la regla nueva, la píldora también lleva texto
+ * blanco, así que los dos mapas llevan lo mismo.
+ *
+ * Y se quedan los dos, porque cada uno dice una cosa distinta aunque ahora
+ * coincidan: uno es "el color de esta categoría" y el otro es "el relleno que
+ * lleva texto blanco". Un test los compara (`__tests__/categories.test.ts`) para
+ * que no se separen otra vez por costumbre.
+ *
+ * ## Los 16 valores, medidos
+ *
+ * Todos pasan AA (4,5:1) con blanco encima, que es el texto que va. La cifra no
+ * se estima: la calcula el test de contraste contra el propio fichero, y ese
+ * test falla si alguien cambia un color por uno que no pasa.
+ */
 export const CATEGORY_COLORS: Record<string, string> = {
-  Música: "#FF4D7D",
-  Teatro: "#7B4DFF",
-  Cine: "#FFB300",
-  Exposiciones: "#FF8A3D",
-  Infantil: "#00D2C8",
-  Deporte: "#9BFF57",
-  Danza: "#FF6FD8",
-  Festival: "#FF4D7D",
-  Conferencias: "#7B4DFF",
-  Fiestas: "#FF4D7D",
-  Visitas: "#00D2C8",
-  Talleres: "#FF8A3D",
-  Gastronomía: "#FFB300",
-  Senderismo: "#9BFF57",
-  Mercados: "#E0A34E",
-  Otros: "#7C8794",
+  Música: "#B3203F",
+  Teatro: "#1E4A8A",
+  Cine: "#4A3B6E",
+  Exposiciones: "#B0562E",
+  Infantil: "#2E7D4F",
+  Deporte: "#1F6E6A",
+  Danza: "#A03A6B",
+  Festival: "#B3203F",
+  Conferencias: "#1E4A8A",
+  Fiestas: "#B0562E",
+  Visitas: "#6B3A6E",
+  Talleres: "#9A6B1E",
+  Gastronomía: "#8A5A24",
+  Senderismo: "#2E7D4F",
+  Mercados: "#9A6B1E",
+  Otros: "#6B675C",
 };
 
+/**
+ * El relleno de la categoría, para los sitios donde va **texto blanco**.
+ *
+ * Los mismos valores que `CATEGORY_COLORS` y por el mismo motivo: la regla es
+ * texto claro sobre relleno saturado. Se mantiene el mapa aparte porque quien lo
+ * usa —los filtros de la agenda— está eligiendo un relleno, no una etiqueta.
+ */
 export const CATEGORY_FILLS: Record<string, string> = {
-  Música: "#FF4D7D",
-  Teatro: "#6B32DA",
-  Cine: "#E8A32E",
-  Exposiciones: "#E8742A",
-  Infantil: "#00B8AE",
-  Deporte: "#7ADB39",
-  Danza: "#EB53C4",
-  Festival: "#FF4D7D",
-  Conferencias: "#6B32DA",
-  Fiestas: "#FF4D7D",
-  Visitas: "#00B8AE",
-  Talleres: "#E8742A",
-  Gastronomía: "#E8A32E",
-  Senderismo: "#7ADB39",
-  Mercados: "#C98934",
-  Otros: "#565E68",
+  Música: "#B3203F",
+  Teatro: "#1E4A8A",
+  Cine: "#4A3B6E",
+  Exposiciones: "#B0562E",
+  Infantil: "#2E7D4F",
+  Deporte: "#1F6E6A",
+  Danza: "#A03A6B",
+  Festival: "#B3203F",
+  Conferencias: "#1E4A8A",
+  Fiestas: "#B0562E",
+  Visitas: "#6B3A6E",
+  Talleres: "#9A6B1E",
+  Gastronomía: "#8A5A24",
+  Senderismo: "#2E7D4F",
+  Mercados: "#9A6B1E",
+  Otros: "#6B675C",
 };

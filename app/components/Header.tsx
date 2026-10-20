@@ -360,7 +360,7 @@ export default function Header() {
                   aria-haspopup="true"
                   className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer inline-flex items-center gap-1.5 ${
                     categoriesOpen
-                      ? "bg-accent-soft text-accent font-medium"
+                      ? "bg-fg text-bg font-medium"
                       : "text-fg-muted hover:text-fg hover:bg-bg-muted"
                   }`}
                 >
@@ -426,7 +426,7 @@ export default function Header() {
                     aria-current={isActive ? "page" : undefined}
                     className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                       isActive
-                        ? "bg-accent-soft text-accent font-medium"
+                        ? "bg-fg text-bg font-medium"
                         : "text-fg-muted hover:text-fg hover:bg-bg-muted"
                     }`}
                   >

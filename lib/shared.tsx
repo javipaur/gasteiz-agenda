@@ -215,7 +215,7 @@ export function EventCard({
                   {showCategory && evento.category && (
                     <span
                       className="e2e-cat-pill font-mono text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-                      style={{ backgroundColor: catColor, color: "#0B0E14" }}
+                      style={{ backgroundColor: catColor, color: "#FFFFFF" }}
                     >
                       {evento.category}
                     </span>

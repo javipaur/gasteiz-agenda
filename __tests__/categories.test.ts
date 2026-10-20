@@ -3,6 +3,7 @@ import {
   mapToCultureCategory,
   CULTURA_CATEGORIAS,
   CATEGORY_COLORS,
+  CATEGORY_FILLS,
 } from "@/lib/categories";
 
 describe("normalizeCategory", () => {
@@ -128,11 +129,71 @@ describe("CATEGORY_COLORS", () => {
     expect(CATEGORY_COLORS["Otros"]).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });
 
-  it("uses the saturated fever palette", () => {
-    expect(CATEGORY_COLORS["Música"]).toBe("#FF4D7D");
-    expect(CATEGORY_COLORS["Teatro"]).toBe("#7B4DFF");
-    expect(CATEGORY_COLORS["Cine"]).toBe("#FFB300");
-    expect(CATEGORY_COLORS["Deporte"]).toBe("#9BFF57");
-    expect(CATEGORY_COLORS["Otros"]).toBe("#7C8794");
+  it("uses the deep editorial palette", () => {
+    // Los valores concretos son una decisión de marca y por eso se fijan: un
+    // rebrand accidental se ve aquí.
+    expect(CATEGORY_COLORS["Música"]).toBe("#B3203F");
+    expect(CATEGORY_COLORS["Teatro"]).toBe("#1E4A8A");
+    expect(CATEGORY_COLORS["Cine"]).toBe("#4A3B6E");
+    expect(CATEGORY_COLORS["Deporte"]).toBe("#1F6E6A");
+    expect(CATEGORY_COLORS["Otros"]).toBe("#6B675C");
+  });
+});
+
+/**
+ * El contraste de los rellenos de categoría.
+ *
+ * No es un eco de constante: es la **propiedad** que hay que uphold. Un relleno
+ * de categoría se pinta de blanco por encima —la píldora de la tarjeta, la banda
+ * del filtro, la tarjeta grande de la portada— y un color que pase con blanco
+ * pero no con la tinta oscura rompe la otra mitad del contrato.
+ *
+ * Antes el test solo miraba el hex, así que un color ilegible era indistinguible
+ * de uno correcto. Esto mide la cifra, que es lo que no se ve leyendo la clase.
+ */
+function luminancia(hex: string): number {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const canales = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * canales[0] + 0.7152 * canales[1] + 0.0722 * canales[2];
+}
+
+function ratio(primero: string, segundo: string): number {
+  const a = luminancia(primero);
+  const b = luminancia(segundo);
+  const [claro, oscuro] = a > b ? [a, b] : [b, a];
+  return (claro + 0.05) / (oscuro + 0.05);
+}
+
+describe("los rellenos de categoría", () => {
+  it("todos pasan AA con el texto blanco que va encima", () => {
+    const entradas = Object.entries(CATEGORY_FILLS);
+    expect(entradas.length).toBeGreaterThan(10);
+    for (const [categoria, color] of entradas) {
+      const r = ratio(color, "#FFFFFF");
+      if (r < 4.5) {
+        throw new Error(
+          `${categoria} (${color}) con texto blanco da ${r.toFixed(2)}:1 y AA pide 4.5:1`
+        );
+      }
+    }
+  });
+
+  it("CATEGORY_COLORS y CATEGORY_FILLS llevan la misma paleta", () => {
+    /*
+     * Son dos mapas y ahora tienen los mismos valores, y eso es a propósito.
+     *
+     * La diferencia era "píldora clara con tinta oscura" y "relleno hondo con
+     * texto blanco". Con la paleta nueva la regla es otra —**texto claro sobre
+     * relleno saturado**, que es lo que hace la referencia— y entonces los dos
+     * mapas llevan lo mismo y la tinta de la píldora pasa a ser blanca.
+     *
+     * Se fija aquí para que nadie los separe otra vez por costumbre y rompa el
+     * contraste sin enterarse: si divergen, la píldora queda con tinta blanca
+     * sobre un color claro y no se lee.
+     */
+    expect(CATEGORY_COLORS).toEqual(CATEGORY_FILLS);
   });
 });

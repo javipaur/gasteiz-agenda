@@ -259,7 +259,7 @@ export default async function SectionsHub() {
                       className="grid size-11 place-items-center rounded-xl text-on-tint shadow-lg transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5"
                       style={{
                         backgroundColor: CATEGORY_COLORS[label] || "var(--accent)",
-                        color: "var(--on-tint)",
+                        color: "#FFFFFF",
                       }}
                     >
                       <Icon size={18} strokeWidth={1.75} />

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { InViewWrapper } from "@/lib/shared";
 import HeroSearch from "./HeroSearch";
+import HeroCard from "./HeroCard";
 import { getPopularEvents } from "@/lib/popularity";
 import { formatDate, shortTime } from "@/lib/utils";
 import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
@@ -68,7 +69,7 @@ export default function HeroSection({
       <div className="relative max-w-5xl mx-auto">
         <InViewWrapper eager>
           <p className="flex items-center gap-3 mb-6">
-            <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-lime text-on-tint">
+            <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-fg text-bg">
               {totalThisWeek > 0 ? `${totalThisWeek} planes esta semana` : "Agenda de la ciudad"}
             </span>
             <span aria-hidden="true" className="h-px w-10 bg-border" />
@@ -93,13 +94,27 @@ export default function HeroSection({
         </InViewWrapper>
 
         {destacados.length > 0 && (
-          <InViewWrapper eager delay={0.1} className="hidden lg:block">
+          <InViewWrapper eager delay={0.1}>
             {/* **Una lista y no un carrusel**, a propósito. Con una sola tarjeta el
                 hueco parece un patrocinio; con tres apiladas se lee como una selección.
                 Un carrusel aquí volvería al problema que estamos evitando, porque el
                 item que no se ve es el que hace sospechar. */}
             <div className="flex flex-col gap-3">
-              {destacados.map((destacado) => (
+              {/*
+                El primero de los destacados se lleva la tarjeta grande y los otros
+                dos se quedan en la lista compacta.
+
+                La razón de que sea **uno** y no todos es que la tarjeta grande es
+                un centerpiece: poner tres seguidas serian tres centerpiece, y
+                entonces no es ninguno. La referencia hace lo mismo: una baraja, y el plan que
+                enseñas es uno.
+              */}
+              {destacados[0] ? (
+                <InViewWrapper eager>
+                  <HeroCard evento={destacados[0]} />
+                </InViewWrapper>
+              ) : null}
+              {destacados.slice(1).map((destacado) => (
                 <Link
                   key={destacado.id}
                   href={`/evento/${destacado.slug}`}
@@ -118,7 +133,7 @@ export default function HeroSection({
                         backgroundColor:
                           CATEGORY_COLORS[normalizeCategory(destacado.category)] ||
                           "var(--fg-subtle)",
-                        color: "var(--on-tint)",
+                        color: "#FFFFFF",
                       }}
                     >
                       {normalizeCategory(destacado.category)}

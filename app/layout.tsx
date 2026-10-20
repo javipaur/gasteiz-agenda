@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, JetBrains_Mono } from "next/font/google";
+import { Bodoni_Moda, DM_Serif_Display, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
@@ -14,14 +14,53 @@ import { JsonLd, graphJsonLd, organizationJsonLd, webSiteJsonLd } from "@/lib/se
 import { getAccentSeason } from "@/lib/season";
 import "./globals.css";
 
-const archivo = Archivo({
+/**
+ * Las tres tipografías, y cada una con su papel.
+ *
+ * **Bodoni Moda** es la del logotipo y los titulares de sección: una Didone de
+ * contraste alto, que es la que le da a la marca el aire de "editorial" en vez de
+ * "app de agenda". Su peso es 500 y no más: por encima, el trazo se hace pesado y
+ * deja de ser elegante.
+ *
+ * **DM Serif Display** es solo para el titular gigante de las tarjetas. Se separa de
+ * Bodoni a propósito porque pesa más y ocupa mucho más, y porque dos serif con el
+ * mismo rol se pelean: si las dos titles hicieran lo mismo, una sobra.
+ *
+ * **Instrument Sans** es todo lo demás: interfaz, etiquetas, cuerpo. Es una sans
+ * geométrica de trazo medio que aguanta bien textos largos en tamaño pequeño, que es
+ * donde está la mayor parte del texto de esta web.
+ *
+ * El nombre de la variable de cada una es `--font-display`, `--font-titular` y
+ * `--font-body`, y son las que lee `app/globals.css`. El cambio de una a otra no
+ * toca ningún componente: es el mismo razonamiento que con los tokens de color, y
+ * por eso está en `globals.css` y no esparcido por los JSX.
+ */
+const bodoni = Bodoni_Moda({
   subsets: ["latin"],
-  variable: "--font-archivo",
+  variable: "--font-bodoni",
   display: "swap",
-  style: ["normal", "italic"],
-  weight: "variable",
+  weight: ["500"],
 });
 
+const dmSerif = DM_Serif_Display({
+  subsets: ["latin"],
+  variable: "--font-dmserif",
+  display: "swap",
+  weight: "400",
+});
+
+const instrument = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-instrument",
+  display: "swap",
+});
+
+/**
+ * JetBrains Mono se queda, y no por nostalgia: hay sitios donde las cifras tienen
+ * que alinear en columna —las líneas de bus, los números de parada, la tabla de
+ * horarios— y una sans proporcional las descuadra. En el resto de la web es la
+ * etiqueta en caja alta, que en mono se lee como "dato".
+ */
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
@@ -80,7 +119,7 @@ export const metadata: Metadata = {
       {
         rel: "mask-icon",
         url: "/icon-maskable.svg",
-        color: "#BC0202",
+        color: "#B3203F",
       },
     ],
   },
@@ -88,8 +127,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#BC0202" },
-    { media: "(prefers-color-scheme: dark)", color: "#0B0E14" },
+    { media: "(prefers-color-scheme: light)", color: "#F6F3E8" },
+    { media: "(prefers-color-scheme: dark)", color: "#16160F" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -107,7 +146,7 @@ export default function RootLayout({
     <html
       lang="es"
       data-accent={getAccentSeason()}
-      className={`${archivo.variable} ${jetbrainsMono.variable}`}
+      className={`${bodoni.variable} ${dmSerif.variable} ${instrument.variable} ${jetbrainsMono.variable}`}
       /* El script de abajo escribe `data-theme` en `<html>` antes de que hidrate, y el
          servidor no lo pone: sin esto React avisa de un mismatch en cada carga y
          descarta el atributo sin arreglarlo. **Es la solución documentada para un script
@@ -121,7 +160,7 @@ export default function RootLayout({
         <meta name="color-scheme" content="light dark" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var K="gasteiz-theme";try{var t=localStorage.getItem(K);var m=window.matchMedia("(prefers-color-scheme: dark)");function apply(){try{var v=localStorage.getItem(K);if(v==="dark"||v==="light"){document.documentElement.dataset.theme=v;return}document.documentElement.dataset.theme=m.matches?"dark":"light"}catch(e){}}apply();m.addEventListener("change",apply)}catch(e){}})();`,
+            __html: `(function(){var K="gasteiz-theme";try{var t=localStorage.getItem(K);function apply(){try{var v=localStorage.getItem(K);if(v==="dark"||v==="light"){document.documentElement.dataset.theme=v;return}document.documentElement.dataset.theme="light"}catch(e){}}apply()}catch(e){}})();`,
           }}
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />

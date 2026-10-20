@@ -1,58 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --brand-red: #BC0202;
-  --brand-bone: #F3EBD4;
-  --brand-ink: #000000;
-  --bg: #0B0E14;
-  --bg-muted: #141821;
-  --bg-elevated: #1B2130;
-  --fg: #F6F5F3;
-  --fg-muted: #A6B0BD;
-  --fg-subtle: #7C8794;
-  --border: #2A3345;
-  --border-hover: #3B4458;
-  --accent: #E23B45;
-  --accent-hover: #FF5A63;
-  --accent-ink: #FF7A80;
-  --accent-subtle: #3A0F13;
-  --accent-soft: rgba(226, 59, 69, 0.16);
-  --surface: #1B2130;
-  --surface-hover: #222A3B;
-  --hot: #E23B45;
-  --violet: #7B4DFF;
-  --teal: #00D2C8;
-  --amber: #FFB300;
+  --brand-red: #B3203F;
+  --brand-bone: #F6F3E8;
+  --brand-ink: #161616;
+  --bg: #16160F;
+  --bg-muted: #23221A;
+  --bg-elevated: #2A2820;
+  --fg: #F6F3E8;
+  --fg-muted: #BDB8A6;
+  --fg-subtle: #8E897A;
+  --border: #3A382D;
+  --border-hover: #4E4B3D;
+  --accent: #E05770;
+  --accent-hover: #F07388;
+  --accent-ink: #F07388;
+  --accent-subtle: #3B1620;
+  --accent-soft: rgba(224, 87, 112, 0.16);
+  --surface: #23221A;
+  --surface-hover: #2E2C23;
+  --hot: #E05770;
+  --violet: #A98BFF;
+  --teal: #4FD6C8;
+  --amber: #FFC24D;
   --amber-subtle: #3A2A10;
-  --amber-soft: rgba(255, 179, 0, 0.15);
-  --lime: #9BFF57;
+  --amber-soft: rgba(255, 194, 77, 0.15);
+  --lime: #9BE86A;
   --green: var(--lime);
-  --blue: #4D7BFF;
-  --teal-soft: rgba(0, 210, 200, 0.14);
+  --blue: #7FA6F0;
+  --teal-soft: rgba(79, 214, 200, 0.14);
   --bezel-highlight: rgba(255, 255, 255, 0.05);
   --bezel-shadow: rgba(0, 0, 0, 0.4);
   --bezel-hover: rgba(0, 0, 0, 0.6);
-  --accent-wash: rgba(188, 2, 2, 0.14);
-  --teal-wash: rgba(0, 210, 200, 0.10);
-  --violet-wash: rgba(123, 77, 255, 0.12);
-  --amber-wash: rgba(255, 179, 0, 0.10);
-  --lime-wash: rgba(155, 255, 87, 0.10);
-  --blue-wash: rgba(77, 123, 255, 0.10);
+  --accent-wash: rgba(179, 32, 63, 0.14);
+  --teal-wash: rgba(79, 214, 200, 0.10);
+  --violet-wash: rgba(169, 139, 255, 0.12);
+  --amber-wash: rgba(255, 194, 77, 0.10);
+  --lime-wash: rgba(155, 232, 106, 0.10);
+  --blue-wash: rgba(127, 166, 240, 0.10);
   --sec-accent: var(--accent-ink);
-  --sec-hot: #FF8B90;
-  --sec-violet: #B9A1FF;
-  --sec-teal: #4FE6DC;
-  --sec-amber: #FFCB4D;
-  --sec-lime: #B6FF8A;
+  --sec-hot: #F07388;
+  --sec-violet: #C4B1FF;
+  --sec-teal: #7FE5DA;
+  --sec-amber: #FFD680;
+  --sec-lime: #BEF29A;
   --sec-green: var(--sec-lime);
-  --sec-blue: #8FA9FF;
-  --sec-hot-fill: #C21017;
-  --sec-violet-fill: #6B32DA;
-  --sec-teal-fill: #00B8AE;
-  --sec-amber-fill: #E8A32E;
-  --sec-lime-fill: #7ADB39;
+  --sec-blue: #A8C4F6;
+  --sec-hot-fill: #B3203F;
+  --sec-violet-fill: #7A5BD6;
+  --sec-teal-fill: #2BA79A;
+  --sec-amber-fill: #D69A28;
+  --sec-lime-fill: #6BB83C;
   --sec-green-fill: var(--sec-lime-fill);
-  --sec-blue-fill: #5B78E8;
+  --sec-blue-fill: #3E62B8;
 
   /* Estado de error: "Cancelado", avisos de fallo de red. Es un color de estado
      y no un acento, así que **no** sigue a la estación (`data-accent`): un
@@ -61,7 +61,7 @@
      calcula contra el `--surface` y el `--bg` de cada tema: el rojo de Tailwind
      `red-500` (#EF4444) daba 3,62:1 sobre superficie clara y el mínimo es 4,5:1,
      y eso no se ve leyendo la clase. */
-  --danger: #FF7A7A;
+  --danger: #FF8A80;
 
   /* Tinta encima de un relleno saturado (pills de categoría, chips de sección).
      No tiene override por tema a propósito: es el color que hace de "hueco"
@@ -69,124 +69,123 @@
      separado de `--bg` evita dos cosas —el mismo hex escrito a mano en nueve
      sitios, y la tentación de sustituirlo por `var(--bg)`, que en tema claro es
      casi blanco y dejaría el texto de las pills ilegible sobre el relleno. */
-  --on-tint: #0B0E14;
+  --on-tint: #16160F;
 }
 
 :root[data-theme="light"] {
-  --bg: #F7F6F4;
-  --bg-muted: #EEEDEB;
+  --bg: #F6F3E8;
+  --bg-muted: #EFEBDC;
   --bg-elevated: #FFFFFF;
-  --fg: #0C1016;
-  --fg-muted: #4A565F;
-  --fg-subtle: #7C8794;
-  --border: #E2E4E8;
-  --border-hover: #C8CDD4;
-  --accent: #BC0202;
-  --accent-hover: #A70202;
-  --accent-ink: #BC0202;
-  --accent-subtle: #FBE9E7;
-  --accent-soft: rgba(188, 2, 2, 0.10);
+  --fg: #161616;
+  --fg-muted: #5A564A;
+  --fg-subtle: #8A8477;
+  --border: #E2DDD0;
+  --border-hover: #CFC8B6;
+  --accent: #B3203F;
+  --accent-hover: #8F1A33;
+  --accent-ink: #B3203F;
+  --accent-subtle: #F8E7EA;
+  --accent-soft: rgba(179, 32, 63, 0.10);
   --surface: #FFFFFF;
-  --surface-hover: #F1F1EF;
-  --hot: #BC0202;
+  --surface-hover: #F3F0E4;
+  --hot: #B3203F;
   --violet: #6B32FF;
   --teal: #009E96;
   --amber: #B87F00;
   --amber-subtle: #FBF1DD;
   --amber-soft: rgba(184, 127, 0, 0.12);
   --lime: #68B82E;
-  --green: #3F8F35;
-  --blue: #3357D6;
+  --green: #2E7D4F;
+  --blue: #1E4A8A;
   --teal-soft: rgba(0, 158, 150, 0.12);
   --bezel-highlight: rgba(255, 255, 255, 0.7);
-  --bezel-shadow: rgba(12, 16, 22, 0.06);
-  --bezel-hover: rgba(12, 16, 22, 0.18);
-  --accent-wash: rgba(188, 2, 2, 0.08);
+  --bezel-shadow: rgba(22, 22, 22, 0.06);
+  --bezel-hover: rgba(22, 22, 22, 0.18);
+  --accent-wash: rgba(179, 32, 63, 0.08);
   --teal-wash: rgba(0, 158, 150, 0.08);
   --violet-wash: rgba(107, 50, 255, 0.08);
   --amber-wash: rgba(184, 127, 0, 0.08);
-  --lime-wash: rgba(104, 184, 46, 0.10);
-  --sec-accent: #BC0202;
-  --sec-hot: #BC0202;
+  --lime-wash: rgba(46, 125, 79, 0.10);
+  --sec-accent: #B3203F;
+  --sec-hot: #B3203F;
   --sec-violet: #6B32FF;
   --sec-teal: #009E96;
   --sec-amber: #B87F00;
   --sec-lime: #68B82E;
-  --sec-green: var(--sec-lime);
-  --sec-blue: #3357D6;
-  --sec-hot-fill: #BC0202;
+  --sec-green: #2E7D4F;
+  --sec-blue: #1E4A8A;
+  --sec-hot-fill: #B3203F;
   --sec-violet-fill: #6B32FF;
   --sec-teal-fill: #009E96;
   --sec-amber-fill: #B87F00;
   --sec-lime-fill: #68B82E;
-  --sec-green-fill: var(--sec-lime-fill);
-  --sec-blue-fill: #3357D6;
+  --sec-green-fill: #2E7D4F;
+  --sec-blue-fill: #1E4A8A;
   /* Verde azulado muy oscuro para que siga pasando AA sobre blanco. El valor de
-     tema oscuro (`#FF7A7A`) sobre `--surface` claro daría 2,9:1: los colores que
+     tema oscuro (`#FF8A80`) sobre `--surface` claro daría 2,9:1: los colores que
      están hechos para leerse sobre un fondo oscuro no sobreviven a un fondo
      blanco, y por eso este token necesita override en claro. */
   --danger: #B3261E;
-  /* `--blue` claro es #3357D6, así que el lavado se deriva de ahí y no del
+  /* `--blue` claro es #1E4A8A, así que el lavado se deriva de ahí y no del
      `rgba(74,124,156,…)` que había escrito a mano, que no correspondía a ningún
      token y por eso no se adaptaba a la luz. */
-  --blue-wash: rgba(51, 87, 214, 0.08);
+  --blue-wash: rgba(30, 74, 138, 0.08);
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #F7F6F4;
-    --bg-muted: #EEEDEB;
+    --bg: #F6F3E8;
+    --bg-muted: #EFEBDC;
     --bg-elevated: #FFFFFF;
-    --fg: #0C1016;
-    --fg-muted: #4A565F;
-    --fg-subtle: #7C8794;
-    --border: #E2E4E8;
-    --border-hover: #C8CDD4;
-    --accent: #BC0202;
-    --accent-hover: #A70202;
-    --accent-ink: #BC0202;
-    --accent-subtle: #FBE9E7;
-    --accent-soft: rgba(188, 2, 2, 0.10);
+    --fg: #161616;
+    --fg-muted: #5A564A;
+    --fg-subtle: #8A8477;
+    --border: #E2DDD0;
+    --border-hover: #CFC8B6;
+    --accent: #B3203F;
+    --accent-hover: #8F1A33;
+    --accent-ink: #B3203F;
+    --accent-subtle: #F8E7EA;
+    --accent-soft: rgba(179, 32, 63, 0.10);
     --surface: #FFFFFF;
-    --surface-hover: #F1F1EF;
-    --hot: #BC0202;
+    --surface-hover: #F3F0E4;
+    --hot: #B3203F;
     --violet: #6B32FF;
     --teal: #009E96;
     --amber: #B87F00;
     --amber-subtle: #FBF1DD;
     --amber-soft: rgba(184, 127, 0, 0.12);
     --lime: #68B82E;
-    --green: #3F8F35;
-    --blue: #3357D6;
+    --green: #2E7D4F;
+    --blue: #1E4A8A;
     --teal-soft: rgba(0, 158, 150, 0.12);
     --bezel-highlight: rgba(255, 255, 255, 0.7);
-    --bezel-shadow: rgba(12, 16, 22, 0.06);
-    --bezel-hover: rgba(12, 16, 22, 0.18);
-    --accent-wash: rgba(188, 2, 2, 0.08);
+    --bezel-shadow: rgba(22, 22, 22, 0.06);
+    --bezel-hover: rgba(22, 22, 22, 0.18);
+    --accent-wash: rgba(179, 32, 63, 0.08);
     --teal-wash: rgba(0, 158, 150, 0.08);
     --violet-wash: rgba(107, 50, 255, 0.08);
     --amber-wash: rgba(184, 127, 0, 0.08);
-    --lime-wash: rgba(104, 184, 46, 0.10);
-    --sec-accent: #BC0202;
-    --sec-hot: #BC0202;
+    --lime-wash: rgba(46, 125, 79, 0.10);
+    --sec-accent: #B3203F;
+    --sec-hot: #B3203F;
     --sec-violet: #6B32FF;
     --sec-teal: #009E96;
     --sec-amber: #B87F00;
     --sec-lime: #68B82E;
-    --sec-green: var(--sec-lime);
-    --sec-blue: #3357D6;
-    --sec-hot-fill: #BC0202;
+    --sec-green: #2E7D4F;
+    --sec-blue: #1E4A8A;
+    --sec-hot-fill: #B3203F;
     --sec-violet-fill: #6B32FF;
     --sec-teal-fill: #009E96;
     --sec-amber-fill: #B87F00;
     --sec-lime-fill: #68B82E;
-    --sec-green-fill: var(--sec-lime-fill);
-    --sec-blue-fill: #3357D6;
+    --sec-green-fill: #2E7D4F;
+    --sec-blue-fill: #1E4A8A;
     --danger: #B3261E;
-    --blue-wash: rgba(51, 87, 214, 0.08);
+    --blue-wash: rgba(30, 74, 138, 0.08);
   }
 }
-
 :root[data-accent="invierno"] {
   --accent-ink: #7FA6CE;
   --accent-hover: #4575AC;
@@ -374,8 +373,32 @@
   --color-danger: var(--danger);
   --color-on-tint: var(--on-tint);
 
-  --font-display: var(--font-archivo), system-ui, sans-serif;
-  --font-body: var(--font-archivo), system-ui, sans-serif;
+  /*
+   * Las tres familias y su papel.
+   *
+   * `--font-display` es **Bodoni Moda**: el logotipo y los titulares de sección.
+   * Una Didone de contraste alto es lo que da a la marca el aire de "editorial" en
+   * vez de "app de agenda", y es la diferencia más visible entre este sitio y el
+   * que tenía antes.
+   *
+   * `--font-titular` es **DM Serif Display**, y solo para el titular gigante de las
+   * tarjetas. Se separa de Bodoni a propósito: pesa más y ocupa mucho más, y dos
+   * serif con el mismo rol se pelean. Si las dos titles hicieran lo mismo, una
+   * sobra.
+   *
+   * `--font-body` es **Instrument Sans**: interfaz, etiquetas y cuerpo. Es una sans
+   * geométrica de trazo medio que aguanta textos largos en tamaño pequeño, que es
+   * donde está la mayor parte del texto de esta web.
+   *
+   * `--font-mono` se queda en JetBrains Mono, y no por un capricho: hay usos que
+   * **necesitan** cifras que alineen —las líneas de bus, los números de parada y
+   * la tabla de horarios—, y una sans proporcional las descuadra. En el resto de
+   * los sitios es la etiqueta en caja alta, que en mono lee como "dato" y en sans
+   * leería como "texto".
+   */
+  --font-display: var(--font-bodoni), "Bodoni Moda", Georgia, serif;
+  --font-titular: var(--font-dmserif), "DM Serif Display", Georgia, serif;
+  --font-body: var(--font-instrument), "Instrument Sans", system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 
   --animate-fadeIn: fadeIn 0.6s cubic-bezier(0.32, 0.72, 0, 1);
@@ -483,10 +506,25 @@
     outline: 1px solid var(--color-border);
   }
 
+  /*
+   * El halo de fondo, **solo en tema oscuro**.
+   *
+   * Antes estaba siempre, y sobre la crema se leía como una mancha rosada en la
+   * esquina: los degradados de `--hot` y `--violet` están calculados para verse
+   * sobre casi negro, y sobre `#F6F3E8` son papel de album: bonito y falso. La
+   * referencia de la que sale el diseño tiene el fondo **plano**, y sin mancha.
+   *
+   * La crema no es un degradado con menos saturación: es un color. Por eso en
+   * claro no hay nada donde poner el halo, y el hueco del bloque se nota menos
+   * que la mancha.
+   */
   .aurora {
     position: absolute;
     inset: 0;
     pointer-events: none;
+  }
+
+  :root[data-theme="dark"] .aurora {
     background:
       radial-gradient(42rem 20rem at 85% -8%, color-mix(in srgb, var(--violet) 24%, transparent), transparent 62%),
       radial-gradient(34rem 18rem at 8% 18%, color-mix(in srgb, var(--hot) 20%, transparent), transparent 60%),

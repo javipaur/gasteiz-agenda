@@ -54,7 +54,7 @@ export default function AtAGlanceStrip({
                 key={c.href}
                 href={c.href}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-transform duration-300 hover:-translate-y-0.5"
-                style={{ backgroundColor: color, color: "var(--on-tint)" }}
+                style={{ backgroundColor: color, color: "#FFFFFF" }}
               >
                 {c.label}
               </Link>
