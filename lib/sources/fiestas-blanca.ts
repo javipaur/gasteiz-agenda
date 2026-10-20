@@ -235,7 +235,20 @@ export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
   const isBuild = process.env.NEXT_PHASE === "phase-production-build";
 
   try {
-    const allRaw = await fetchMunicipalCalendar({ calendariosID: CALENDARIO_ID });
+    const allRaw = await fetchMunicipalCalendar({
+      calendariosID: CALENDARIO_ID,
+      // El calendario de La Blanca es **estacional**: solo tiene eventos la
+      // semana grande, y la edición siguiente se publica con meses de
+      // antelación. Medido el 20 de octubre de 2026: 59 eventos en el
+      // 15jul–12ago de 2026 y **0** en el mismo tramo de 2027, que es la
+      // edición que viene y todavía no está publicada.
+      //
+      // Sin esta línea, ese 0 —que es la respuesta correcta— se convertía en
+      // un error, el scraper lo devolvía vacío y **La Blanca desaparecía de
+      // la agenda sin que nada lo dijera**: la salud seguía en 37/37 porque la
+      // fuente no rechazaba, solo devolvía lista vacía.
+      permitirVacio: true,
+    });
 
     const seen = new Set<string>();
     const fiestas = allRaw

@@ -141,7 +141,8 @@ async function pedirVentana(
   fh: number,
   filterStr: string,
   profundidad: number,
-  calendariosID: number
+  calendariosID: number,
+  permitirVacio = false
 ): Promise<any[]> {
   const url = `${MUNICIPAL_BASE}?accion=buscar&idioma=es&calendariosID=${calendariosID}&fd=${fd}&fh=${fh}&deCM=false&moEx=false${filterStr}`;
   // El timeout no es decoración: se lo trae `scrapeFiestasBlanca`, que pedía el
@@ -230,7 +231,12 @@ async function pedirVentana(
    */
   const dias = (fh - fd) / 86400000;
   const empiezaPronto = fd - Date.now() < DIAS_PRESENTE_CALENDARIO * 86400000;
-  if (eventos.length === 0 && dias >= DIAS_CALENDARIO_VACIO && empiezaPronto) {
+  if (
+    !permitirVacio &&
+    eventos.length === 0 &&
+    dias >= DIAS_CALENDARIO_VACIO &&
+    empiezaPronto
+  ) {
     throw new Error(
       `municipal: calendario vacío. calendariosID=${calendariosID} ` +
         `${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())} ` +
@@ -257,7 +263,9 @@ async function pedirVentana(
   if (profundidad === 0) {
     const trozos: any[] = [];
     for (const [desde, hasta] of ventanasDeMes(fd, fh)) {
-      trozos.push(...(await pedirVentana(desde, hasta, filterStr, 1, calendariosID)));
+      trozos.push(
+        ...(await pedirVentana(desde, hasta, filterStr, 1, calendariosID, permitirVacio))
+      );
     }
     return trozos;
   }
@@ -275,8 +283,8 @@ async function pedirVentana(
 
   const mitad = Math.floor(fd + (fh - fd) / 2);
   const [primera, segunda] = await Promise.all([
-    pedirVentana(fd, mitad, filterStr, 2, calendariosID),
-    pedirVentana(mitad, fh, filterStr, 2, calendariosID),
+    pedirVentana(fd, mitad, filterStr, 2, calendariosID, permitirVacio),
+    pedirVentana(mitad, fh, filterStr, 2, calendariosID, permitirVacio),
   ]);
   return [...primera, ...segunda];
 }
@@ -354,6 +362,30 @@ export type MunicipalQuery = {
   dest?: string[];
   fd?: number;
   fh?: number;
+  /**
+   * Que cero resultados sea una respuesta y no una avería.
+   *
+   * **Existe por el calendario de La Blanca, y el motivo es que es estacional.**
+   *
+   * `calendariosID=513` solo tiene eventos la semana grande. Medido el 20 de
+   * octubre de 2026, con la edición de 2026 todavía en el calendario: 59 eventos
+   * en el 15jul–12ago de 2026 y **0** en el mismo tramo de 2027, que es la
+   * edición siguiente y todavía no está publicada. La respuesta de 0 es la
+   * **correcta**: el Ayuntamiento publica con meses de antelación.
+   *
+   * La regla de "cero resultados en un rango que empieza ya es una avería" se
+   * escribió para los diecisiete calendarios municipales, que están vivos todos
+   * los días del año. Aplicada a un calendario de una fiesta, tiraba la
+   * sección entera: el scraper reventaba, se lo comía y devolvía `[]`, y La
+   * Blanca desaparecía de la agenda **sin que nada lo dijera** —la salud
+   * seguía en 37/37 porque la fuente no rechazaba, solo devolvía vacío—.
+   *
+   * Quien pide el calendario dice si su cero es una avería o no. Aquí, para
+   * La Blanca, es una avería **solo** si el calendario devolvió algo el año
+   * pasado, y eso no lo sabe quien pide: lo sabe el calendario, que cuando
+   * publica, publica.
+   */
+  permitirVacio?: boolean;
 };
 
 /**
@@ -391,7 +423,7 @@ export async function fetchMunicipalCalendar(
   if (options?.dest) filterParts.push(`"dest":${JSON.stringify(options.dest)}`);
   const filterStr = filterParts.length > 0 ? `&f={${filterParts.join(",")}}` : "";
 
-  return pedirVentana(fd, fh, filterStr, 0, calendariosID);
+  return pedirVentana(fd, fh, filterStr, 0, calendariosID, options?.permitirVacio);
 }
 
 export async function scrapeMunicipalCalendar(

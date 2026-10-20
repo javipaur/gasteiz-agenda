@@ -361,6 +361,30 @@ it("el filtro `tipo` viaja en la URL", async () => {
       await expect(scrapeMunicipalCalendar({ fd, fh })).rejects.toThrow(/calendario vacío/);
     });
 
+    it("pero un calendario estacional puede pedir que el cero sea una respuesta", async () => {
+      // La Blanca. Su calendario —`calendariosID=513`— solo tiene eventos la
+      // semana grande, y la edición siguiente se publica con meses de
+      // antelación. Medido el 20 de octubre de 2026: 59 eventos en el
+      // 15jul–12ago de 2026 y **cero** en el mismo tramo de 2027, que es la
+      // edición que viene.
+      //
+      // Ese cero es la respuesta correcta, y sin `permitirVacio` se convertía
+      // en un error: el scraper lo devolvía vacío y **La Blanca desaparecía de
+      // la agenda sin que nada lo dijera** —la salud seguía en 37/37 porque la
+      // fuente no rechazaba, solo devolvía lista vacía—.
+      mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
+
+      // Las mismas fechas que el caso de arriba, que sí lanza: lo único que
+      // cambia es que quien pide dice que su cero es un dato.
+      const ayer = Date.now() - 86400000;
+      const fd = ayer;
+      const fh = ayer + 21 * 86400000;
+
+      await expect(
+        scrapeMunicipalCalendar({ fd, fh, permitirVacio: true })
+      ).resolves.toEqual([]);
+    });
+
     it("pero un rango lejano en cero no es avería, es la cola", async () => {
       mockFetchWith([{ match: /vitoria-gasteiz\.org/, content: "{}" }]);
 

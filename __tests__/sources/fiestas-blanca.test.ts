@@ -47,6 +47,34 @@ describe("scrapeFiestasBlanca", () => {
     }
   });
 
+  it("si el calendario no tiene nada todavía, no es un error", async () => {
+    // La edición siguiente no está publicada todavía. Medido el 20 de octubre
+    // de 2026: el calendario `calendariosID=513` devolvía 59 eventos para el
+    // 15jul–12ago de 2026 y **cero** para el de 2027.
+    //
+    // Ese cero es la respuesta correcta —la edición se publica con meses de
+    // antelación—, así que no puede convertirse en un error: cuando lo era,
+    // la sección desaparecía de la agenda sin que nada lo dijera, porque la
+    // fuente no rechazaba, solo devolvía lista vacía.
+    const { scrapeFiestasBlanca } = await scraperLimpio();
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
+    const fetchMock = mockFetchWith([{ match: MUNICIPAL, content: "{}" }]);
+
+    const fiestas = await scrapeFiestasBlanca();
+
+    expect(fiestas).toEqual([]);
+    // El `catch` del scraper imprime "Error scraping Fiestas de la Blanca": si
+    // se imprimió, es que el cero sigue tratándose como una avería.
+    expect(error).not.toHaveBeenCalled();
+
+    // Y sin año no hay a quién preguntarle: la página de GasteizHoy lleva el
+    // año en la URL, así que no se pide ninguna.
+    const pedidas = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(pedidas.some((u) => GASTEIZHOY.test(u))).toBe(false);
+
+    error.mockRestore();
+  });
+
   it("enriquece con la categoría de GasteizHoy que sí describe el evento", async () => {
     const { scrapeFiestasBlanca } = await scraperLimpio();
     mockFetchWith([
