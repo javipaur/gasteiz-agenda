@@ -877,3 +877,229 @@ distingue "mi fila no entró" de "aquí ya había tráfico".
   `podar` devolvía `0` y no estaba borrando nada.
 - Base inservible (el directorio es un fichero): sale `[AVISO]`, no `[FALLO]`, así
   que el cron sigue publicando aunque el contador se congele.
+
+## Hecho: el tema tiene tres estados, no dos (2026-10-20)
+
+El botón "Tema del sistema" no hacía nada, y el control **mentía**: decía que
+estaba en "sistema" mientras la página estaba en claro.
+
+### Los tres estados, y por qué tres
+
+- `"dark"` / `"light"`: lo que eligió la persona.
+- `"auto"`: lo que marque el sistema. **Sin atributo**, que es lo que deja que la
+  media query de `globals.css` decida, y con ella el sistema, en vivo.
+- **Nada guardado**: el valor por defecto del sitio, que es **claro**.
+
+Lo que rompió esto fue el rehacer de la paleta, que hardcodeó `"light"` en el
+script del `<head>`. La decisión de diseño —"light is now the default rather
+than following `prefers-color-scheme`"— era correcta y sigue igual; lo que no
+tenía sentido es que el script **borrase** la clave al elegir "auto", con lo
+que "auto" y "nunca he elegido" pasaban a ser el mismo estado: la elección se
+perdía al recargar.
+
+Y el `getSnapshot()` devolvía `"auto"` cuando no había nada guardado, así que
+el botón salía pulsado en "Tema del sistema" con la página en claro. **Un
+control que dice una cosa y la página hace otra es un fallo aunque la página
+esté bien.**
+
+### `removeAttribute` y no `dataset.theme = ""`
+
+El atributo vacío **sigue casando** con `:root:not([data-theme="dark"])`, que
+es la regla que aplica la paleta clara cuando el sistema es claro. Con el
+atributo vacío, el "auto" se quedaba atado al tema claro para siempre.
+
+### El script se prueba como lo que es: un script
+
+`__tests__/tema-script.test.ts` **ejecuta** el script del `<head>` con un
+`document` de mentira y comprueba los tres estados. Un test que leyera el
+código y buscara una cadena comprobaría que la cadena está, no que el script
+haga lo que dice.
+
+## Hecho: el atajo de buscar tiene un solo dueño (2026-10-20)
+
+`Ctrl+K` / `⌘K` abría **dos** buscadores: el del `Header` y el del hero de la
+portada. Los dos escuchaban `window`, los dos anuncian el atajo con su cartel
+al lado, y los dos abrían su panel. El foco acababa en el input del que se
+había cerrado, o sea en el que no era.
+
+### La regla: manda el último registrado
+
+`lib/search-shortcut.ts` es un registro. El `Header` está en el layout y se
+registra antes que el `HeroSearch`, que es más profundo: **el orden de montaje
+es el de la jerarquía**, así que en la portada manda la búsqueda grande —la que
+la persona tiene delante y la que lleva el cartel al lado— y en el resto de
+páginas, que no tienen hero, manda la del `Header`.
+
+El manejador se guarda en un `ref` y se escribe en un efecto, **no en el
+render**: si dependiera de la identidad del manejador, un re-render lo quitaría
+y lo volvería a añadir al final de la lista, y el orden —que es la regla—
+cambiaría sin que nadie lo pidiera. Y un ref no se toca durante el render.
+
+### El cartel del atajo es la promesa
+
+Los dos sitos donde sale el cartel `⌘K` son los dos que **responden** al
+atajo. Por eso los dos se apuntan al registro y solo uno atiende la tecla.
+
+## Verificado (2026-10-20)
+
+- `tsc` 0 · **1176/1176** tests · lint 0 errores (16 warnings, baseline) ·
+  build 0 · **31/31** e2e.
+- El e2e que fallaba no estaba midiendo la app: **cinco tests seguían la home
+  anterior** —"Hoy en Gasteiz", "Top 10", `a[aria-label="Plan destacado"]`— que
+  se quitaron a propósito. El de la paleta además comparaba con el
+  `--bg` antiguo (`#0B0E14`, ahora `#16160F`).
+- El atajo se mide **reintentando**: el `keydown` lo escucha un `useEffect` y
+  la hidratación no la mide `networkidle`, que mide el red. En desarrollo
+  Turbopack compila los módulos del cliente a la primera petición, así que
+  pulsar la tecla una vez y comprobar mide la velocidad de la compilación.
+- El aviso de cookies **cubre el pie**, y el selector de tema vive en el pie:
+  `e2e/helpers.ts` lo cierra antes de pulsar. No es un bug de la app —el aviso
+  se cierra con un clic— pero es una condición del entorno de prueba.
+
+## Hecho: el cuadrante de guardia se lee (2026-10-20)
+
+El Colegio Oficial de Farmacéuticos de Álava publica el cuadrante en
+`https://cofalava.org/farmacias-de-guardia/`, y **la página lleva el año entero
+de la rota dentro**: 5.916 entradas —una por farmacia y día—, de las cuales
+2.190 son de Vitoria-Gasteiz. Cada una trae horario, fecha, teléfono, barrio,
+zona y si el turno es de día o de noche.
+
+### La belief que era falsa
+
+El repo creía que el Colegio "responde 403 en todo su dominio, con y sin TLS,
+con cualquier User-Agent", y por eso servía el **directorio** de
+opendata.euskadi.eus: 78 farmacias con dirección y teléfono, **sin turno**.
+
+**El WAF bloquea el User-Agent de navegador, no el dominio.** Medido el 20 de
+octubre de 2026 contra el sitio en vivo:
+
+    User-Agent de Chrome  -> 403 (75 KB: la página del WAF)
+    okhttp/4.9.3          -> 200 (6,5 MB: el cuadrante)
+    sin User-Agent        -> 200 (6,5 MB: el cuadrante)
+
+El 403 era **siempre** con el UA de navegador, que es lo que se prueba primero.
+Y el 403 del WAF son 75 KB de HTML: no es un error de red, es una página. La
+conclusión "no se puede" salía sola, y era una conclusión sobre el UA.
+
+`okhttp` no es esconderse: el Colegio publica este dato para que se use, y lo
+único que no se hace es simular a una persona.
+
+### La web y la app enseñan lo mismo
+
+`/api/farmacias` sirve ahora el **cuadrante** —las guardias del día, con
+horario y turno— y no el directorio. La página de la web y la pantalla de la
+app móvil leen la misma ruta y los mismos campos, que es lo que se pidió.
+
+El envelope **no se toca**: `source`, `date`, `count`, `fetchedAt` y `data`. Lo
+único nuevo dentro de cada farmacia es `guardia` —`diurna`, `nocturna` o
+`ambas`—.
+
+Y `date` ahora **sirve para algo**: antes salía vacía siempre porque el
+directorio no publica turno, y la página la compara con "hoy" para poner el
+cartel de "Actualizado". Con el cuadrante, ese cartel aparece.
+
+### El fallo del escáner que casi se cuela
+
+El array `"places"` de la página se extrae contando corchetes. Si la marca
+incluye el `[` del array, el desplazamiento lo salta y el conteo empieza
+**dentro** del primer objeto: el `[` no se cuenta, el `}` del primer lugar lo
+cierra y el array se corta tras una farmacia.
+
+**Y no da error de sintaxis**: `JSON.parse` recibe un objeto válido —el primer
+lugar— y lo devuelve como si fuera el array. 4 de 5.916 entradas, y ningún test
+que mirara el número de plazas lo notaría. El test mira las cuatro, y la
+última del fixture, precisamente para que un corte por el principio no pueda
+pasar inadvertido.
+
+### Verificado (2026-10-20)
+
+- 6 guardias en Vitoria para hoy: 4 de día (09:00-22:00) y 2 de noche
+  (22:00-09:00). En la web y en la app, las mismas seis.
+- `tsc` 0 · **1182/1182** tests · lint 0 errores · build 0 · **31/31** e2e.
+- El doctor: todo correcto salvo la clave de la API, que es lo que tiene que
+  arreglarse en el despliegue.
+
+## Hecho: la auditoría de interfaz y de las URLs (2026-10-20)
+
+Un barrido de **las veintiuna páginas** en escritorio y en móvil, y de **las
+catorce rutas** que la app móvil consume contra producción. Salieron cinco
+cosas, y ninguna daba error rojo.
+
+### `/docs` no enseñaba la API
+
+Swagger pintaba **"No layout defined for StandaloneLayout"** en vez de la
+documentación. Eran dos fallos encadenados:
+
+- El preset va en `swagger-ui-standalone-preset.js`, **un bundle aparte**, que
+  no se cargaba.
+- Y el preset **no es una propiedad del bundle**: su webpack lo deja en
+  `window.SwaggerUIStandalonePreset`, y pedirse
+  `SwaggerUIBundle.SwaggerUIStandalonePreset` —que es lo que se escribía—
+  devuelve `undefined` **siempre**, exista o no el bundle.
+
+La página que documenta el contrato con la app móvil llevaba rota sin que nada
+lo dijera.
+
+### El pie rompía la jerarquía de encabezados en casi todas las páginas
+
+Un salto de `h1` a `h3` no da error, no se ve en una captura y solo lo nota
+quien navega por encabezados. **Catorce de veintiuna páginas** lo tenían, y la
+mayoría por el pie, que usaba `h3` para sus tres columnas.
+
+Las columnas del pie son secciones de primer nivel: ahora son `h2`. Y las
+páginas que son **una lista y nada más** —`/bus`, `/buscar`, `/favoritos`,
+`/metricas`, `/hoy`, `/movies`, `/culture`, `/kids`, `/turismo`,
+`/gastronomia`, `/deporte`— ponen sus tarjetas en `h2`, que es el nivel que les
+toca cuando el `h1` de la página es el único encabezado de arriba.
+
+**El nivel de la tarjeta compartida es un parámetro, no una constante**:
+`EventCard` y `MovieCard` se usan también en la home, donde cuelgan de un `h2`
+de sección y sí son `h3`.
+
+### La clave de la API no era la del despliegue
+
+**Las doce rutas protegidas de producción respondían 401 con la clave del
+`.env`.** La app móvil manda esa misma clave —va dentro del APK—, así que en
+producción se quedaba **sin eventos y sin decir por qué**.
+
+No se puede arreglar desde el repo: el valor correcto está en el entorno de
+Dokploy. Pero sí se puede hacer que **no vuelva a pasar en silencio**, y ahora
+`npm run doctor` **prueba** la clave contra el servidor en vez de comprobar que
+la variable esté puesta. Es el mismo tratamiento que `MEC_TOKEN`: no se
+comprueba que exista, se usa.
+
+### La Blanche era un calendario estacional tratado como avería
+
+`calendariosID=513` solo tiene eventos la semana grande. Medido el 20 de
+octubre de 2026: **59 eventos** en el 15jul–12ago de 2026 y **cero** en el de
+2027, que es la edición siguiente y todavía no está publicada.
+
+Ese cero es la respuesta correcta, pero la regla de "cero resultados en un
+rango que empieza ya es una avería" —escrita para los diecisiete calendarios
+municipales, que están vivos todos los días— lo convertía en un error. El
+scraper lo devolvía vacío y **La Blanca desaparecía de la agenda sin que nada
+lo dijera**: la salud seguía en 37/37 porque la fuente no rechazaba, solo
+devolvía lista vacía.
+
+Ahora quien pide el calendario dice si su cero es un avería, y La Blanca dice
+que el suyo no lo es.
+
+### Una imagen rota en la cartelera
+
+Florida sirve algunas carátulas con la ruta mal formada —`…/eventos/.jpg`, sin
+nombre— y contesta **200 con cero bytes**. El host estaba en la lista, así que
+el filtro lo dejaba pasar, y el optimizador lo convertía en un 400: imagen
+rota en la pantalla.
+
+La regla general, en `imagenServible`: **una URL sin nombre de archivo no es
+una imagen**, por muy permitido que esté su host.
+
+### Verificado (2026-10-20)
+
+- `tsc` 0 · **1184/1184** tests · lint 0 errores (16 warnings, baseline) ·
+  build 0 · **31/31** e2e.
+- Un barrido de las 21 páginas en dos viewports: **0** errores de consola, **0**
+  imágenes rotas, **0** saltos de encabezado, **0** campos sin nombre accesible.
+- Las 14 rutas de la app móvil, contra producción **y** contra desarrollo.
+- `npm run doctor`: todo correcto salvo la clave de la API, que es lo que tiene
+  que arreglarse en el despliegue.
