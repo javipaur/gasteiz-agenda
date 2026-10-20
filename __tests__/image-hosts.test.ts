@@ -84,6 +84,35 @@ describe("imagenServible", () => {
     expect(imagenServible("https://malo-lagenterula.com/cartel.jpg")).toBe(false);
   });
 
+  it("rechaza una URL sin nombre de archivo, aunque su host esté permitido", () => {
+    // El caso medido el 20 de octubre de 2026 contra el sitio en vivo: Florida
+    // sirve algunas carátulas con el `data-original` mal formado —la ruta
+    // termina en `/.jpg`, sin nombre delante— y el servidor contesta **200 con
+    // cero bytes**. El optimizador lo convierte en un 400 y la tarjeta se queda
+    // con la imagen rota.
+    //
+    // El host está en la lista, así que el filtro de hosts lo deja pasar: sin
+    // esta regla, la imagen rota se pintaba.
+    expect(
+      imagenServible(
+        "https://florida.reservaentradas.com/florida/obj/LCinesD_dat/eventos/.jpg"
+      )
+    ).toBe(false);
+
+    // Y la ruta sin extensión tampoco es un archivo.
+    expect(
+      imagenServible("https://florida.reservaentradas.com/florida/obj/eventos/")
+    ).toBe(false);
+
+    // Las buenas se siguen aceptando: el nombre de verdad de las carátulas de
+    // Florida es `JPG0009w.jpg` y compañía.
+    expect(
+      imagenServible(
+        "https://florida.reservaentradas.com/florida/obj/LCinesD_dat/eventos/JPG0009w.jpg"
+      )
+    ).toBe(true);
+  });
+
   it("acepta las rutas del propio sitio", () => {
     // El logo y los iconos no pasan por el optimizador: no tienen host que esté en la
     // lista y sin esta línea desaparecerían de la pantalla.

@@ -287,8 +287,37 @@ const SERVIDORES_PERMITIDOS = new Set(
   IMAGE_HOSTS.map((h) => `${PROTOCOLO}://${h.hostname.toLowerCase()}`)
 );
 
-/** Esquema y host, o `null`. El grupo 1 es el esquema sin `:` y el 2 el host. */
-const URL_ABSOLUTA = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+/** Esquema y host, o `null`. El grupo 1 es el esquema sin `:` y el 2 el host, y el 3 la ruta. */
+const URL_ABSOLUTA = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(\/[^?#]*)?/;
+
+/**
+ * Un trozo de ruta que es **solo una extensión** no es un nombre de archivo.
+ *
+ * Florida sirve algunas carátulas con el `data-original` mal formado —la ruta
+ * termina en `/.jpg`, sin nombre delante— y el servidor contesta **200 con cero
+ * bytes**. El optimizador de Next convierte eso en un 400 ("The requested
+ * resource isn't a valid image") y la tarjeta se queda con la imagen rota: el
+ * `onError` no lo coge, porque el 400 es del optimizador, no de la descarga.
+ *
+ * Medido el 20 de octubre de 2026 contra el sitio en vivo: de las carátulas de
+ * Florida, dos de ocho traían la ruta sin nombre, y las otras seis devolvían
+ * imágenes de 27 KB a 76 KB.
+ *
+ * **La regla no es de Florida.** Un tramo que es solo una extensión —o que está
+ * vacío— no apunta a ningún archivo, en ningún host. Por eso la comprobación
+ * vive aquí y no en el scraper de cines: es una propiedad de la URL, y hay
+ * trece sitios que pintan imágenes.
+ */
+const TROZO_SIN_NOMBRE = /^\.[a-zA-Z0-9]{1,5}$/;
+
+/** Si la ruta termina en algo que puede ser un nombre de archivo. */
+function rutaConNombre(camino: string): boolean {
+  const trozos = camino.split("/");
+  const ultimo = trozos[trozos.length - 1];
+  if (ultimo === "") return false;
+  if (TROZO_SIN_NOMBRE.test(ultimo)) return false;
+  return true;
+}
 
 export function imagenServible(url: string | undefined | null): url is string {
   if (!url) return false;
@@ -308,5 +337,14 @@ export function imagenServible(url: string | undefined | null): url is string {
 
   const match = URL_ABSOLUTA.exec(url);
   if (!match) return false;
-  return SERVIDORES_PERMITIDOS.has(`${match[1].toLowerCase()}://${match[2].toLowerCase()}`);
+  if (!SERVIDORES_PERMITIDOS.has(`${match[1].toLowerCase()}://${match[2].toLowerCase()}`)) {
+    return false;
+  }
+
+  // Y por último la ruta: una URL sin nombre de archivo no es una imagen, por muy
+  // permitido que esté su host.
+  const camino = match[3];
+  if (camino !== undefined && !rutaConNombre(camino)) return false;
+
+  return true;
 }
