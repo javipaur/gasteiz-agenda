@@ -211,6 +211,105 @@ async function comprobarAgregado(): Promise<void> {
  * Se pregunta a `rula` y no a la API de Meta directamente, porque es la fuente que de
  * verdad la consume y su fallo es el que para el correo.
  */
+/**
+ * La clave de la API, **probada contra el servidor**.
+ *
+ * ## Por qué hace falta, y es el mismo motivo que `MEC_TOKEN`
+ *
+ * `comprobarVariables` decía que la clave estaba puesta. Eso es todo lo que
+ * sabía: **que la variable exista**, no que sirva. Y una clave que no sirve no
+ * da ningún error visible: el middleware responde 401, el hook de la app móvil
+ * convierte ese 401 en listas vacías, y la app pinta "no hay eventos" como si
+ * el día fuera a cero. Lo único que se ve es una app callada.
+ *
+ * Medido el 20 de octubre de 2026: la clave del `.env` local y la del
+ * despliegue **no son la misma**. Las doce rutas protegidas de producción
+ * respondían 401 con la clave buena, y el médico decía "[OK] variables de
+ * correo — las cuatro están puestas".
+ *
+ * ## Qué pregunta
+ *
+ * Una ruta protegida de verdad, con la clave de este entorno. Lo que contesta
+ * dice tres cosas distintas:
+ *
+ * - **401**: la clave de este entorno no es la del servidor. Es el fallo.
+ * - **503**: el servidor no tiene `API_KEY` configurado (el middleware cierra
+ *   en vez de abrir). Es el fallo, y de otro tipo.
+ * - **200**: la clave abre. Todo bien.
+ *
+ * ## A quién pregunta
+ *
+ * A `DOCTOR_URL`, que es el sitio contra el que hay que comprobar. Sin ella, a
+ * `NEXT_PUBLIC_SITE_URL`, que es la variable que el repo ya exige en
+ * producción. Y si ninguna está, al sitio canónico.
+ *
+ * En el servidor se pone `DOCTOR_URL=http://localhost:3000` para no dar la
+ * vuelta a internet; en local, `DOCTOR_URL` puede apuntar a producción, que es
+ * justo el caso que cazó esto.
+ */
+async function comprobarClaveApi(): Promise<void> {
+  const base = (
+    process.env.DOCTOR_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://gasteizclick.javierpalacio.es"
+  ).replace(/\/+$/, "");
+
+  const clave = process.env.API_KEY?.trim();
+  if (!clave) {
+    await fallo(
+      "clave de la API",
+      "No hay API_KEY en este entorno. El servidor cierra las rutas protegidas con un 503."
+    );
+    return;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/v1/events?limit=1`, {
+      headers: { "x-api-key": clave },
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch (error) {
+    await aviso(
+      "clave de la API",
+      `No se pudo preguntar a ${base}: ${
+        error instanceof Error ? error.message.slice(0, 120) : "?"
+      }. No se puede comprobar la clave.`
+    );
+    return;
+  }
+
+  if (res.status === 401) {
+    await fallo(
+      "clave de la API",
+      `La clave de este entorno NO es la del servidor en ${base}. La app móvil manda ` +
+        "esta misma clave: sin ella, las doce rutas protegidas responden 401 y la app " +
+        "se queda sin eventos sin decir por qué. Hay que igualar API_KEY en el " +
+        "despliegue (Dokploy) y en el entorno de la app."
+    );
+    return;
+  }
+
+  if (res.status === 503) {
+    await fallo(
+      "clave de la API",
+      `El servidor en ${base} no tiene API_KEY configurado (responde 503). ` +
+        "Las rutas protegidas están cerradas."
+    );
+    return;
+  }
+
+  if (!res.ok) {
+    await aviso(
+      "clave de la API",
+      `${base} respondió ${res.status} a una ruta protegida. La clave no se puede dar por buena.`
+    );
+    return;
+  }
+
+  await ok("clave de la API", `La clave abre las rutas protegidas de ${base}`);
+}
+
 async function comprobarVariables(): Promise<void> {
   const necesarias = [
     "PROMO_PARA",
@@ -468,6 +567,7 @@ async function mainDoctor(): Promise<void> {
 
   comprobarDependencias();
   await comprobarVariables();
+  await comprobarClaveApi();
   await comprobarAgregado();
   await comprobarImagenes(fecha);
   await comprobarPaquete(fecha);

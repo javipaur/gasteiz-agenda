@@ -86,7 +86,16 @@ export async function preguntarAOpencode(
   });
 }
 
-/** El modelo por defecto: `CASTING_MODELO`, o el gratuito si no está puesto. */
+/**
+ * El modelo por defecto: `CASTING_MODELO`, o el gratuito si no está puesto.
+ *
+ * **El default se cambia cuando el modelo deja de existir.** El que estaba
+ * aquí —`opencode/space-bunny-free`— ya no está en el catálogo, y el casting
+ * fallaba con `Model unavailable` sin llegar a la parte que decide: el
+ * script que decide se cayó por el modelo que le responde. Con
+ * `CASTING_MODELO` en el `.env` el modelo se cambia sin tocar el código, que
+ * es donde debería estar la decisión.
+ */
 export function modeloDeCasting(): string {
-  return process.env.CASTING_MODELO?.trim() || "opencode/space-bunny-free";
+  return process.env.CASTING_MODELO?.trim() || "opencode/minimax-m3.1-flash-free";
 }

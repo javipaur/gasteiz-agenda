@@ -328,7 +328,17 @@ delete process.env.PROMO_PARA;
   });
 
   it("sin destinatario escribe los ficheros, no manda correo y sale con 1", async () => {
-    delete process.env.PROMO_PARA;
+    // **Vacía, no borra.** El script carga el `.env` él mismo
+    // —`prepararEntornoScript()`— con `override: false`, que es lo correcto
+    // para el contenedor de Dokploy, donde sus variables mandan sobre las del
+    // fichero. Pero en un test, si la variable **no está**, el `.env` la
+    // devuelve: este test pasaba porque el `.env` de quien lo escribía no
+    // tenía `PROMO_PARA`, y empezaba a fallar en cuanto lo tuvo.
+    //
+    // Ponerla a "" resuelve las dos cosas: dotenv no pisa una variable que ya
+    // existe, ni siquiera vacía, y el script la lee con `?.trim()`, que da
+    // "" —falsy— que es exactamente "no hay destinatario".
+    process.env.PROMO_PARA = "";
 
     await cargarScript()();
 

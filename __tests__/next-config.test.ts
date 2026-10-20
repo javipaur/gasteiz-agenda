@@ -382,7 +382,7 @@ describe("images.remotePatterns", () => {
     "api.euskadi.eus": "es el endpoint del API de cultura de Euskadi (euskadi.ts:3); sus imágenes van aparte",
     "app.vamcultura.es": "es el endpoint del agregador del VAM (vam.ts:3); el `image_url` lo trae cada ficha",
     "cms.deportivoalaves.com": "el scraper del CMS del Deportivo Alavés no tiene campo de imagen, y no está en el registro de la agenda",
-    "cofalava.org": "el scraper de farmacias no tiene campo de imagen; `/api/farmacias` no la usa",
+    "cofalava.org": "el cuadrante de guardias no trae campo de imagen; `/api/farmacias` no la usa",
     "entradium.com": "es la versión de escritorio de Entradium (entradium.ts:111,125); las imágenes salen de `m.entradium.com`",
     "feverup.com": "es la base de las páginas de evento de Fever; el JSON-LD apunta a sus CDN de imagen",
     "koraliving.com": "es la web de Kora; el `data-src` real sale de sus CDN, que están en la lista",
