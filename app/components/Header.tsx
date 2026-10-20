@@ -10,6 +10,7 @@ import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
 import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
+import { ejecutarAtajo, useAtajoBusqueda } from "@/lib/search-shortcut";
 import ShortcutHint from "./ShortcutHint";
 import { LogoMarkReducido } from "./LogoMarkReducido";
 
@@ -220,12 +221,23 @@ export default function Header() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setSearchOpen(true);
+        // El atajo **no** lo atiende este componente: lo atiende quien deba, y
+        // aquí solo se escucha la tecla. Con los dos escuchando, el `Header` y el
+        // `HeroSearch` abría cada uno su panel y el foco acababa en el input que
+        // no era. El motivo está en `lib/search-shortcut.ts`.
+        ejecutarAtajo();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Este buscador se apunta al registro del atajo. En la portada hay otro más
+  // abajo —el del hero— y ese manda mientras esté montado, porque es el que la
+  // persona tiene delante.
+  useAtajoBusqueda(() => {
+    setSearchOpen(true);
+  });
 
   useEffect(() => {
     const q = searchQuery.trim();

@@ -8,6 +8,7 @@ import { propsImagen } from "@/lib/image-proxy";
 import { formatDate } from "@/lib/utils";
 import { InViewWrapper } from "@/lib/shared";
 import ShortcutHint from "./ShortcutHint";
+import { useAtajoBusqueda } from "@/lib/search-shortcut";
 
 type SearchHit = {
   slug: string;
@@ -83,17 +84,21 @@ export default function HeroSearch() {
     }
   }, [open]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-        setOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  /**
+   * El atajo de buscar.
+   *
+   * Antes este componente escuchaba `Ctrl+K` en `window` por su cuenta, y el
+   * `Header` también: una sola tecla abría los dos paneles y el foco acababa en
+   * el input que no era el que se había abierto. Ahora los dos se apuntan al
+   * registro de `lib/search-shortcut.ts` y **solo uno** atiende la tecla.
+   *
+   * Este es el del hero, así que en la portada manda este; en el resto de
+   * páginas, que no tienen hero, manda el del `Header`.
+   */
+  useAtajoBusqueda(() => {
+    inputRef.current?.focus();
+    setOpen(true);
+  });
 
   const goToHit = useCallback(
     (slug: string) => {
