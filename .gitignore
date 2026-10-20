@@ -76,3 +76,4 @@ C:*
 
 # accesos locales a skills (los reales viven en .agents/skills/)
 .claude/skills/
+dev-test.log
