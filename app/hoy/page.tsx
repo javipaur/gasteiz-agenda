@@ -131,7 +131,7 @@ export default async function HoyPage({ searchParams }: Props) {
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {lista.map((evento) => (
             <InViewWrapper key={evento.id}>
-              <EventCard evento={evento} />
+              <EventCard evento={evento} nivel={2} />
             </InViewWrapper>
           ))}
         </div>

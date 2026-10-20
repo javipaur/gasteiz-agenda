@@ -301,9 +301,12 @@ export default function CulturePageClient({
                             ? CULTURE_SOURCE_LABELS[evento.source] || evento.source
                             : evento.category}
                         </span>
-                        <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                        {/* `h2` y no `h3`: esta página es una lista y no hay ningún
+                            `h2` entre el `h1` del título y las tarjetas. El salto de
+                            `h1` a `h3` rompe la jerarquía de encabezados. */}
+                        <h2 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
                           {evento.title}
-                        </h3>
+                        </h2>
                         {evento.location && (
                           <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
                             <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />

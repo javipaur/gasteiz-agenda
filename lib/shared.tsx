@@ -97,6 +97,7 @@ export function EventCard({
   priority = false,
   href,
   pasado = false,
+  nivel = 3,
 }: {
   evento: EventCardEvento;
   showCategory?: boolean;
@@ -118,6 +119,23 @@ export function EventCard({
   href?: string;
   /** Muestra "Pasó" en lugar del día, y atenúa la tarjeta. Va con `href`. */
   pasado?: boolean;
+  /**
+   * El nivel del encabezado del título de la tarjeta.
+   *
+   * **El título de la tarjeta es `h3` por defecto, y hay un motivo.** En la home
+   * y en los carruseles, la tarjeta cuelga de un `h2` de sección —el de
+   * `SectionHead`—, así que `h3` es el nivel que le toca: el título de un plan
+   * **dentro** de una sección.
+   *
+   * Pero en las páginas que son una lista y nada más —`/buscar`, `/favoritos`,
+   * `/hoy`— no hay ningún `h2` entre el `h1` de la página y las tarjetas, y el
+   * salto de `h1` a `h3` rompe la jerarquía: quien navega por encabezados se
+   * salta un nivel y no sabe dónde está.
+   *
+   * Ahí el nivel es `2`: el `h1` es el título de la página y cada tarjeta es una
+   * sección de ese título. Por eso es un parámetro y no una constante.
+   */
+  nivel?: 2 | 3;
 }) {
   const { day, month } = formatDate(evento.date);
   const relDay = pasado ? null : dayBadgeLabel(evento.date);
@@ -227,9 +245,15 @@ export function EventCard({
                   )}
                 </div>
               )}
-              <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
-                {evento.title}
-              </h3>
+              {nivel === 2 ? (
+                <h2 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                  {evento.title}
+                </h2>
+              ) : (
+                <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                  {evento.title}
+                </h3>
+              )}
               <div className="flex items-end justify-between gap-2">
                 <div className="min-w-0">
                   {evento.location && (

@@ -380,7 +380,9 @@ export default function BusPageClient() {
                               </span>
                             )}
                           </span>
-                          <h3 className="font-display text-base font-semibold text-fg">{res.punto.nombre}</h3>
+                          {/* `h2` y no `h3`: no hay ningún `h2` entre el `h1` del
+                              título y las paradas. */}
+                          <h2 className="font-display text-base font-semibold text-fg">{res.punto.nombre}</h2>
                           {res.punto.direccion && (
                             <p className="text-xs text-fg-muted mt-0.5">{res.punto.direccion}</p>
                           )}

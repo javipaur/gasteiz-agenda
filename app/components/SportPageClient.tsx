@@ -159,9 +159,11 @@ export default function SportPageClient({
                           <span className="font-mono text-[11px] uppercase tracking-wider text-accent bg-accent/20 px-2 py-0.5 inline-block mb-2 rounded">
                             {evento.category}
                           </span>
-                          <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                          {/* `h2` y no `h3`: esta página es una lista y no hay ningún
+                              `h2` entre el `h1` del título y las tarjetas. */}
+                          <h2 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
                             {evento.title}
-                          </h3>
+                          </h2>
                           {evento.location && (
                             <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
                               <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />

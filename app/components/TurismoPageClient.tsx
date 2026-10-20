@@ -131,9 +131,9 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
               <article className="group double-bezel-outer rounded-2xl p-1.5 h-full">
                 <div className="double-bezel rounded-xl overflow-hidden h-full flex flex-col">
                   <div className="p-5 flex-1">
-                    <h3 className="font-display text-lg font-semibold text-fg mb-1 leading-tight tracking-[-0.01em]">
+                    <h2 className="font-display text-lg font-semibold text-fg mb-1 leading-tight tracking-[-0.01em]">
                       {item.nombre}
-                    </h3>
+                    </h2>
                     {item.zona && (
                       <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-teal mb-3">
                         {item.zona}
@@ -210,9 +210,9 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
                   <Footprints size={12} aria-hidden="true" />
                   Dificultad {ruta.dificultad.toLowerCase()}
                 </p>
-                <h3 className="font-display text-lg font-semibold text-fg mb-1 leading-tight">
+                <h2 className="font-display text-lg font-semibold text-fg mb-1 leading-tight">
                   {ruta.nombre}
-                </h3>
+                </h2>
                 <p className="font-mono text-xs text-fg-subtle mb-3">
                   {ruta.duracion} · {ruta.distancia}
                 </p>
@@ -304,7 +304,7 @@ export default function TurismoPageClient({ queVer, rutas, info, visitas }: Prop
                   <span className="grid size-9 place-items-center rounded-xl bg-teal-soft text-teal">
                     {ICONS[bloque.icono]?.()}
                   </span>
-                  <h3 className="font-display text-base font-semibold text-fg">{bloque.titulo}</h3>
+                  <h2 className="font-display text-base font-semibold text-fg">{bloque.titulo}</h2>
                 </div>
                 <ul className="space-y-2">
                   {bloque.items.map((item, i) => (

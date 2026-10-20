@@ -67,7 +67,7 @@ export default function FavoritosPage() {
           {futuros.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {futuros.map((evento) => (
-                <EventCard key={evento.id} evento={evento} />
+                <EventCard key={evento.id} evento={evento} nivel={2} />
               ))}
             </div>
           )}

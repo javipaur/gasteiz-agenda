@@ -80,9 +80,19 @@ export default function Footer() {
           </div>
 
           <nav aria-label="Explorar">
-            <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
+            {/*
+              `h2` y no `h3`. Las tres columnas del pie son **secciones de primer
+              nivel** del documento, al mismo nivel que el contenido de la página:
+              el `h1` es el título de la página y estas son sus secciones.
+
+              Con `h3` saltaba un nivel en todas las páginas que no tienen otro
+              `h2` —`/bus`, `/buscar`, `/favoritos`, `/metricas`— y quien navegaba
+              por encabezados se encontraba un `h1` y de pronto un `h3`, sin
+              saber en qué sección estaba.
+            */}
+            <h2 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
               Explorar
-            </h3>
+            </h2>
             <ul className="flex flex-col gap-2.5 text-sm">
               {exploreLinks.map((link) => (
                 <li key={link.href}>
@@ -105,9 +115,9 @@ export default function Footer() {
           </nav>
 
           <nav aria-label="Por categoría">
-            <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
+            <h2 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
               Por categoría
-            </h3>
+            </h2>
             <ul className="flex flex-col gap-2.5 text-sm">
               {categoryLinks.map((link) => (
                 <li key={link.href}>
@@ -120,9 +130,9 @@ export default function Footer() {
           </nav>
 
           <nav aria-label="Sobre">
-            <h3 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
+            <h2 className="font-semibold text-white mb-4 text-xs uppercase tracking-[0.2em] font-mono">
               Sobre
-            </h3>
+            </h2>
             <ul className="flex flex-col gap-2.5 text-sm">
               {aboutLinks.map((link) =>
                 link.href.startsWith("mailto:") ? (

@@ -83,7 +83,7 @@ export default function MoviesPageClient({ peliculas }: { peliculas: Pelicula[] 
               key={`${pelicula.cine}-${index}`}
               delay={Math.min(index * 0.04, 0.4)}
             >
-              <MovieCard pelicula={pelicula} />
+              <MovieCard pelicula={pelicula} nivel={2} />
             </InViewWrapper>
           ))}
         </div>

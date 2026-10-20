@@ -201,9 +201,11 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                     )}
                     <div className="p-5 flex-1">
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="font-display text-lg font-semibold text-fg leading-tight tracking-[-0.01em]">
+                        {/* `h2` y no `h3`: no hay ningún `h2` entre el `h1` del
+                            título y los sitios. */}
+                        <h2 className="font-display text-lg font-semibold text-fg leading-tight tracking-[-0.01em]">
                           {sitio.nombre}
-                        </h3>
+                        </h2>
                         {sitio.rangoPrecio && precio(sitio.rangoPrecio)}
                       </div>
                       {sitio.recomendado && (
@@ -254,9 +256,9 @@ export default function GastronomiaPageClient({ sitios, rutas, eventos }: Props)
                 <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-amber mb-2">
                   {ruta.zona}
                 </p>
-                <h3 className="font-display text-lg font-semibold text-fg mb-1 leading-tight">
+                <h2 className="font-display text-lg font-semibold text-fg mb-1 leading-tight">
                   {ruta.nombre}
-                </h3>
+                </h2>
                 <p className="font-mono text-xs text-fg-subtle mb-4">
                   Duración: {ruta.duracion}
                 </p>

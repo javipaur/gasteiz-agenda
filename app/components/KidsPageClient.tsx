@@ -92,9 +92,11 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
                         </div>
 
                         <div className="absolute bottom-0 left-0 right-0 p-4">
-                          <h3 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
+                          {/* `h2` y no `h3`: esta página es una lista y no hay ningún
+                              `h2` entre el `h1` del título y las tarjetas. */}
+                          <h2 className="font-display text-base font-semibold text-white leading-snug mb-1.5 line-clamp-2">
                             {evento.title}
-                          </h3>
+                          </h2>
                           {evento.location && (
                             <p className="font-mono text-xs text-white/70 flex items-center gap-1.5">
                               <span className="w-1 h-1 rounded-full bg-accent inline-block shrink-0" />

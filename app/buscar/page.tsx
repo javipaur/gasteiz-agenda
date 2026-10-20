@@ -162,6 +162,7 @@ export default async function BuscarPage({ searchParams }: PageProps) {
                 <EventCard
                   key={hit.slug}
                   evento={{ ...hit, category: hit.category || "Otros" }}
+                  nivel={2}
                 />
               ))}
             </div>

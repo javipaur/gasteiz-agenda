@@ -25,7 +25,20 @@ function TicketIcon({ className }: { className?: string }) {
   );
 }
 
-export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
+export default function MovieCard({
+  pelicula,
+  nivel = 3,
+}: {
+  pelicula: Pelicula;
+  /**
+   * El nivel del encabezado del título.
+   *
+   * Igual que en `EventCard`: `h3` cuando cuelga de un `h2` de sección —en la
+   * home, dentro de "¿Qué te apetece?"— y `h2` en `/movies`, que es una lista y
+   * no tiene ningún `h2` entre el `h1` de la página y las películas.
+   */
+  nivel?: 2 | 3;
+}) {
   const badgeColor = CINE_COLORS[pelicula.cine] || "bg-fg-muted";
   // En una variable y no dos llamadas en la línea de la condición: así TypeScript
   // estrecha el spread de `<Image>`, y una llamada dentro del spread volvería a
@@ -85,9 +98,15 @@ export default function MovieCard({ pelicula }: { pelicula: Pelicula }) {
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h3 className="font-display text-base font-semibold text-white leading-snug mb-1 line-clamp-2">
-              {pelicula.titulo}
-            </h3>
+            {nivel === 2 ? (
+              <h2 className="font-display text-base font-semibold text-white leading-snug mb-1 line-clamp-2">
+                {pelicula.titulo}
+              </h2>
+            ) : (
+              <h3 className="font-display text-base font-semibold text-white leading-snug mb-1 line-clamp-2">
+                {pelicula.titulo}
+              </h3>
+            )}
             <p className="font-mono text-xs text-white/70 line-clamp-1">
               {pelicula.genero}{pelicula.duracion ? ` · ${pelicula.duracion}` : ""}
             </p>

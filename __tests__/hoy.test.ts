@@ -89,12 +89,22 @@ async function texto(nodo: unknown): Promise<string> {
 /**
  * Los títulos que salen pintados, que es lo que se puede comprobar de una tarjeta.
  *
- * Del `<h3>` y no del `alt`, que viene vacío a propósito: la imagen y el título viven
- * en el mismo enlace y con el `alt` puesto el lector oye el título dos veces. Un test
- * que leyera el `alt` se pondría rojo el día que alguien arreglara la accesibilidad.
+ * Del encabezado y no del `alt`, que viene vacío a propósito: la imagen y el título
+ * viven en el mismo enlace y con el `alt` puesto el lector oye el título dos veces.
+ * Un test que leyera el `alt` se pondría rojo el día que alguien arreglara la
+ * accesibilidad.
+ *
+ * **Y `<h2>` y no `<h3>`.** `/hoy` es una lista y nada más: no hay ningún `h2`
+ * entre el `h1` de la página y las tarjetas, así que el título de cada tarjeta es
+ * una sección de ese `h1` y su nivel es `2`. Con `h3` la jerarquía de
+ * encabezados se saltaba un nivel, que es lo que rompía la navegación por
+ * encabezados de quien usa un lector de pantalla.
+ *
+ * El nivel **es** parte del contrato de la página, y por eso se fija aquí: si
+ * alguien vuelve a poner `h3` sin querer, este test se pone rojo.
  */
 function titulos(html: string): string[] {
-  return [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((m) => m[1]);
+  return [...html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1]);
 }
 
 describe("/hoy", () => {
