@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Phone, MapPin, Clock, Loader2, RefreshCw } from "lucide-react";
+import { Phone, MapPin, Clock, Moon, Loader2, RefreshCw } from "lucide-react";
 import FreshnessBadge from "./FreshnessBadge";
-import type { FarmaciaGuardia } from "@/lib/sources/farmacias";
+import type { FarmaciaGuardia } from "@/lib/sources/farmacias-guardia";
 
 // El Leaflet sólo se carga en el cliente (window)
 const MapaFarmacias = dynamic(
@@ -116,12 +116,11 @@ export default function FarmaciasPageClient({ ahora }: { ahora: number }) {
         {fetchedAt > 0 && <FreshnessBadge since={fetchedAt} />}
       </div>
       <p className="text-fg-muted max-w-xl mb-8">
-        Directorio de farmacias de Vitoria-Gasteiz con dirección y teléfono. Pulsa
-        el teléfono para llamar directamente.
+        Las farmacias de guardia de Vitoria-Gasteiz, con el turno de cada una y su
+        teléfono. Pulsa el teléfono para llamar directamente.
         <span className="block mt-2 text-fg-subtle">
-          No es el cuadrante de guardia: el Colegio de Farmacéuticos de Álava
-          bloquea el acceso automatizado a su listado, así que no se puede saber
-          cuál está de turno. Para eso, llama al Colegio.
+          Fuente: Colegio Oficial de Farmacéuticos de Álava. El cuadrante cambia
+          cada día, así que lo que ves es el de hoy.
         </span>
       </p>
 
@@ -172,7 +171,7 @@ export default function FarmaciasPageClient({ ahora }: { ahora: number }) {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display text-base font-semibold text-fg">
-              {farmacias.length} farmacia{farmacias.length !== 1 ? "s" : ""} en Vitoria-Gasteiz
+              {farmacias.length} farmacia{farmacias.length !== 1 ? "s" : ""} de guardia
             </h2>
             {fecha === hoy && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-green/15 text-green border border-green/25 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em]">
@@ -234,6 +233,29 @@ export default function FarmaciasPageClient({ ahora }: { ahora: number }) {
                           {f.horarios}
                         </span>
                       )}
+                      {/*
+                        El turno, en palabras. El Colegio lo publica como un icono
+                        —un sol o una luna— y un icono no dice nada a quien lee
+                        con un lector de pantalla. Aquí se dice: "de día" o "de
+                        noche", que es lo que la persona necesita para saber si
+                        puede ir ahora.
+                      */}
+                      {f.guardia && f.guardia !== "ambas" && (
+                        <span className="inline-flex items-center gap-1 text-xs text-fg-muted">
+                          <Moon
+                            size={12}
+                            aria-hidden="true"
+                            className={f.guardia === "nocturna" ? "" : "opacity-0"}
+                          />
+                          Turno de {f.guardia === "nocturna" ? "noche" : "día"}
+                        </span>
+                      )}
+                      {f.guardia === "ambas" && (
+                        <span className="inline-flex items-center gap-1 text-xs text-fg-muted">
+                          <Moon size={12} aria-hidden="true" />
+                          Turno de día y de noche
+                        </span>
+                      )}
                       {f.phone && (
                         <a
                           href={`tel:${f.phone.replace(/[^\d+]/g, "")}`}
@@ -292,8 +314,9 @@ export default function FarmaciasPageClient({ ahora }: { ahora: number }) {
       )}
 
       <p className="mt-6 text-[11px] text-fg-muted">
-        Fuente: Open Data Euskadi, Gobierno Vasco — «Farmacias y botiquines de Euskadi»
-        (CC BY, actualización mensual). No incluye el turno de guardia.
+        Fuente: Colegio Oficial de Farmacéuticos de Álava — cuadrante de guardia
+        de Álava. Los turnos de día atienden de 9:00 a 22:00 y los de noche de
+        22:00 a 9:00.
         <br />
         <FechaDebito iso={fecha} />
       </p>

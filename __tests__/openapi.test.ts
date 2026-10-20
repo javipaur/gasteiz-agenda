@@ -9,7 +9,7 @@ import { PUBLIC_API_ROUTES, isPublicApiRoute } from "@/lib/api-public-routes";
 // del fichero, y entra por el motivo contrario al que lo prohíbe
 // `__tests__/source-data.test.ts`: aquí el grafo se recorre al revés, del documento
 // hacia el código, y lo que se quiere es que los dos digan lo mismo.
-import { parseFarmaciasGeojson } from "@/lib/sources/farmacias";
+import { parseFarmaciasGuardia } from "@/lib/sources/farmacias-guardia";
 
 /**
  * El contrato público de `/api/v1/events` contra lo que la ruta devuelve de
@@ -677,7 +677,7 @@ describe("la cobertura del documento", () => {
 describe("los códigos que el código produce y el documento no declaraba", () => {
   it.each([
     // La ruta, el código que le faltaba y por qué lo devuelve.
-    ["/api/farmacias", "502", "opendata no contesta y la caché está fría"],
+    ["/api/farmacias", "502", "el Colegio no contesta y la caché está fría"],
     ["/api/actividades", "500", "el calendario municipal no se pudo leer"],
     ["/api/actividades/navidad", "500", "el calendario municipal no se pudo leer"],
     ["/api/rula", "500", "falta MEC_TOKEN o La Genterula no responde"],
@@ -762,6 +762,28 @@ describe("el esquema de /api/farmacias es el que devuelve la ruta", () => {
    * `"schema:"` a pelo daría el primero que encuentre —que puede ser el de un
    * `requestBody`— y devolvería el bloque equivocado en silencio.
    */
+  /**
+   * El índice en el que se acaba un bloque de respuesta.
+   *
+   * **Sin esto, un `400` con sus propias `properties` se cuela en el `200`.**
+   * El corte por sangría no vale: el `error` del 400 está a la misma sangría
+   * que las propiedades del 200, porque los dos son hijos de su `schema:`.
+   * Lo que corta bien es **la siguiente respuesta hermana**: otra clave
+   * `"<código>":` a la misma sangría que la que se está mirando.
+   */
+  function finDelBloque(bloque: string[], desde: number): number {
+    const sangria = sangriaDe(bloque[desde]);
+    for (let k = desde + 1; k < bloque.length; k++) {
+      if (
+        sangriaDe(bloque[k]) === sangria &&
+        /^"[0-9A-Za-z_-]+":\s*$/.test(bloque[k].trim())
+      ) {
+        return k;
+      }
+    }
+    return bloque.length;
+  }
+
   function bloqueDeEsquema(ruta: string, operacion: string, codigo: string): string[] {
     const bloque = bloqueDeOperacion(ruta, operacion);
     const i = bloque.findIndex((l) => l.trim() === `"${codigo}":`);
@@ -771,7 +793,9 @@ describe("el esquema de /api/farmacias es el que devuelve la ruta", () => {
       (l, k) => k > i && l.trim() === "schema:" && sangriaDe(l) === sangriaSchema
     );
     if (j < 0) return [];
-    return bloque.slice(j + 1).filter((l) => sangriaDe(l) > sangriaSchema);
+    return bloque
+      .slice(j + 1, finDelBloque(bloque, i))
+      .filter((l) => sangriaDe(l) > sangriaSchema);
   }
 
   /** Los nombres de las propiedades directas del `schema:` de una respuesta. */
@@ -789,7 +813,7 @@ describe("el esquema de /api/farmacias es el que devuelve la ruta", () => {
     );
     if (j < 0) return [];
     return bloque
-      .slice(j + 1)
+      .slice(j + 1, finDelBloque(bloque, i))
       .filter((l) => l.trim() !== "" && sangriaDe(l) === sangriaSchema + 4)
       .map((l) => l.trim().match(/^([A-Za-z0-9_]+):/)?.[1] ?? "");
   }
@@ -840,24 +864,26 @@ describe("el esquema de /api/farmacias es el que devuelve la ruta", () => {
     // El contraste es contra el parser de verdad, no contra una lista escrita aquí:
     // una lista escrita en el test se contrastaría con el documento, que es
     // justamente el bucle cerrado que hizo que esto se quedara roto.
-    const geojson = JSON.stringify({
-      features: [
-        {
-          geometry: { coordinates: [-2.673, 42.843] },
-          properties: {
-            titular1: "Farmacia de prueba",
-            idif: "010001",
-            direccion: "Calle Mayor 1",
-            municipio: "VITORIA-GASTEIZ",
-            cp: "01001",
-            telefono: "945 000 000",
-          },
-        },
-      ],
-    });
-    const emitidos = Object.keys(parseFarmaciasGeojson(geojson)[0]).sort();
+    //
+    // **El parser es el del cuadrante**, no el del directorio: el documento
+    // pasó a describir las guardias de verdad, y con `guardia` de más.
+    const html = `<script>var map3 = {"places":[{"id":"1","title":"FARMACIA DE PRUEBA","address":"CALLE MAYOR 1 Vitoria-Gasteiz Espa\\u00f1a","location":{"lat":"42.843","lng":"-2.673","extra_fields":{"horarios":"09:00-22:00","fecha":"01/01/2026","telefono":"945000000","barrio":"CENTRO","poblacion":"Vitoria-Gasteiz","zona":"Vitoria - Gasteiz","guardia":"<i class=\\"fa fa-sun-o\\"></i>","direccion-corta":"CALLE MAYOR 1 "}}}]};</script>`;
+    const emitidos = Object.keys(parseFarmaciasGuardia(html)[0]).sort();
 
     expect(propiedadesDeEsquema("Farmacia").sort()).toEqual(emitidos);
+  });
+
+  it("el esquema declara el turno, y el turno tiene tres valores", () => {
+    // `guardia` es lo único nuevo del cuadrante, y es lo que dice si la
+    // farmacia está de día, de noche o de las dos rondas. Sin declararlo, un
+    // cliente generado desde el documento no lo vería.
+    const bloque = esquema("Farmacia");
+    const enumLinea = bloque.find((l) => l.trim().startsWith("enum:"));
+
+    expect(enumLinea).toBeDefined();
+    expect(enumLinea).toContain("diurna");
+    expect(enumLinea).toContain("nocturna");
+    expect(enumLinea).toContain("ambas");
   });
 
   it("ninguna clave documentada es una que el scraper no emita", () => {

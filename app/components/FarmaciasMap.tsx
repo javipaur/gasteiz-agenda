@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
-import type { FarmaciaGuardia } from "@/lib/sources/farmacias";
+import type { FarmaciaGuardia } from "@/lib/sources/farmacias-guardia";
 
 import "leaflet/dist/leaflet.css";
 import { duracionDeVuelo } from "./motion";

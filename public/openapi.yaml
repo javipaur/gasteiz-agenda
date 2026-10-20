@@ -1035,9 +1035,9 @@ paths:
       responses:
         "200":
           description: >-
-            Farmacias del directorio abierto del Gobierno Vasco. **No es el cuadrante
-            de guardia**: la fuente de guardia es inaccesible y lo que se sirve es un
-            directorio, así que los campos de turno y horario salen vacíos.
+            El cuadrante de guardia de las farmacias de Vitoria-Gasteiz: las que
+            están de turno el día pedido, con su horario, su barrio y su teléfono.
+            Fuente: Colegio Oficial de Farmacéuticos de Álava.
           content:
             application/json:
               schema:
@@ -1046,14 +1046,15 @@ paths:
                   source:
                     type: string
                     description: >-
-                      De dónde sale el dato. `opendata-euskadi` desde que Cofalava dejó
-                      de responder; el nombre anterior, `cofalava`, ya no se emite.
-                    example: "opendata-euskadi"
+                      De dónde sale el dato. `cofalava` desde que se volvió a leer
+                      el cuadrante del Colegio; el nombre anterior, `opendata-euskadi`,
+                      ya no se emite.
+                    example: "cofalava"
                   date:
                     type: string
                     description: >-
-                      Día al que corresponde el cuadrante, o cadena vacía si el
-                      directorio no publica ninguno.
+                      Día al que corresponde el cuadrante, en ISO `AAAA-MM-DD`. Vacía
+                      si no hay guardias ese día.
                   count:
                     type: integer
                     description: Cuántas farmacias trae `data`.
@@ -1065,6 +1066,16 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Farmacia"
+        "400":
+          description: >-
+            La fecha no viene en formato `AAAA-MM-DD`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         "502":
           $ref: "#/components/responses/UpstreamUnavailable"
 
@@ -1489,55 +1500,62 @@ components:
     Farmacia:
       type: object
       description: >-
-        Una farmacia del directorio. Los nombres de campo son los que emite
-        `lib/sources/farmacias.ts` y los que consumen el mapa, la página y la app
-        móvil; antes el documento declaraba `nombre`/`direccion`/`ciudad`/`telefono`/
-        `horario`, que no existen, así que un cliente generado desde aquí leía
-        `undefined` en las cinco. Los tres últimos campos son cadenas y no números a
-        propósito: es lo que hacía el scraper anterior y lo que el mapa consume con
-        `Number(f.lat)`.
+        Una farmacia **de guardia**. Los nombres de campo son los que emite
+        `lib/sources/farmacias-guardia.ts` y los que consumen el mapa, la página y
+        la app móvil; antes el documento declaraba `nombre`/`direccion`/`ciudad`/
+        `telefono`/`horario`, que no existen, así que un cliente generado desde
+        aquí leía `undefined` en las cinco. Los tres últimos campos son cadenas y
+        no números a propósito: es lo que hace el mapa con `Number(f.lat)`.
       properties:
         id:
           type: string
           description: >-
-            Identificador en el registro sanitario (`idif`). Antes era el id del
-            marcador del mapa, que ya no existe; sin id único el mapa y la lista no
-            tienen clave estable.
+            Identificador de la entrada en el cuadrante del Colegio. La misma
+            farmacia tiene uno distinto cada día, porque cada día es un turno.
         name:
           type: string
-          description: >-
-            Nombre del titular. Una de las de Vitoria no lo publica y sale como
-            "Farmacia (nombre no publicado)" en vez de desaparecer de la lista.
+          description: Nombre del titular de la farmacia.
         address:
           type: string
-          description: 'Dirección completa: calle, código postal y municipio.'
+          description: 'Dirección completa: calle, número, población y país.'
         shortAddress:
           type: string
-          description: Solo la calle, sin código postal ni municipio.
+          description: Solo la calle, sin población ni país.
         phone:
           type: string
         date:
           type: string
           description: >-
-            Vacía siempre. El directorio es un **directorio**, no un cuadrante de
-            guardia: no publica turno ni fecha, y no se inventa ninguno.
+            El día del turno, en ISO `AAAA-MM-DD`. El Colegio lo publica en
+            formato español (`DD/MM/AAAA`) y aquí se convierte, que es lo que
+            permite comparar con "hoy".
         horarios:
           type: string
-          description: Vacía siempre, por lo mismo que `date`.
+          description: >-
+            El horario del turno, tal cual lo publica el Colegio: `09:00-22:00`
+            para el de día y `22:00-09:00` para el de noche.
         neighborhood:
           type: string
-          description: Vacía siempre, por lo mismo que `date`.
+          description: El barrio de la farmacia.
         city:
           type: string
         zone:
           type: string
-          description: Vacía siempre, por lo mismo que `date`.
+          description: La zona sanitaria a la que pertenece.
         lat:
           type: string
           description: Latitud en grados, como cadena.
         lng:
           type: string
           description: Longitud en grados, como cadena.
+        guardia:
+          type: string
+          enum: [diurna, nocturna, ambas]
+          description: >-
+            Si el turno es de día, de noche, o de las dos rondas. El Colegio lo
+            publica como un icono —un sol o una luna— y aquí se dice en palabras,
+            que es lo que un lector de pantalla puede leer.
+            added: "el cuadrante, no el directorio"
 
   responses:
     UpstreamUnavailable:

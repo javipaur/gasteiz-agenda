@@ -16,8 +16,8 @@ import { loadFixture, mockFetchWith } from "../helpers";
  * Los dos fallos tienen la misma raíz y son dos implementaciones distintas:
  *
  * - En `farmacias` el `catch` de la ruta era **inalcanzable**, porque
- *   `lib/sources/farmacias.ts` devolvía `[]` en sus dos salidas de error. Un 503 de
- *   opendata con la caché fría salía como `200 {count: 0, data: []}`.
+ *   `lib/sources/farmacias-guardia.ts` devolvía `[]` en sus dos salidas de error.
+ *   Un 503 del Colegio con la caché fría salía como `200 {count: 0, data: []}`.
  * - En `search` el `catch` existía pero devolvía `{results: []}` con 200 y sin mirar
  *   el error, que es byte a byte la respuesta de una búsqueda que no encuentra nada.
  *
@@ -31,29 +31,42 @@ type FarmaciasEnvelope = {
   date: string;
   count: number;
   fetchedAt: number;
-  data: { id: string; name: string }[];
+  data: { id: string; name: string; horarios: string; guardia: string }[];
 };
 
 type SearchEnvelope = { results: unknown[]; total?: number } & { error?: string };
 
-const GEOJSON = () => loadFixture("farmacias-euskadi.geojson");
+/** La página del Colegio con el cuadrante dentro. */
+const COFALAVA = () => loadFixture("cofalava-guardia.html");
 
 describe("GET /api/farmacias", () => {
-  async function get(): Promise<Response> {
+  /**
+   * La ruta lee la fecha de la query, así que necesita un `Request` con su URL.
+   * Sin él, `new URL(request.url)` revienta —y con la fecha de hoy, que es lo
+   * que se quiere por defecto.
+   */
+  const peticion = (query = "") =>
+    new Request(`https://gasteizclick.javierpalacio.es/api/farmacias${query}`);
+
+  async function get(query = ""): Promise<Response> {
     jest.resetModules();
-    return (await modulo()).GET();
+    return (await modulo()).GET(peticion(query));
   }
 
   /**
    * El módulo de la ruta, sin `resetModules` en medio.
    *
-   * La caché de las 6 h vive en `lib/sources/farmacias.ts`, que es un módulo: sin
-   * recargar el registro entre las dos llamadas, la segunda vería la copia de la
-   * primera, que es justo lo que este caso necesita comprobar.
+   * La caché de las 6 h vive en `lib/sources/farmacias-guardia.ts`, que es un
+   * módulo: sin recargar el registro entre las dos llamadas, la segunda vería
+   * la copia de la primera, que es justo lo que este caso necesita comprobar.
    */
-  async function modulo(): Promise<{ GET: () => Promise<Response> }> {
+  async function modulo(): Promise<{
+    GET: (request: Request) => Promise<Response>;
+  }> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("@/app/api/farmacias/route") as { GET: () => Promise<Response> };
+    return require("@/app/api/farmacias/route") as {
+      GET: (request: Request) => Promise<Response>;
+    };
   }
 
   afterEach(() => {
@@ -61,7 +74,7 @@ describe("GET /api/farmacias", () => {
   });
 
   it("el camino bueno no ha cambiado de forma", async () => {
-    mockFetchWith([{ match: /opendata\.euskadi\.eus/, content: GEOJSON() }]);
+    mockFetchWith([{ match: /cofalava\.org/, content: COFALAVA() }]);
 
     const res = await get();
     const body = (await res.json()) as FarmaciasEnvelope;
@@ -76,19 +89,26 @@ describe("GET /api/farmacias", () => {
       "fetchedAt",
       "source",
     ]);
-    expect(body.source).toBe("opendata-euskadi");
-    expect(body.count).toBe(78);
-    expect(body.data).toHaveLength(78);
+    expect(body.source).toBe("cofalava");
+    expect(body.count).toBe(2);
+    expect(body.data).toHaveLength(2);
     expect(typeof body.fetchedAt).toBe("number");
-    // El directorio no publica turno, así que estos dos salen vacíos y el mapa ya
-    // los trata como "no mostrar". Que sigan siendo "" y no null importa.
-    expect(body.date).toBe("");
+    // Y ahora la fecha **sí** es la del turno, en ISO: es lo que la página
+    // compara con "hoy" para poner el cartel de "Actualizado". Con el
+    // directorio de antes salía vacía siempre.
+    expect(body.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Y el turno viene con horario y con su palabra: diurna o nocturna.
+    expect(body.data.every((f) => f.horarios.length > 0)).toBe(true);
+    expect(body.data.map((f) => f.guardia).sort()).toEqual([
+      "diurna",
+      "nocturna",
+    ]);
   });
 
   it("un 503 con la caché fría es un 502, no un directorio vacío", async () => {
     // Este es el que muerde. Con el código viejo: 200, `count: 0`, `data: []`, y
     // el móvil guardándose ese vacío en su caché sin reintentar nunca.
-    mockFetchWith([{ match: /opendata\.euskadi\.eus/, content: "", status: 503 }]);
+    mockFetchWith([{ match: /cofalava\.org/, content: "", status: 503 }]);
 
     const res = await get();
     const body = (await res.json()) as FarmaciasEnvelope & { error?: string };
@@ -101,12 +121,13 @@ describe("GET /api/farmacias", () => {
     expect(body.count).toBeUndefined();
   });
 
-  it("un cuerpo que no es el GeoJSON también es un fallo, aunque venga con 200", async () => {
-    // El WAF de Cofalava devolvía HTML con status 200 y eso acababa en el mapa
-    // como "no hay farmacias". Cero farmacias no existe como dato: el GeoJSON
-    // tiene 78 en Vitoria sin excepción.
+  it("un cuerpo que no es la página del Colegio también es un fallo, aunque venga con 200", async () => {
+    // El WAF del Colegio devuelve HTML con status 200 cuando el User-Agent no
+    // le gusta, y eso acabaría en el mapa como "no hay guardias". Cero guardias
+    // de un día sí puede existir, pero un cuerpo que no es la página no es un
+    // dato: es un fallo.
     mockFetchWith([
-      { match: /opendata\.euskadi\.eus/, content: "<html><body>Forbidden</body></html>" },
+      { match: /cofalava\.org/, content: "<html><body>Forbidden</body></html>" },
     ]);
 
     const res = await get();
@@ -117,25 +138,25 @@ describe("GET /api/farmacias", () => {
 
   it("con la copia de las 6 h poblada, una caída posterior sale 200 con los datos viejos", async () => {
     // La caché es lo que hace útil tenerla: datos viejos son datos, y vaciar un
-    // mapa que se acaba de pintar porque opendata tuvo un mal momento sería peor que
-    // servir lo de hace seis horas. Solo la caché fría propaga el fallo.
+    // mapa que se acaba de pintar porque el Colegio tuvo un mal momento sería peor
+    // que servir lo de hace seis horas. Solo la caché fría propaga el fallo.
     jest.resetModules();
     const { GET } = await modulo();
 
-    mockFetchWith([{ match: /opendata\.euskadi\.eus/, content: GEOJSON() }]);
-    const primera = (await (await GET()).json()) as FarmaciasEnvelope;
-    expect(primera.count).toBe(78);
+    mockFetchWith([{ match: /cofalava\.org/, content: COFALAVA() }]);
+    const primera = (await (await GET(peticion())).json()) as FarmaciasEnvelope;
+    expect(primera.count).toBe(2);
 
     // Ahora la fuente se cae, y sin recargar el registro: la caché sigue en el
     // mismo módulo y es lo que decide entre propagar y servir lo viejo.
     jest.spyOn(global, "fetch").mockResolvedValue(new Response("", { status: 503 }));
 
-    const segunda = await GET();
+    const segunda = await GET(peticion());
     const body = (await segunda.json()) as FarmaciasEnvelope;
 
     expect(segunda.status).toBe(200);
-    expect(body.count).toBe(78);
-    expect(body.data).toHaveLength(78);
+    expect(body.count).toBe(2);
+    expect(body.data).toHaveLength(2);
   });
 });
 

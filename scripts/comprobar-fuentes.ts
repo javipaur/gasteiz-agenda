@@ -9,7 +9,7 @@
  */
 import { scrapeArkabia } from "@/lib/sources/arkabia";
 import { scrapeBuscametasInscripciones } from "@/lib/sources/buscametas";
-import { scrapeFarmacias } from "@/lib/sources/farmacias";
+import { scrapeGuardiasDe } from "@/lib/sources/farmacias-guardia";
 
 async function arkabia() {
   console.log("\n=== Arkabia (home) ===");
@@ -48,19 +48,17 @@ async function inscripciones() {
 }
 
 async function farmacias() {
-  console.log("\n=== Farmacias (Open Data Euskadi) ===");
+  console.log("\n=== Farmacias de guardia (Cofalava) ===");
   try {
-    const lista = await scrapeFarmacias();
-    console.log(`  ${lista.length} farmacias`);
-    for (const f of lista.slice(0, 4)) {
+    const lista = await scrapeGuardiasDe();
+    console.log(`  ${lista.length} guardias hoy`);
+    for (const f of lista.slice(0, 8)) {
       console.log(
-        `    ${f.name.slice(0, 34).padEnd(34)} ${f.shortAddress.slice(0, 28).padEnd(28)} ${f.phone}`
+        `    ${f.name.slice(0, 32).padEnd(32)} ${f.horarios.padEnd(12)} ${f.guardia.padEnd(9)} ${f.neighborhood}`
       );
     }
-    const sinNombre = lista.filter((f) => f.name === "Farmacia (nombre no publicado)");
-    if (sinNombre.length) {
-      console.log(`  ${sinNombre.length} sin titular publicado (se conserva con etiqueta)`);
-    }
+    const sinHorario = lista.filter((f) => !f.horarios).length;
+    if (sinHorario) console.log(`  AVISO: ${sinHorario} sin horario`);
   } catch (e) {
     console.log(`  ERROR: ${(e as Error).message}`);
   }
