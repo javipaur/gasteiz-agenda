@@ -33,24 +33,65 @@ function MoonIcon({ className }: { className?: string }) {
 }
 
 function subscribe(onChange: () => void) {
-  window.addEventListener(EVENT, onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener(EVENT, onChange);
-    window.removeEventListener("storage", onChange);
+  // El `onChange` repinta el botón, pero el atributo del `<html>` lo tiene que
+  // escribir quien escucha: si otra pestaña cambia el tema, esta se entera por
+  // el evento `storage` y repinta el control, pero el color de la página se
+  // queda como estaba.
+  const alCambiar = () => {
+    aplicarEleccion();
+    onChange();
   };
+  window.addEventListener(EVENT, alCambiar);
+  window.addEventListener("storage", alCambiar);
+  return () => {
+    window.removeEventListener(EVENT, alCambiar);
+    window.removeEventListener("storage", alCambiar);
+  };
+}
+
+/**
+ * Escribe el atributo que decide la paleta, a partir de lo que hay guardado.
+ *
+ * Los tres estados:
+ * - `"dark"` / `"light"`: lo que eligió la persona.
+ * - `"auto"`: **sin atributo**, que es lo que deja que la media query de
+ *   `globals.css` decida, y con ella el sistema operativo.
+ * - Nada guardado: el valor por defecto del sitio, que es claro.
+ *
+ * Está en una función y no en el `onClick` porque tiene que passar por aquí
+ * también el cambio hecho en **otra** pestaña: el evento `storage` avisa, pero
+ * el atributo del `<html>` de esta pestaña hay que escribirlo a mano.
+ */
+function aplicarEleccion(): void {
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored === "dark" || stored === "light") {
+      document.documentElement.setAttribute("data-theme", stored);
+    } else if (stored === "auto") {
+      // Sin atributo, no con atributo vacío: `:root:not([data-theme="dark"])`
+      // es la regla que aplica la paleta clara cuando el sistema es claro, y un
+      // atributo vacío seguiría casando con ella pero rompería el "auto" en
+      // cuanto el sistema fuera oscuro.
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  } catch {}
 }
 
 function getSnapshot(): Choice {
   try {
     const stored = localStorage.getItem(KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "light" || stored === "dark" || stored === "auto") return stored;
   } catch {}
-  return "auto";
+  // El defecto del sitio es el tema claro, así que lo que no ha elegido nadie
+  // es claro. Antes devolvía `"auto"` y el botón decía "Tema del sistema"
+  // mientras la página estaba en claro: el control mentía.
+  return "light";
 }
 
 function getServerSnapshot(): Choice {
-  return "auto";
+  return "light";
 }
 
 export default function ThemeToggle() {
@@ -58,17 +99,12 @@ export default function ThemeToggle() {
 
   const pick = useCallback((next: Choice) => {
     try {
-      if (next === "auto") {
-        localStorage.removeItem(KEY);
-        document.documentElement.setAttribute(
-          "data-theme",
-          window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-        );
-      } else {
-        localStorage.setItem(KEY, next);
-        document.documentElement.setAttribute("data-theme", next);
-      }
+      // Se **guarda** la elección, también la de "auto". Antes se borraba la
+      // clave, y eso hacía que "auto" y "nunca he elegido" fueran lo mismo: la
+      // elección se perdía al recargar y la página volvía a claro.
+      localStorage.setItem(KEY, next);
     } catch {}
+    aplicarEleccion();
     window.dispatchEvent(new Event(EVENT));
   }, []);
 

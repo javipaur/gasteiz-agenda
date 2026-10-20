@@ -160,7 +160,25 @@ export default function RootLayout({
         <meta name="color-scheme" content="light dark" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var K="gasteiz-theme";try{var t=localStorage.getItem(K);function apply(){try{var v=localStorage.getItem(K);if(v==="dark"||v==="light"){document.documentElement.dataset.theme=v;return}document.documentElement.dataset.theme="light"}catch(e){}}apply()}catch(e){}})();`,
+            /* El script de tema. Es el que decide la paleta antes de que hidrate,
+               y por eso va en el `<head>` y no en un componente.
+               Los tres estados que hay:
+               - `"dark"` / `"light"`: lo que eligió la persona. Se aplica tal cual.
+               - `"auto"`: lo que marque el sistema. **No** se pone atributo, y la
+                 paleta la decide el CSS —la media query de `globals.css`— que además
+                 sigue al sistema mientras la pestaña esté abierta.
+               - Nada guardado: el valor por defecto del sitio, que es claro.
+
+               El `"auto"` es lo que se rompió al pasar la paleta a "claro por
+               defecto": antes el script resolvía la preferencia del sistema con
+               `matchMedia` y se quedaba escuchando sus cambios. Se hardcodeó el
+               "light" y el `ThemeToggle` seguía ofreciendo "Tema del sistema", que
+               no hacía nada: el botón decía una cosa y la página hacía otra.
+
+               Y `removeAttribute` y no `dataset.theme = ""`: dejar el atributo
+               vacío lo hace *no* casar con `:root:not([data-theme="dark"])`, que
+               es la regla que decide el tema del sistema. */
+            __html: `(function(){var K="gasteiz-theme";try{function apply(){try{var v=localStorage.getItem(K);if(v==="dark"||v==="light"){document.documentElement.dataset.theme=v;return}if(v==="auto"){document.documentElement.removeAttribute("data-theme");return}document.documentElement.dataset.theme="light"}catch(e){}}apply();window.addEventListener("storage",apply)}catch(e){}})();`,
           }}
         />
         <meta name="apple-mobile-web-app-capable" content="yes" />
