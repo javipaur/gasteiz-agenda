@@ -184,9 +184,28 @@ nombre.
 | `/api/farmacias`, `/api/search`, `/api/vgbus`, `/api/push/subscribe` | Las llama el navegador desde un componente cliente, que no tiene la clave |
 | `/api/newsletter/subscribe`, `/api/newsletter/confirm`, `/api/newsletter/unsubscribe` | El alta es un formulario y los otros dos son enlaces que llegan por correo |
 | `/api/cines`, `/api/cines/boulevard`, `/api/cines/florida` | Se publican en el OpenAPI para clientes móviles |
+| `/api/actividades/*` (doce rutas) y `/api/v1/events` | **La app móvil las lee y no puede guardar un secreto** |
 
-Todo lo demás —`/api/actividades/*`, `/api/v1/events`, `/api/fever`, `/api/rula`,
-`/api/push/send`— pide `x-api-key` o `?api_key=`.
+### La agenda es pública porque la app móvil no puede guardar una clave
+
+Una clave dentro de un APK sale con un `strings`, así que exigirla no protege
+nada: solo impide que la app de la casa, que es quien tiene que leer la
+agenda, pueda hacerlo. Y eso es exactamente lo que pasaba: **la app recibía
+401 en las doce rutas y se quedaba sin eventos**, mientras la web —que lee los
+datos en el servidor y no necesita clave— lo veía todo bien.
+
+Lo que queda protegido es lo que de verdad tiene que protegerse: lo que
+**escribe**. `/api/push/send`, `/api/promo/*` y `/api/metric` (su `GET`) siguen
+pidiendo clave.
+
+> **Y abrir la agenda no es abrirlo de par en par.** El limitador del
+> middleware va **antes** de la exención de clave, con un techo de **60 por
+> minuto** para estas rutas y 100 para el resto. Antes el limitador no llegaba
+> a las rutas públicas, porque `isPublicApiRoute` devolvía mucho antes.
+
+Todo lo demás —`/api/fever`, `/api/rula`, `/api/push/send`, `/api/actividades`
+a secas y las subrutas que no salen en la lista— pide `x-api-key` o
+`?api_key=`.
 
 > Antes de desplegar, comprueba que Dokploy tiene un volumen persistente montado.
 > `lib/db.ts` (suscriptores) y `.data/push.db` (push) escriben en disco; sin

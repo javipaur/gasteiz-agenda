@@ -16,15 +16,26 @@ import { test, expect } from "@playwright/test";
  * ruta **no** se abre, y no se abre precisamente por no mandarle la clave. El
  * camino autenticado ya lo cubre `api.spec.ts`.
  */
+
+/**
+ * La ruta protegida que se usa de ejemplo.
+ *
+ * **`/api/fever` y no `/api/v1/events`.** La agenda se abrió el 21 de octubre
+ * de 2026 —una app móvil no puede guardar un secreto, y la clave del bundle
+ * sale con un `strings`—, así que `/api/v1/events` ya no es un ejemplo de ruta
+ * protegida. `/api/fever` sí lo es, y sigue cerrada.
+ */
+const RUTA_PROTEGIDA = "/api/fever";
+
 test.describe("la política de /api, contra un servidor de verdad", () => {
   test("una ruta protegida sin clave no devuelve los datos", async ({ request }) => {
     // Sin cabecera `x-api-key` y sin `?api_key=`.
-    const res = await request.get("/api/v1/events?limit=1", { timeout: 60_000 });
+    const res = await request.get(RUTA_PROTEGIDA, { timeout: 60_000 });
 
     // 401 con la clave configurada en el servidor, que es lo normal porque
     // `npm run dev` carga `.env`. 503 si no la tiene, que es el fail-closed de
     // la fase 2 y también significa «cerrada». Lo que no puede salir es un 200
-    // con la agenda dentro, así que la aserción va sobre la forma de la
+    // con los datos dentro, así que la aserción va sobre la forma de la
     // respuesta y no sobre un número suelto.
     expect([401, 503]).toContain(res.status());
 
@@ -36,21 +47,20 @@ test.describe("la política de /api, contra un servidor de verdad", () => {
   test("una ruta protegida corta en el borde, no dentro del handler", async ({ request }) => {
     // Si el middleware dejara de registrarse, la petición de arriba seguiría
     // dando error —por el 404 o el 500 que devolviera el handler—, pero después
-    // de haber scrapeado veintiocho fuentes. Midiendo se distingue un sitio del
-    // otro, y además aguanta el día que alguien mueva la comprobación de la
-    // clave a las rutas.
+    // de haber scrapeado. Midiendo se distingue un sitio del otro, y además
+    // aguanta el día que alguien mueva la comprobación de la clave a las rutas.
     //
     // Se calienta antes de medir porque en `next dev` la primera petición
     // compila el middleware, y eso no es lo que se quiere cronometrar.
-    await request.get("/api/v1/events?limit=1", { timeout: 60_000 });
+    await request.get(RUTA_PROTEGIDA, { timeout: 60_000 });
 
     const inicio = Date.now();
-    const res = await request.get("/api/v1/events?limit=1", { timeout: 60_000 });
+    const res = await request.get(RUTA_PROTEGIDA, { timeout: 60_000 });
     const ms = Date.now() - inicio;
 
     expect([401, 503]).toContain(res.status());
-    // Un scrape de la agenda no baja de decenas de segundos. El margen es
-    // ancho a propósito: esto compara órdenes de magnitud, no mide un SLA.
+    // Un scrape no baja de decenas de segundos. El margen es ancho a propósito:
+    // esto compara órdenes de magnitud, no mide un SLA.
     expect(ms).toBeLessThan(20_000);
   });
 
@@ -64,5 +74,20 @@ test.describe("la política de /api, contra un servidor de verdad", () => {
     expect(res.status()).toBe(200);
     const cuerpo = await res.json();
     expect(Array.isArray(cuerpo.results)).toBe(true);
+  });
+
+  test("la agenda se puede leer sin clave, porque la app móvil no puede guardar un secreto", async ({ request }) => {
+    // **La prueba de que el cambio de política está en marcha de verdad**, y no
+    // solo en la lista de rutas públicas. La app móvil manda `x-api-key` con la
+    // clave que lleva dentro del APK, y esa clave sale con un `strings`: exigirla
+    // no protege nada y sí impedía que la app de la casa leyera la agenda.
+    //
+    // Antes de esto, la app recibía 401 en las doce rutas y se quedaba sin
+    // eventos sin decir por qué. Este caso es el que lo fijo.
+    const res = await request.get("/api/v1/events?limit=1", { timeout: 60_000 });
+
+    expect(res.status()).toBe(200);
+    const cuerpo = await res.json();
+    expect(Array.isArray(cuerpo.data)).toBe(true);
   });
 });

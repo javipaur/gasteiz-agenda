@@ -1103,3 +1103,81 @@ una imagen**, por muy permitido que esté su host.
 - Las 14 rutas de la app móvil, contra producción **y** contra desarrollo.
 - `npm run doctor`: todo correcto salvo la clave de la API, que es lo que tiene
   que arreglarse en el despliegue.
+
+
+## Hecho: la agenda se puede leer desde la app movil (2026-10-21)
+
+La app movil se quedaba **sin eventos y sin decir por que**: las doce rutas de
+la agenda respondian 401 y el resto de secciones tampoco. La causa no era la
+app: era que el servidor exigia una clave que **no era la que llevaba la app**.
+
+### El razonamiento que estaba mal
+
+El repo tratava la clave como si protegiera algo. **No protege nada:** una
+clave dentro de un APK sale con un `strings`, asi que la unica persona a la
+que protege es a la app de la casa, que es justo quien tiene que leer la
+agenda. Exigirla era un muro entre el producto y su propio cliente.
+
+Y hay un dato que lo confirma: **la web lo veia todo bien**, porque la web lee
+los datos en el servidor y no necesita clave. Los datos estaban; lo que no
+funcionaba era el camino.
+
+### Lo que se abrio, y lo que no
+
+**Las doce rutas de la agenda y `/api/v1/events`**, por su nombre exacto, con
+su motivo escrito en `lib/api-public-routes.ts`. La coincidencia sigue siendo
+exacta: un prefijo abriria lo que se añadiera mañana sin que nadie lo decidiera.
+
+**Lo que escribe sigue cerrado:** `/api/push/send`, `/api/promo/*` y el
+`GET` de `/api/metric`.
+
+### El limitador va antes de la exencion
+
+**El limitador del middleware no llegaba a las rutas publicas**, porque
+`isPublicApiRoute` devolvia mucho antes de mirarlo. Eso estaba escrito en el
+AGENTS.md como una trampa conocida, y era justo lo que impedia abrir la agenda
+sin abrirlo de par en par.
+
+Ahora el limitador va **antes** de la exencion, con **60 por minuto** para las
+rutas de la agenda y 100 para el resto. El techo es mas bajo a proposito: una
+respuesta de agenda son miles de eventos en un JSON, y con el general de 100
+treinta peticiones cubren la agenda entera.
+
+Y las rutas publicas **tambien llevan las cabeceras de cache**, que antes
+solo llevaban las protegidas: con la agenda abierta, doce de las rutas mas
+consultadas se quedaban sin `Cache-Control`.
+
+### El aviso de cada seccion, en su sitio
+
+En la app, una seccion que fallaba **desaparecia**: los dos carruseles
+devuelven `null` cuando no tienen datos, y "no hay datos" y "no se pudo
+preguntar" se veian igual. Ahora cada seccion pinta su propio aviso, con el
+nombre de la seccion, el codigo del error y un boton de reintentar.
+
+### La clave del `.env` de la app
+
+En `babel.config.js`, `path: (process.env.ENVFILE || '.env').trim()`.
+
+**El `.trim()` no es cosmetria.** En `cmd`, `set ENVFILE=.env.test && npx …`
+deja un **espacio al final** del valor: la variable vale `".env.test "`, con el
+espacio dentro. El plugin abria un fichero que no existe, el entorno salia
+vacio y `GasteizClick_API_URL` quedaba `undefined` —que es exactamente lo
+que `infrastructure/api.ts` describe: la app **no trae datos y no da error**,
+y en realidad estaba hablando con produccion.
+
+Un espacio invisible decide a que servidor apunta la app.
+
+### Verificado (2026-10-21)
+
+- `tsc` 0 · **1191/1191** tests · lint 0 errores · **1191/1191** en la suite de
+  la web.
+- Las quince rutas que consume la app, sin clave, contra el servidor de
+  desarrollo: **todas 200 y con datos**.
+- **En un movil fisico**: la home enseña La Blanca, Proximos Eventos, Cartelera,
+  Cultura, Deporte, Ninos, Tardeo y Tours, con imagen. Sin ningun 401.
+- El aviso de claves repetidas de React: **0**. Venia de la seccion de
+  Cultura, que lee una ruta que devuelve los eventos del calendario municipal
+  **en crudo**, sin `id` ni `slug`; y una exposicion son cinco entradas con la
+  misma pagina y fechas distintas. Con el enlace y la fecha, la clave es
+  unica; y las ocho filas que el calendario devuelve **exactamente duplicadas**
+  se quitan.

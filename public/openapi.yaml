@@ -143,6 +143,7 @@ paths:
         Endpoint principal para consumo desde apps móviles. Agrega eventos de todas las fuentes,
         elimina duplicados, y soporta filtros y paginación.
       operationId: getEvents
+      security: []
       parameters:
         - name: category
           in: query
@@ -240,14 +241,10 @@ paths:
                   limit: 50
                   offset: 0
                   hasMore: true
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "429":
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/ScraperFailed"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/proximos:
     get:
@@ -255,6 +252,7 @@ paths:
       summary: Próximos eventos (endpoint original)
       description: Retorna todos los eventos futuros agregados de todas las fuentes, sin paginación.
       operationId: getProximosEventos
+      security: []
       parameters:
         - name: startDate
           in: query
@@ -278,10 +276,6 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Evento"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -323,6 +317,7 @@ paths:
       tags: [events]
       summary: Actividades de senderismo
       operationId: getSenderismo
+      security: []
       responses:
         "200":
           description: Lista de excursiones
@@ -343,10 +338,6 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/ActividadSenderismo"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -355,6 +346,7 @@ paths:
       tags: [events]
       summary: Eventos de Arkabia (Centro Cultural Montehermoso)
       operationId: getArkabia
+      security: []
       responses:
         "200":
           description: Agenda de eventos de Arkabia
@@ -375,10 +367,6 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/ArkabiaEvento"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -387,6 +375,7 @@ paths:
       tags: [events]
       summary: Visitas guiadas, rutas y tours en Vitoria-Gasteiz
       operationId: getTours
+      security: []
       responses:
         "200":
           description: Lista de tours y visitas guiadas
@@ -407,10 +396,6 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/EventoAgenda"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -495,6 +480,7 @@ paths:
       tags: [events]
       summary: Planes de tarde (16:00 - 22:00) en Vitoria-Gasteiz
       operationId: getTardeo
+      security: []
       responses:
         "200":
           description: Eventos de tarde
@@ -515,10 +501,6 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/EventoAgenda"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -576,6 +558,7 @@ paths:
       tags: [events]
       summary: Conciertos (Jimmy Jazz Gasteiz)
       operationId: getConciertos
+      security: []
       responses:
         "200":
           description: Lista de conciertos
@@ -585,10 +568,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Concierto"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/conciertos/vam:
     get:
@@ -608,13 +587,10 @@ paths:
       tags: [events]
       summary: Agenda del calendario municipal
       operationId: getAgenda
+      security: []
       responses:
         "200":
           description: Agenda municipal
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/eventos:
     get:
@@ -634,13 +610,10 @@ paths:
       tags: [events]
       summary: Eventos infantiles
       operationId: getAgendaInfantil
+      security: []
       responses:
         "200":
           description: Lista de eventos infantiles
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/exposiciones:
     get:
@@ -673,13 +646,10 @@ paths:
       tags: [events]
       summary: Obras de teatro
       operationId: getAgendaTeatro
+      security: []
       responses:
         "200":
           description: Lista de obras de teatro
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/eventos/agenda/visitas:
     get:
@@ -712,6 +682,7 @@ paths:
       tags: [sports]
       summary: Calendario de carreras (Buscametas)
       operationId: getCarrerasCalendario
+      security: []
       responses:
         "200":
           description: Calendario de carreras
@@ -724,14 +695,11 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Carrera"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
     post:
       tags: [sports]
       summary: Carreras con filtros personalizados
       operationId: postCarrerasCalendario
+      security: []
       requestBody:
         required: true
         content:
@@ -752,23 +720,16 @@ paths:
       responses:
         "200":
           description: Lista de carreras filtrada
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/actividades/carreras/inscripciones:
     get:
       tags: [sports]
       summary: Inscripciones abiertas a carreras
       operationId: getCarrerasInscripciones
+      security: []
       responses:
         "200":
           description: Carreras con inscripciones abiertas
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServiceMisconfigured"
 
   /api/fever:
     get:

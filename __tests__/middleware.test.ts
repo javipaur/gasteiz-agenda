@@ -120,7 +120,7 @@ function rutasEnDisco(): string[] {
 
 describe("sin API_KEY en el entorno", () => {
   it("responde 503 en una ruta protegida en vez de dejarla pasar", async () => {
-    const res = conApiKey(undefined, (middleware) => middleware(pedir("/api/v1/events")));
+    const res = conApiKey(undefined, (middleware) => middleware(pedir("/api/actividades")));
 
     // El fallo abierto devolvía `NextResponse.next()`, o sea un 200. Este es el
     // test que muerde: si alguien restituye el `console.warn` y el `next()`, el
@@ -132,7 +132,7 @@ describe("sin API_KEY en el entorno", () => {
     // 401 diría «tu clave no vale»; 503 dice «esta instalación no está
     // configurada». Confundirlos hace que quien depure persiga al cliente
     // cuando el problema es el despliegue.
-    const res = conApiKey(undefined, (middleware) => middleware(pedir("/api/v1/events")));
+    const res = conApiKey(undefined, (middleware) => middleware(pedir("/api/actividades")));
     const cuerpo = (await res.json()) as { error?: string };
 
     expect(cuerpo.error).toMatch(/API_KEY/);
@@ -140,7 +140,10 @@ describe("sin API_KEY en el entorno", () => {
 
   it("cierra todas las rutas que no están en la lista de públicas", () => {
     const protegidas = rutasEnDisco().filter((r) => !isPublicApiRoute(r));
-    expect(protegidas.length).toBeGreaterThan(20);
+    // Diecisiete ahora: la agenda ocupa doce rutas de la lista de públicas.
+    // El número no es el invariante —lo que importa es que quede alguna—
+    // pero tiene que ser uno que no se pueda vaciar sin que se note.
+    expect(protegidas.length).toBeGreaterThan(10);
 
     conApiKey(undefined, (middleware) => {
       for (const ruta of protegidas) {
@@ -162,27 +165,27 @@ describe("sin API_KEY en el entorno", () => {
 
 describe("con API_KEY en el entorno", () => {
   it("una ruta protegida sin cabecera responde 401", () => {
-    const res = conApiKey(CLAVE, (middleware) => middleware(pedir("/api/v1/events")));
+    const res = conApiKey(CLAVE, (middleware) => middleware(pedir("/api/actividades")));
     expect(res.status).toBe(401);
   });
 
   it("con la cabecera correcta pasa", () => {
     const res = conApiKey(CLAVE, (middleware) =>
-      middleware(pedir("/api/v1/events", CON_CLAVE))
+      middleware(pedir("/api/actividades", CON_CLAVE))
     );
     expect(res.status).toBe(200);
   });
 
   it("con la query correcta pasa", () => {
     const res = conApiKey(CLAVE, (middleware) =>
-      middleware(pedir(`/api/v1/events?api_key=${CLAVE}`))
+      middleware(pedir(`/api/actividades?api_key=${CLAVE}`))
     );
     expect(res.status).toBe(200);
   });
 
   it("una clave distinta responde 401", () => {
     const res = conApiKey(CLAVE, (middleware) =>
-      middleware(pedir("/api/v1/events", { "x-api-key": "otra" }))
+      middleware(pedir("/api/actividades", { "x-api-key": "otra" }))
     );
     expect(res.status).toBe(401);
   });
@@ -212,7 +215,7 @@ describe("con API_KEY en el entorno", () => {
 describe("el preflight de CORS (OPTIONS)", () => {
   it("una ruta protegida responde sin que le pidan la clave", () => {
     const res = conApiKey(CLAVE, (middleware) =>
-      middleware(conMetodo("OPTIONS", "/api/v1/events", PREFLIGHT))
+      middleware(conMetodo("OPTIONS", "/api/actividades", PREFLIGHT))
     );
 
     expect(res.status).not.toBe(401);
@@ -228,7 +231,7 @@ describe("el preflight de CORS (OPTIONS)", () => {
     // petición de datos y no tiene nada que autorizar. Lo que sigue contestar
     // 503 es la petición real, que es la que importa.
     const res = conApiKey(undefined, (middleware) =>
-      middleware(conMetodo("OPTIONS", "/api/v1/events", PREFLIGHT))
+      middleware(conMetodo("OPTIONS", "/api/actividades", PREFLIGHT))
     );
 
     expect(res.status).not.toBe(503);
@@ -241,7 +244,7 @@ describe("el preflight de CORS (OPTIONS)", () => {
     // en `OPTIONS` la clave se ignora en cualquier caso.
     const res = conApiKey(CLAVE, (middleware) =>
       middleware(
-        conMetodo("OPTIONS", "/api/v1/events", { ...PREFLIGHT, "x-api-key": "otra" })
+        conMetodo("OPTIONS", "/api/actividades", { ...PREFLIGHT, "x-api-key": "otra" })
       )
     );
 
@@ -253,7 +256,7 @@ describe("el preflight de CORS (OPTIONS)", () => {
     // un mecanismo de acceso y pasarían a ser datos públicos con CORS abierto.
     conApiKey(CLAVE, (middleware) => {
       for (const metodo of ["GET", "POST", "PUT", "PATCH", "DELETE"]) {
-        const res = middleware(conMetodo(metodo, "/api/v1/events", PREFLIGHT));
+        const res = middleware(conMetodo(metodo, "/api/actividades", PREFLIGHT));
         expect({ metodo, status: res.status }).toEqual({ metodo, status: 401 });
       }
     });
@@ -264,7 +267,7 @@ describe("el preflight de CORS (OPTIONS)", () => {
     // clave buena, un `OPTIONS` también pasa, que es lo que pasa con cualquier
     // otro método.
     conApiKey(CLAVE, (middleware) => {
-      const res = middleware(conMetodo("OPTIONS", "/api/v1/events", CON_CLAVE));
+      const res = middleware(conMetodo("OPTIONS", "/api/actividades", CON_CLAVE));
       expect({ status: res.status, reenviado: reenviado(res) }).toEqual({
         status: 200,
         reenviado: true,
@@ -287,12 +290,15 @@ describe("el preflight de CORS (OPTIONS)", () => {
     });
   });
 
-  it("cubre todas las rutas protegidas del disco, no solo /api/v1/events", () => {
+  it("cubre todas las rutas protegidas del disco, no solo /api/actividades", () => {
     // Un arreglo escrito para un ejemplo es un arreglo para un ejemplo. Aquí se
     // recorre la lista real, así que una ruta protegida que se cuelgue al volver
     // es un rojo y no un comportamiento que nadie descubre en producción.
     const protegidas = rutasEnDisco().filter((r) => !isPublicApiRoute(r));
-    expect(protegidas.length).toBeGreaterThan(20);
+    // Diecisiete ahora: la agenda ocupa doce rutas de la lista de públicas.
+    // El número no es el invariante —lo que importa es que quede alguna—
+    // pero tiene que ser uno que no se pueda vaciar sin que se note.
+    expect(protegidas.length).toBeGreaterThan(10);
 
     conApiKey(CLAVE, (middleware) => {
       for (const ruta of protegidas) {
@@ -347,13 +353,33 @@ const ESPERADAS: Record<string, string> = {
   "/api/cines/florida": "documentada en openapi.yaml para apps móviles",
   "/api/v1/salud":
     "un cliente externo necesita poder comprobar si la agenda esta completa antes de usarla",
+
+  // La agenda, para el cliente móvil. Una app no puede guardar un secreto, y la
+  // clave del bundle sale con un `strings`: exigírsela solo impedía que la app
+  // de la casa leyera la agenda. El motivo es el mismo en las doce.
+  "/api/actividades/conciertos": "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/eventos/agenda": "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/eventos/agenda/infantil":
+    "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/eventos/agenda/teatro":
+    "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/eventos/proximos": "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/tardeo": "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/tours": "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/arkabia": "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/carreras/calendario":
+    "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/carreras/inscripciones":
+    "la lee la app movil, que no puede guardar un secreto",
+  "/api/actividades/senderismo": "la lee la app movil, que no puede guardar un secreto",
+  "/api/v1/events": "la lee la app movil, que no puede guardar un secreto",
 };
 
 describe("la lista de rutas públicas", () => {
-  // "Catorce" y no "trece" a propósito: el nombre del caso es el número, así que
-  // añadir una ruta sin tocarlo deja el nombre mintiendo, y el nombre es lo que se
-  // lee en el diff.
-  it("son exactamente estas catorce, y ninguna más", () => {
+  // "Veintiséis" y no "trece" a propósito: el nombre del caso es el número, así
+  // que añadir una ruta sin tocarlo deja el nombre mintiendo, y el nombre es lo
+  // que se lee en el diff.
+  it("son exactamente estas veintiséis, y ninguna más", () => {
     const enCodigo = PUBLIC_API_ROUTES.map((r) => r.path).sort();
     expect(enCodigo).toEqual(Object.keys(ESPERADAS).sort());
   });
@@ -381,22 +407,46 @@ describe("la lista de rutas públicas", () => {
 });
 
 describe("la coincidencia es exacta, no por prefijo", () => {
-  it("no abre /api/actividades ni ninguna de sus subrutas", () => {
+  it("no abre /api/actividades ni las subrutas que no están en la lista", () => {
     // Con `startsWith("/api/actividades")` en la lista, estas pasaban sin
     // clave. `/api/actividades/eventos/proximos` es la que consume
     // `scripts/send-newsletter.ts`, así que abrirla no era un detalle menor.
+    //
+    // Ahora la lista es **exacta**: abren las doce que la app móvil lee, y
+    // siguen cerradas estas, que son del servidor o no las usa la app.
     for (const ruta of [
       "/api/actividades",
-      "/api/actividades/eventos/proximos",
       "/api/actividades/tours/civitatis",
-      "/api/actividades/senderismo",
       "/api/actividades/navidad",
+      "/api/actividades/experiencias",
+      "/api/actividades/carreras/agenda",
       "/api/fever",
       "/api/rula",
-      "/api/v1/events",
       "/api/push/send",
     ]) {
       expect({ ruta, publica: isPublicApiRoute(ruta) }).toEqual({ ruta, publica: false });
+    }
+  });
+
+  it("abre las doce de la agenda, una a una y por su nombre", () => {
+    // Lo contrario del caso de arriba, y por el mismo motivo: son rutas
+    // **exactas**. Un prefijo abriría lo que se añadiera mañana sin que nadie
+    // lo decidiera.
+    for (const ruta of [
+      "/api/actividades/conciertos",
+      "/api/actividades/eventos/agenda",
+      "/api/actividades/eventos/agenda/infantil",
+      "/api/actividades/eventos/agenda/teatro",
+      "/api/actividades/eventos/proximos",
+      "/api/actividades/tardeo",
+      "/api/actividades/tours",
+      "/api/actividades/arkabia",
+      "/api/actividades/carreras/calendario",
+      "/api/actividades/carreras/inscripciones",
+      "/api/actividades/senderismo",
+      "/api/v1/events",
+    ]) {
+      expect({ ruta, publica: isPublicApiRoute(ruta) }).toEqual({ ruta, publica: true });
     }
   });
 
@@ -430,7 +480,7 @@ describe("la coincidencia es exacta, no por prefijo", () => {
   it("tolera la barra final, que Next no siempre normaliza antes del middleware", () => {
     expect(isPublicApiRoute("/api/search/")).toBe(true);
     expect(isPublicApiRoute("/api/cines/florida/")).toBe(true);
-    expect(isPublicApiRoute("/api/v1/events/")).toBe(false);
+    expect(isPublicApiRoute("/api/actividades/")).toBe(false);
   });
 
   it("no le da vueltas a la query ni a las mayúsculas", () => {
@@ -442,11 +492,11 @@ describe("la coincidencia es exacta, no por prefijo", () => {
 });
 
 describe("el comportamiento, no solo el predicado", () => {
-  it("las rutas que se acababan de cerrar siguen pidiendo clave con clave puesta", () => {
+  it("las rutas que siguen cerradas siguen pidiendo clave con clave puesta", () => {
     conApiKey(CLAVE, (middleware) => {
       for (const ruta of [
         "/api/actividades",
-        "/api/actividades/eventos/proximos",
+        "/api/actividades/tours/civitatis",
         "/api/fever",
       ]) {
         const res = middleware(pedir(ruta));
@@ -457,7 +507,13 @@ describe("el comportamiento, no solo el predicado", () => {
 
   it("una ruta pública no exige clave aunque la haya", () => {
     conApiKey(CLAVE, (middleware) => {
-      for (const ruta of ["/api/search", "/api/cines/boulevard", "/api/newsletter/confirm"]) {
+      for (const ruta of [
+        "/api/search",
+        "/api/cines/boulevard",
+        "/api/newsletter/confirm",
+        "/api/actividades/eventos/proximos",
+        "/api/v1/events",
+      ]) {
         const res = middleware(pedir(ruta));
         expect({ ruta, status: res.status }).toEqual({ ruta, status: 200 });
       }
@@ -631,7 +687,10 @@ describe("config.matcher", () => {
     const publicas = rutasEnDisco().filter(isPublicApiRoute);
     const protegidas = rutasEnDisco().filter((r) => !isPublicApiRoute(r));
     expect(publicas.length).toBeGreaterThan(0);
-    expect(protegidas.length).toBeGreaterThan(20);
+    // Diecisiete ahora: la agenda ocupa doce rutas de la lista de públicas.
+    // El número no es el invariante —lo que importa es que quede alguna—
+    // pero tiene que ser uno que no se pueda vaciar sin que se note.
+    expect(protegidas.length).toBeGreaterThan(10);
 
     for (const ruta of [...publicas, ...protegidas]) {
       expect({ ruta, cubierta: sources.some((s) => matcherEncaja(s, ruta)) }).toEqual({

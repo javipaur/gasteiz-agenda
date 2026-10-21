@@ -6,35 +6,46 @@ const API_KEY = process.env.API_KEY;
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX = 100;
+
+/**
+ * El techo de las rutas públicas de la agenda.
+ *
+ * **Más bajo que el general, y por el tamaño de la respuesta.** Una respuesta
+ * de agenda son miles de eventos en un JSON; con el general de 100 por minuto,
+ * treinta peticiones cubren la agenda entera. Con sesenta, hace falta el doble
+ * para repetirla.
+ */
+const LIMITE_AGENDA_POR_MINUTO = 60;
+
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function getRateLimitHeaders(key: string) {
+function getRateLimitHeaders(key: string, max = RATE_LIMIT_MAX) {
   const now = Date.now();
   const entry = rateLimitMap.get(key);
 
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
     return {
-      "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
-      "X-RateLimit-Remaining": String(RATE_LIMIT_MAX - 1),
+      "X-RateLimit-Limit": String(max),
+      "X-RateLimit-Remaining": String(max - 1),
       "X-RateLimit-Reset": String(Math.ceil((now + RATE_LIMIT_WINDOW) / 1000)),
     };
   }
 
   entry.count++;
-  const remaining = Math.max(0, RATE_LIMIT_MAX - entry.count);
+  const remaining = Math.max(0, max - entry.count);
   return {
-    "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
+    "X-RateLimit-Limit": String(max),
     "X-RateLimit-Remaining": String(remaining),
     "X-RateLimit-Reset": String(Math.ceil(entry.resetAt / 1000)),
   };
 }
 
-function isRateLimited(key: string): boolean {
+function isRateLimited(key: string, max = RATE_LIMIT_MAX): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetAt) return false;
-  return entry.count >= RATE_LIMIT_MAX;
+  return entry.count >= max;
 }
 
 function cleanupRateLimit() {
@@ -54,8 +65,48 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const clientIp =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+
+  /*
+   * **El limitador va antes de la exención de clave**, y es lo que hace que
+   * abrir las rutas de la agenda no sea abrirlo de par en par.
+   *
+   * Antes el orden era el revés: `isPublicApiRoute` devolvía mucho antes de
+   * mirar el limitador, así que **las rutas públicas no tenían ninguno**. Con
+   * la agenda abierta —que es lo que necesita la app móvil, porque no puede
+   * guardar un secreto— una IP podía pedir la agenda entera sin parar.
+   *
+   * El límite es de **60 por minuto**, más bajo que el general de 100, porque
+   * una respuesta de agenda es grande: son miles de eventos en un JSON. Con el
+   * general, treinta peticiones de agenda cubren la agenda entera.
+   */
+  if (isPublicApiRoute(pathname) && isRateLimited(clientIp, LIMITE_AGENDA_POR_MINUTO)) {
+    return NextResponse.json(
+      { error: "Demasiadas peticiones. Inténtalo de nuevo en un minuto." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": "60",
+          ...getRateLimitHeaders(clientIp, LIMITE_AGENDA_POR_MINUTO),
+        },
+      }
+    );
+  }
+
   if (isPublicApiRoute(pathname)) {
-    return NextResponse.next();
+    // Las cabeceras de caché van también aquí.
+    //
+    // Antes solo las ponían las rutas protegidas, porque las públicas
+    // devolvían `next()` antes de llegar a `setCacheHeaders`. Con la agenda
+    // abierta, eso dejaba a las doce rutas más consultadas del sitio **sin
+    // `Cache-Control`**, y un intermediario podía guardarlas o no según le
+    // pareciera. La caché de la agenda es la misma para todas: cinco minutos.
+    const respuesta = NextResponse.next();
+    setCacheHeaders(respuesta, pathname);
+    return respuesta;
   }
 
   /*
@@ -90,11 +141,6 @@ export function middleware(request: NextRequest) {
   if (request.method === "OPTIONS") {
     return NextResponse.next();
   }
-
-  const clientIp =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
 
   /*
    * Fail-closed, y deliberadamente ruidoso.

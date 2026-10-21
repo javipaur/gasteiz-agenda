@@ -153,6 +153,76 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
     path: "/api/cines/florida",
     motivo: "documentada en openapi.yaml para apps móviles",
   },
+
+  /**
+   * La agenda, para el cliente móvil.
+   *
+   * **Una app móvil no puede guardar un secreto.** Una clave dentro de un APK
+   * sale con un `strings`, así que exigirla no protege nada: solo impide que
+   * la app de la casa, que es quien tiene que leer la agenda, pueda hacerlo.
+   *
+   * La clave se quedaba en el bundle, el servidor exigía la suya, y **las dos
+   * no coincidían**: la app recibía 401 en las doce rutas protegidas y se
+   * quedaba sin eventos, mientras la web —que lee los datos en el servidor y
+   * no necesita clave— lo veía todo bien. Medido el 21 de octubre de 2026.
+   *
+   * Con estas rutas abiertas, la app y la web muestran **lo mismo**, que es lo
+   * que se pidió, y la clave sigue sirviendo para lo que de verdad tiene que
+   * proteger: lo que escribe.
+   *
+   * **Y no es abrirlo todo.** La agenda es pública —la publica el Ayuntamiento
+   * y la site's-. Lo que se protege aquí es el trabajo del servidor, y eso lo
+   * hace el limitador del `middleware`, que para estas rutas va por delante de
+   * la exención: sin eso, una IP podía pedir la agenda entera sin parar.
+   */
+  {
+    path: "/api/actividades/conciertos",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/eventos/agenda",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/eventos/agenda/infantil",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/eventos/agenda/teatro",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/eventos/proximos",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/tardeo",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/tours",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/arkabia",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/carreras/calendario",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/carreras/inscripciones",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/actividades/senderismo",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
+  {
+    path: "/api/v1/events",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
 ];
 
 /**

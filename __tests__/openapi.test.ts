@@ -387,14 +387,28 @@ describe("la autenticación que promete el documento", () => {
     }
   });
 
-  it("el documento cubre ocho de las doce públicas del código, y se sabe cuáles cuatro no", () => {
-    // Las que faltan —`/api/search`, `/api/vgbus`, `/api/push/subscribe` y
-    // `/api/fiestas-blanca`— no se documentan hoy. Este test no las exige:
-    // documentarlas significa inventar sus esquemas, que es otra decisión. Lo que
-    // fija es que la lista siga siendo esa, para que si alguien añade una quinta
-    // ruta pública sin documentarla, la deuda se vea en el nombre en vez de pasar
-    // desapercibida.
+  it("el documento cubre veinte de las veintiséis públicas del código, y se sabe cuáles seis no", () => {
+    // Las que faltan —`/api/search`, `/api/vgbus`, `/api/push/subscribe`,
+    // `/api/img`, `/api/log` y `/api/metric`— no se documentan hoy. Este test no
+    // las exige: documentarlas significa inventar sus esquemas, que es otra
+    // decisión. Lo que fija es que la lista siga siendo esa, para que si
+    // alguien añada una séptima ruta pública sin documentarla, la deuda se vea
+    // en el nombre en vez de pasar desapercibida.
+    //
+    // Las doce de la agenda **sí** están documentadas: son las que lee la app
+    // móvil, y quien integra contra el documento las tiene que ver.
     expect(PUBLICAS_DOCUMENTADAS.sort()).toEqual([
+      "/api/actividades/arkabia",
+      "/api/actividades/carreras/calendario",
+      "/api/actividades/carreras/inscripciones",
+      "/api/actividades/conciertos",
+      "/api/actividades/eventos/agenda",
+      "/api/actividades/eventos/agenda/infantil",
+      "/api/actividades/eventos/agenda/teatro",
+      "/api/actividades/eventos/proximos",
+      "/api/actividades/senderismo",
+      "/api/actividades/tardeo",
+      "/api/actividades/tours",
       "/api/cines",
       "/api/cines/boulevard",
       "/api/cines/florida",
@@ -402,6 +416,7 @@ describe("la autenticación que promete el documento", () => {
       "/api/newsletter/confirm",
       "/api/newsletter/subscribe",
       "/api/newsletter/unsubscribe",
+      "/api/v1/events",
       "/api/v1/salud",
     ]);
   });
@@ -583,7 +598,7 @@ describe("las respuestas que el middleware produce de verdad", () => {
  * Y el número sigue escrita en el `toEqual`, que es lo que ata la constante a la
  * realidad: si las rutas cambian sin tocar esto, el `toEqual` se pone rojo.
  */
-const ProtectedCount = 29;
+const ProtectedCount = 17;
 
 describe("la cobertura del documento", () => {
   it("cubre las ProtectedCount rutas protegidas salvo las dos que se listan aquí", () => {
@@ -644,11 +659,17 @@ describe("la cobertura del documento", () => {
     // impide que sea un contador inflable es que la ruta solo acepta nombres de una lista
     // cerrada y limita el tamaño del cuerpo. Su `GET` sí exige la clave, comprobada en la
     // propia ruta porque el middleware no ve una ruta pública. De 18 a 19 públicas.
+    //
+    // Y luego las **doce de la agenda**, que la app móvil leía con una clave que el
+    // servidor no aceptaba: doce 401 y una app sin eventos. Una app móvil no puede
+    // guardar un secreto —una clave dentro de un APK sale con un `strings`—, así que
+    // la puerta se abre por ruta y con su motivo escrito. De 19 a 31 públicas, y de 29
+    // a 17 protegidas.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 48, publicas: 19, protegidas: ProtectedCount });
+    }).toEqual({ total: 48, publicas: 31, protegidas: ProtectedCount });
   });
 });
 

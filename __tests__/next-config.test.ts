@@ -130,8 +130,24 @@ const MEDIDOS_EN_VIVO: Record<string, { url: string; cuando: string }> = {
   },
 };
 
-const PUBLICAS = ["/api/search", "/api/farmacias", "/api/cines/boulevard"];
-const PROTEGIDAS = ["/api/v1/events", "/api/fever", "/api/actividades/eventos/proximos"];
+const PUBLICAS = [
+  "/api/search",
+  "/api/farmacias",
+  "/api/cines/boulevard",
+  // Las doce de la agenda: la app móvil las lee y no puede traer una clave.
+  "/api/v1/events",
+  "/api/actividades/eventos/proximos",
+  "/api/actividades/eventos/agenda",
+];
+
+// Rutas que **siguen** protegidas. La lista tiene que estar viva: si una de
+// estas pasara a la lista de públicas, el comodín `*` le llegaría y la
+// comprobación de "una ruta protegida no recibe `*`" dejaría de comprobar nada.
+const PROTEGIDAS = [
+  "/api/fever",
+  "/api/actividades/tours/civitatis",
+  "/api/actividades/navidad",
+];
 
 describe("la CORS de /api", () => {
   it("las rutas públicas conservan el comodín, porque las llama el navegador", async () => {
