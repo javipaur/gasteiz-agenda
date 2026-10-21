@@ -42,11 +42,38 @@ const COFALAVA = () => loadFixture("cofalava-guardia.html");
 describe("GET /api/farmacias", () => {
   /**
    * La ruta lee la fecha de la query, así que necesita un `Request` con su URL.
-   * Sin él, `new URL(request.url)` revienta —y con la fecha de hoy, que es lo
-   * que se quiere por defecto.
+   * Sin él, `new URL(request.url)` revienta.
    */
   const peticion = (query = "") =>
     new Request(`https://gasteizclick.javierpalacio.es/api/farmacias${query}`);
+
+  /**
+   * El día del fixture, en ISO.
+   *
+   * **El fixture tiene fecha fija y el día pasa.** La ruta sin `?fecha=` sirve
+   * el cuadrante **de hoy**, así que un test que mire "el camino bueno" sin
+   * decir qué día quiere se pasa hoy y falla mañana. Y falló: el 21 de
+   * octubre, un día después de escribirse.
+   *
+   * La fecha se **saca del fixture**, no se escribe a mano: así el test sigue
+   * valiendo dentro de un año, que es lo que importa, y no hay ningún número
+   * que se pueda quedar viejo.
+   */
+  function diaDelFixture(): string {
+    const html = COFALAVA();
+    // La fecha va en el JSON de la página, y ahí las barras van **escapadas**:
+    // `"fecha":"20\/10\/2026"`. Por eso el `\?` de la barra.
+    //
+    // Y tiene que ser la fecha de una entrada **de Vitoria**: el fixture
+    // también trae entradas de Laudio, y la primera fecha del fichero puede
+    // ser la de otro pueblo —y ese día en Vitoria no hay ninguna guardia.
+    const m = html.match(
+      /"fecha":"(\d{2})\\?\/(\d{2})\\?\/(\d{4})"[^}]*"poblacion":"Vitoria-Gasteiz"/
+    );
+    if (!m) throw new Error("el fixture no tiene ninguna fecha de Vitoria");
+    const [, d, mes, anio] = m;
+    return `${anio}-${mes}-${d}`;
+  }
 
   async function get(query = ""): Promise<Response> {
     jest.resetModules();
@@ -76,7 +103,9 @@ describe("GET /api/farmacias", () => {
   it("el camino bueno no ha cambiado de forma", async () => {
     mockFetchWith([{ match: /cofalava\.org/, content: COFALAVA() }]);
 
-    const res = await get();
+    // El día **del fixture**, y no el de hoy: la ruta sin `?fecha=` sirve el
+    // cuadrante de hoy, y el fixture es de un día fijo.
+    const res = await get(`?fecha=${diaDelFixture()}`);
     const body = (await res.json()) as FarmaciasEnvelope;
 
     expect(res.status).toBe(200);
@@ -144,14 +173,15 @@ describe("GET /api/farmacias", () => {
     const { GET } = await modulo();
 
     mockFetchWith([{ match: /cofalava\.org/, content: COFALAVA() }]);
-    const primera = (await (await GET(peticion())).json()) as FarmaciasEnvelope;
+    const dia = diaDelFixture();
+    const primera = (await (await GET(peticion(`?fecha=${dia}`))).json()) as FarmaciasEnvelope;
     expect(primera.count).toBe(2);
 
     // Ahora la fuente se cae, y sin recargar el registro: la caché sigue en el
     // mismo módulo y es lo que decide entre propagar y servir lo viejo.
     jest.spyOn(global, "fetch").mockResolvedValue(new Response("", { status: 503 }));
 
-    const segunda = await GET(peticion());
+    const segunda = await GET(peticion(`?fecha=${dia}`));
     const body = (await segunda.json()) as FarmaciasEnvelope;
 
     expect(segunda.status).toBe(200);
