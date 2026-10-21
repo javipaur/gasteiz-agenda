@@ -268,4 +268,91 @@ describe("la variante reducida", () => {
       /translate\(108, 18\)/
     );
   });
+
+  /**
+   * El SVG suelto de la variante reducida, que es el que consume la app móvil.
+   *
+   * **La app no puede importar un componente de React**, y el icono del
+   * lanzador de Android tiene que ser un raster de todas formas. Así que la
+   * variante reducida vive también en `public/logo-reducido.svg`, y
+   * `scripts/generate-app-brand.mjs` saca de ahí el PNG que pinta la cabecera
+   * de la app.
+   *
+   * Las dos copias tienen que decir lo mismo, y eso es lo que se comprueba
+   * aquí: el mismo patrón que ya vigila `brand-mark.svg` contra `LogoMark.tsx`.
+   */
+  describe("el SVG que consume la app móvil", () => {
+    const SVG = readFileSync(join(ROOT, "public", "logo-reducido.svg"), "utf8");
+
+    it("se queda con la G, la txapela y el pincho, como el componente", () => {
+      expect(SVG).toContain("translate(-38, -120)");
+      expect(SVG).toMatch(/<line[^>]*stroke=/);
+      // Y sin las tres que se quitan.
+      expect(SVG).not.toMatch(/translate\(-18, -48\)/);
+      expect(SVG).not.toMatch(/translate\(-24, 2\)/);
+      expect(SVG).not.toMatch(/translate\(108, 18\)/);
+    });
+
+    it("engorda el pincho igual que el componente", () => {
+      const grosor = Number(SVG.match(/<line[^>]*stroke-width="(\d+)"/)?.[1] ?? "0");
+      expect(grosor).toBeGreaterThanOrEqual(14);
+    });
+
+    it("lleva el mismo rojo que el resto de la marca", () => {
+      expect(SVG.toLowerCase()).toContain(ROJO);
+    });
+
+    it("no lleva fondo, porque va sobre el fondo del tema", () => {
+      expect(SVG).not.toMatch(/<rect[^>]*width="512"/i);
+    });
+
+    it("lleva el grupo que centra la marca, como las otras cuatro", () => {
+      expect(SVG).toMatch(/translate\(256,?\s*256\)/);
+    });
+  });
+});
+
+/**
+ * Los assets de la app móvil, que se generan desde aquí.
+ *
+ * **La marca tiene un solo dueño y es este repositorio.** La app necesita la
+ * marca en PNG —porque no tiene `react-native-svg` y porque el icono del
+ * lanzador de Android es un raster— y si el PNG se dibujara a mano, el logo de
+ * la app y el de la web serían dos marcas que se separan sin que nada lo diga.
+ *
+ * Lo que pasó de verdad: el logo de la app era **un rectángulo negro**
+ * (`img/logotop.png`, que no usaba nadie) y el icono del lanzador era otro logo
+ * entero, el rojo de "GASTEIZ CLICK" de antes del rebrand.
+ */
+describe("el generador de los assets de la app", () => {
+  const GENERADOR = readFileSync(
+    join(ROOT, "scripts", "generate-app-brand.mjs"),
+    "utf8"
+  );
+
+  it("lee los SVG de aquí, que son el original", () => {
+    for (const nombre of [
+      "brand-mark.svg",
+      "icon-512.svg",
+      "logo-reducido.svg",
+    ]) {
+      expect(GENERADOR).toContain(nombre);
+    }
+  });
+
+  it("escribe en la app, y no en un sitio hardcodeado de otra parte", () => {
+    // La ruta sale de `APP_REPO` o del hermano por defecto, y **si no está, el
+    // script avisa y no escribe**: medio actualizar la marca de la app es peor
+    // que no actualizarla.
+    expect(GENERADOR).toContain("APP_REPO");
+    expect(GENERADOR).toContain("process.exitCode = 1");
+  });
+
+  it("hace los iconos del lanzador en las cinco densidades", () => {
+    for (const carpeta of ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]) {
+      expect(GENERADOR).toContain(carpeta);
+    }
+    expect(GENERADOR).toContain("ic_launcher_adaptive_fore.png");
+    expect(GENERADOR).toContain("ic_launcher_adaptive_back.png");
+  });
 });

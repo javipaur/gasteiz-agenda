@@ -1181,3 +1181,56 @@ Un espacio invisible decide a que servidor apunta la app.
   misma pagina y fechas distintas. Con el enlace y la fecha, la clave es
   unica; y las ocho filas que el calendario devuelve **exactamente duplicadas**
   se quitan.
+
+## Hecho: la marca es la misma en la app y en la web (2026-10-21)
+
+El logo de la app era **un rectangulo negro** —`img/logotop.png`, que no usaba
+nadie— y el icono del lanzador era **otro logo entero**, el rojo de "GASTEIZ
+CLICK" de antes del rebrand. Dos marcas distintas para la misma app, y ninguna
+con relacion con la de la web.
+
+### Un solo dueno, y es este repositorio
+
+`public/brand-mark.svg`, `public/icon-512.svg`, `public/icon-maskable.svg` y
+`public/logo-reducido.svg` son el original. `scripts/generate-app-brand.mjs`
+saca de ahi los PNG de la app y los iconos del lanzador de Android.
+
+**La app no puede importar un componente de React**, y el icono del lanzador
+tiene que ser un raster de todas formas: el sistema lo recorta con su propia
+mascara y no lee vectores. Si el PNG se dibujara a mano, el logo de la app y el
+de la web serian dos marcas que se separan sin que nada lo diga.
+
+El primer plano del icono adaptativo es **la marca sola, sin fondo**, con el
+fondo en su propia capa: si el fondo fuese parte del primer plano, se veria el
+recorte del sistema —un cuadrado crema dentro de otro cuadrado crema—. Y la
+marca se recentra, porque su caja no lo esta: llega mas a la derecha que a la
+izquierda, y sin corregirlo el icono se ve desplazado dentro de su mascara.
+
+### La variante reducida tambien es un fichero
+
+La cabecera de la web usa `LogoMarkReducido` —la G, el pincho y la txapela—,
+que a 24 px es lo unico que se lee de la marca completa. Esa variante vivia
+solo dentro de un componente JSX, con `currentColor` y la variable de acento:
+el navegador puede heredar el tema, el sistema operativo no. Ahora hay tambien
+`public/logo-reducido.svg`, con los colores escritos, y
+`__tests__/logo-marca.test.ts` comprueba que los dos digan lo mismo.
+
+### Las cards sin imagen llevan la marca
+
+Las seis tarjetas de la app ponian un icono generico de "no hay foto"
+descargado de un CDN. Ahora ponen **la marca**, y en un solo sitio:
+`infrastructure/brand.ts`, con `fuenteDe()`.
+
+**Con fondo crema y no transparente a proposito:** es la imagen de una tarjeta
+que no tiene foto, y en el tema oscuro la txapela —que es negra—
+desapareceria sobre el fondo de la tarjeta. Con el crema de la marca detras, se
+lee igual en los dos temas y ademas se sabe de quien es la tarjeta.
+
+### La paleta de la app no es la de la web
+
+**Queda pendiente, y es una decision, no un bug.** La app usa
+`primary: #BC0202` y `accent: #E23B45`; la marca y Stitch usan
+`#dc2626` y `#b70011`, y la crema de la marca es `#faf9f5`. El logo ya lleva
+el rojo de Stitch, asi que **hoy conviven dos rojos**. No se ha tocado la
+paleta porque cambiar el acento de la app entera es una decision de diseno, no
+un arreglo.
