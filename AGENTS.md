@@ -1234,3 +1234,70 @@ lee igual en los dos temas y ademas se sabe de quien es la tarjeta.
 el rojo de Stitch, asi que **hoy conviven dos rojos**. No se ha tocado la
 paleta porque cambiar el acento de la app entera es una decision de diseno, no
 un arreglo.
+
+## Hecho: la app y la web cuentan lo mismo (2026-10-21)
+
+### Lo que la app no podia calcular
+
+**"Recomendados" es del servidor, y no se puede hacer de otra forma.** El
+criterio -que eventos cuentan, con que peso y como se funden los que varias
+fuentes publicaron- vive en `lib/recomendados.ts`, y es el mismo que usan la
+portada, `/hoy` y el post de Instagram.
+
+La app tiene su propio criterio por categoria, y con el mismo criterio la home
+de la app y la de la web dirian dos cosas distintas sobre el mismo dia, que es
+justo lo que `lib/recomendados.ts` documenta que no debe pasar.
+
+**`/api/v1/recomendados`** es la puerta: lee el agregado, aplica
+`recomendados()` con el dia de hoy y devuelve diez eventos con su `ranking`.
+Es publica por lo mismo que las otras doce de la agenda: una app movil no
+puede guardar un secreto.
+
+### Lo que si se puede calcular en la app
+
+**"Hoy en Vitoria"** no necesita servidor: el agregado ya trae la fecha de
+cada evento, y el filtro por el dia de hoy es el mismo que hace `/hoy`. Va en
+la app, en el hook, con `esHoy()` de `infrastructure/fechas.ts`.
+
+### El endpoint que no existia
+
+Se preguntaba por un endpoint de la agenda. Los que hay son:
+
+| Ruta | Que devuelve |
+| --- | --- |
+| `/api/v1/events` | El agregado, con paginacion. La paginacion de la app |
+| `/api/v1/recomendados` | Los diez recomendados de hoy |
+| `/api/v1/salud` | Si el agregado que se esta sirviendo esta completo |
+| `/api/actividades/eventos/proximos` | Todos los eventos futuros, sin paginar |
+| `/api/actividades/eventos/agenda` | La agenda del calendario municipal, **en crudo** |
+
+**El ultimo es el que confunde:** devuelve los eventos del calendario municipal
+sin el `id` ni el `slug` que el agregador les pone, y con enlaces que se
+repiten —una exposicion son cinco entradas con la misma pagina y fechas
+distintas—. Por eso la app necesita una clave que sea unica.
+
+### Y el bus, que tenia dos errores de nombres
+
+La app leia `item.rutas` y la API devuelve `item.lineas`: los badges de color
+de las paradas estaban pintados, con su estilo y todo, pero de una lista que no
+existe. **No se veia ni una linea y no habia ningun error.**
+
+Y las llegadas leian `realtimeArrival` y `scheduledArrival`, que no existen
+en los datos del proxy —que traen `seconds`, los que faltan—, asi que todas
+salian a "00:00" y "A tiempo". Ademas la pantalla llamaba al tercero
+directamente, saltandose el proxy de la web y su cache.
+
+### Las rutas del bus, en crudo
+
+Las que devuelve el proxy y la app consume:
+
+| Accion | Devuelve |
+| --- | --- |
+| `?accion=cerca&lat=&lng=&radio=` | Las paradas cercanas, con sus lineas |
+| `?accion=detalle&idParada=` | La parada, sus lineas con color, las llegadas y las alertas |
+| `?accion=buscar&buscar=` | Paradas por nombre |
+| `?accion=alertas` | Las alertas globales |
+
+**`detalle` y no `parada`:** la accion se llama como se llama, y "parada" da
+"Acción desconocida".
+

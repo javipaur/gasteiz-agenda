@@ -223,6 +223,10 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
     path: "/api/v1/events",
     motivo: "la lee la app movil, que no puede guardar un secreto",
   },
+  {
+    path: "/api/v1/recomendados",
+    motivo: "la lee la app movil, que no puede guardar un secreto",
+  },
 ];
 
 /**

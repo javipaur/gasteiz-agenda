@@ -51,6 +51,40 @@ tags:
     description: Suscripción al newsletter
 
 paths:
+  /api/v1/recomendados:
+    get:
+      tags: [events]
+      summary: Lo que la web recomienda hoy
+      description: >-
+        La lista de recomendados de hoy: los eventos que varias fuentes
+        cuentan, puntuados con los pesos de la agenda. Es el mismo criterio que
+        usan la portada, `/hoy` y el post de Instagram, y cada evento lleva su
+        `ranking`.
+      operationId: getRecomendados
+      security: []
+      responses:
+        "200":
+          description: Lista de recomendados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  source:
+                    type: string
+                  date:
+                    type: string
+                    format: date
+                  count:
+                    type: integer
+                  fetchedAt:
+                    type: string
+                    format: date-time
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Evento"
+
   /api/v1/salud:
     get:
       tags: [events]

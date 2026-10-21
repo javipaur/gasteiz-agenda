@@ -387,7 +387,7 @@ describe("la autenticación que promete el documento", () => {
     }
   });
 
-  it("el documento cubre veinte de las veintiséis públicas del código, y se sabe cuáles seis no", () => {
+  it("el documento cubre veintiuna de las veintisiete públicas del código, y se sabe cuáles seis no", () => {
     // Las que faltan —`/api/search`, `/api/vgbus`, `/api/push/subscribe`,
     // `/api/img`, `/api/log` y `/api/metric`— no se documentan hoy. Este test no
     // las exige: documentarlas significa inventar sus esquemas, que es otra
@@ -417,6 +417,7 @@ describe("la autenticación que promete el documento", () => {
       "/api/newsletter/subscribe",
       "/api/newsletter/unsubscribe",
       "/api/v1/events",
+      "/api/v1/recomendados",
       "/api/v1/salud",
     ]);
   });
@@ -620,7 +621,7 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 47 rutas: 18 públicas y 29 protegidas", () => {
+  it("la política entera son 49 rutas: 32 públicas y 17 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     //
@@ -669,7 +670,7 @@ describe("la cobertura del documento", () => {
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 48, publicas: 31, protegidas: ProtectedCount });
+    }).toEqual({ total: 49, publicas: 32, protegidas: ProtectedCount });
   });
 });
 
