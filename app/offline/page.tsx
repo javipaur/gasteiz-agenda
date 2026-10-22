@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function Offline() {
   return (
     <div className="px-5 sm:px-6 flex flex-col items-center justify-center min-h-[80dvh] text-center">
-      <span className="font-display text-[8rem] md:text-[12rem] leading-none font-black text-accent/10 select-none">
+      <span className="font-display text-[8rem] md:text-[12rem] leading-none font-bold text-accent/10 select-none">
         ∅
       </span>
       <h1 className="font-display text-3xl md:text-4xl font-semibold text-fg -mt-6 mb-4 tracking-[-0.02em]">

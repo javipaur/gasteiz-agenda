@@ -1301,3 +1301,81 @@ Las que devuelve el proxy y la app consume:
 **`detalle` y no `parada`:** la accion se llama como se llama, y "parada" da
 "Acción desconocida".
 
+
+## Hecho: la pagina no dice lo mismo catorce veces (2026-10-22)
+
+La peticion era "que sea profesional y no repetitivo". Las dos cosas se mediron
+antes de tocar nada, porque "repetitivo" es una palabra que suena a gusto y no
+a criterio.
+
+### Lo que habia: trece de catorce secciones iguales
+
+Medido en el navegador, sobre las catorce secciones de la portada:
+
+    h2, Bodoni Moda, text-transform: uppercase, tracking -0.03em
+
+**Trece veces lo mismo.** Cada seccion era una pila de color saturado con un
+titular en mayusculas. Y no es que se leyeran mal: es que releidas catorce
+veces, ningun titulo se lee como un titulo. Se leen como un relleno, que es
+exactamente lo que es.
+
+### Las mayusculas son de las etiquetas, no de los titulos
+
+Es la regla tipografica de siempre y aqui estaba al reves: **una etiqueta es una
+cosa pequena que nombra un bloque** —"CATEGORIAS", "DEPORTE"— y por eso va en
+caja alta con tracking. **Un titular es una frase**, y las frases van en caja
+normal. Trece mayusculas trackeadas leen como trece gritos; trece sentence case
+leen como trece titulares.
+
+La referencia lo dice de otra forma: su pagina es neutra y **el color vive en el
+contenido**, no en la estructura. Su tarjeta grande es azul porque es el
+*centerpiece*; el resto de la pagina son tarjetas blancas y texto negro. El
+color marca **que es**, no **donde estas**.
+
+### La forma que queda
+
+    (punto de color) CATEGORIAS ---------------- Ver todo ->
+    Explora Vitoria-Gasteiz
+
+- La **etiqueta** es texto pequeno en caja alta, en el color apagado de la
+  pagina.
+- El **punto** es de color, y solo un punto. Es lo que distingue "CULTURA" de
+  "DEPORTE" sin gritar; y como es grafico, le basta 3:1 y no 4,5:1.
+- El **filete** es lo que da estructura, y hace el trabajo que hacia la pila de
+  color.
+- El **titular** va en sentence case.
+
+### El peso de la Bodoni: 700, y de verdad
+
+La Bodoni se cargaba **solo en 500** y los titulares pedian `font-black` (900).
+El navegador **sintetiza** la negrita cuando el peso pedido no esta: engorda el
+trazo en vez de usar un peso real, y en una Didone eso destruye el contraste
+entre el trazo fino y el grueso. Una Bodoni con negrita falsa se ve
+exactamente como lo que es.
+
+Ahora es **variable** (400-900) y los titulares van a **700**: en una Didone,
+700 sigue siendo elegante y 900 ya es un ladrillo. El h1 de la portada es el
+unico sitio donde se permite el peso alto, y por eso va en mayusculas: es el
+unico grito de la pagina, y si grito trece veces no grita ninguno.
+
+### Las siete pastillas de "de un vistazo"
+
+Eran **siete** de golpe, cada una con su color de relleno. Siete manchas
+seguidas no se leen como una lista: se leen como un cartel. Ademas el texto
+blanco encima de un color no siempre se lee —el `--teal` claro da 3,3:1 sobre la
+crema, por debajo del 4,5:1 que pide un texto de 11 px—.
+
+Ahora llevan **contorno**: el color pasa a ser grafico, donde basta 3:1, y el
+texto va en la tinta de la pagina. Es lo que hace la referencia: pastillas
+blancas con filete y texto negro.
+
+### Verificado (2026-10-22)
+
+- `tsc` 0 · **1191/1191** tests · lint 0 errores (15 warnings, baseline) ·
+  build 0 · **34/34** e2e.
+- Medido en el navegador antes y despues: de 14 secciones, 10 pasan de
+  `uppercase` a sentence case y las 14 pasan de peso sintetizado a 700 real.
+  Solo queda en mayusculas el h1, que es donde debe.
+- Los e2e que miden la home siguen verdes: el hero con la tarjeta destacada, la
+  tira de un vistazo, la pastilla de categoria, y el conmutador de tema con sus
+  tres estados.

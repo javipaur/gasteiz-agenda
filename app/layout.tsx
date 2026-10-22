@@ -19,8 +19,19 @@ import "./globals.css";
  *
  * **Bodoni Moda** es la del logotipo y los titulares de sección: una Didone de
  * contraste alto, que es la que le da a la marca el aire de "editorial" en vez de
- * "app de agenda". Su peso es 500 y no más: por encima, el trazo se hace pesado y
- * deja de ser elegante.
+ * "app de agenda".
+ *
+ * ## Por qué va como variable y no en un solo peso
+ *
+ * Antes se cargaba **solo en 500** y los titulares pedían `font-black` (900). El
+ * navegador entonces **sintetiza** la negrita: engorda el trazo en vez de usar un
+ * peso real, y en una Didone eso destruye el contraste entre el trazo fino y el
+ * grueso. Una Bodoni con la negrita falsa se ve exactamente como lo que es, y
+ * la culpa no es de la tipografía sino de haber pedido un peso que no estaba
+ * cargado.
+ *
+ * Como variable, los pesos 400–900 son de verdad, y los titulares van a **700**:
+ * en una Didone, 700 sigue siendo elegante y 900 ya es un ladrillo.
  *
  * **DM Serif Display** es solo para el titular gigante de las tarjetas. Se separa de
  * Bodoni a propósito porque pesa más y ocupa mucho más, y porque dos serif con el
@@ -39,7 +50,8 @@ const bodoni = Bodoni_Moda({
   subsets: ["latin"],
   variable: "--font-bodoni",
   display: "swap",
-  weight: ["500"],
+  style: ["normal", "italic"],
+  weight: "variable",
 });
 
 const dmSerif = DM_Serif_Display({

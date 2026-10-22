@@ -206,7 +206,7 @@ export default async function AgendaMesPage({ params }: PageProps) {
                                     ? new Intl.DateTimeFormat("es", { month: "short" }).format(d).toUpperCase().replace(".", "")
                                     : "···"}
                                 </p>
-                                <p className="font-display text-6xl font-black text-accent/40 leading-none transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105">
+                                <p className="font-display text-6xl font-bold text-accent/40 leading-none transition-transform duration-[800ms] ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105">
                                   {validDate ? d.getDate() : "?"}
                                 </p>
                               </div>

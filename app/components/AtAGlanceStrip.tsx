@@ -53,8 +53,21 @@ export default function AtAGlanceStrip({
               <Link
                 key={c.href}
                 href={c.href}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono text-[11px] font-bold uppercase tracking-[0.14em] transition-transform duration-300 hover:-translate-y-0.5"
-                style={{ backgroundColor: color, color: "#FFFFFF" }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-fg transition-colors duration-300 hover:-translate-y-0.5"
+                /*
+                 * Contorno y no relleno, y por qué: son **siete** de golpe.
+                 *
+                 * Con relleno, siete categorías seguidas son siete manchas de color
+                 * y la fila deja de leerse como una lista para leerse como un cartel.
+                 * Además el texto blanco encima de un color no siempre se lee: el
+                 * `--teal` claro da 3,3:1 sobre la crema, por debajo del 4,5:1 que
+                 * pide un texto de 11 px.
+                 *
+                 * Con contorno, el color pasa a ser **gráfico** —donde basta 3:1— y
+                 * el texto va en la tinta de la página, que se lee siempre. Es lo que
+                 * hace la referencia: píldoras blancas con filete y texto negro.
+                 */
+                style={{ borderColor: color }}
               >
                 {c.label}
               </Link>

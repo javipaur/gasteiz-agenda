@@ -78,7 +78,7 @@ export default function HeroSection({
         </InViewWrapper>
 
         <InViewWrapper eager>
-          <h1 className="font-display text-[clamp(2.5rem,7vw,4.75rem)] font-black uppercase tracking-[-0.04em] leading-[0.98] text-fg mb-5 max-w-3xl">
+          <h1 className="font-display text-[clamp(2.5rem,7vw,4.75rem)] font-bold uppercase tracking-[-0.02em] leading-[1.02] text-fg mb-5 max-w-3xl">
             La agenda de Vitoria-Gasteiz
           </h1>
 
@@ -138,7 +138,7 @@ export default function HeroSection({
                     >
                       {normalizeCategory(destacado.category)}
                     </span>
-                    <h3 className="font-display text-lg font-black text-fg leading-tight mt-1.5 line-clamp-2">
+                    <h3 className="font-display text-lg font-bold text-fg leading-tight mt-1.5 line-clamp-2">
                       {destacado.title}
                     </h3>
                     <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle mt-1 truncate">

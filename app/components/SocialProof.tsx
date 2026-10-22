@@ -3,7 +3,7 @@ import { InViewWrapper } from "@/lib/shared";
 function Stat({ value, label, detail }: { value: string; label: string; detail: string }) {
   return (
     <div className="border-t border-border pt-4">
-      <dt className="font-display text-3xl md:text-4xl font-black text-fg tracking-[-0.02em] tabular-nums">
+      <dt className="font-display text-3xl md:text-4xl font-bold text-fg tracking-[-0.02em] tabular-nums">
         {value}
       </dt>
       <dd className="mt-1 text-sm font-bold text-fg">{label}</dd>
@@ -44,7 +44,7 @@ export default function SocialProof({
                   fecha de su fichero, así que no hay un `since` real que pasar sin
                   tocar `lib/`. Lo que sí es cierto y está dos líneas más abajo,
                   en la cifra "Diaria / actualización", es lo que se queda. */}
-              <h2 className="font-display text-3xl md:text-4xl font-black uppercase tracking-[-0.03em] text-fg leading-tight">
+              <h2 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.02em] text-fg leading-tight">
                 Gasteiz Click en cifras
               </h2>
             </div>
