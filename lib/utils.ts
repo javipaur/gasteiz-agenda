@@ -42,6 +42,59 @@ export function localDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Parte los eventos en **la semana que viene** y **lo que viene después**, con el
+ * mismo corte que usa la rejilla de siete pestañas de la portada.
+ *
+ * Existe porque la portada decía lo mismo dos veces, y de la peor forma posible:
+ * sin que se notara. Medido en producción el 23 de octubre de 2026, la sección
+ * «Próximos eventos» pintaba doce tarjetas y **las doce** estaban ya en «Próximos
+ * 7 días». No era un fallo de composición sino de aritmética: las dos secciones
+ * partían de la agenda completa y cada una cortaba por su cuenta, así que la de
+ * abajo cortaba justo por donde empezaba la de arriba.
+ *
+ * El corte tiene que ser **uno solo**, y tiene que hablar el idioma de
+ * `NextDaysSection`, que agrupa por `localDateStr`. Sobre el ISO crudo,
+ * `"2026-10-30T00:30:00+02:00".slice(0, 10)` da el 30 en las dos zonas, pero un
+ * evento de las 00:30 en Madrid guardado en UTC da `29` y se colaría un día
+ * antes en la ventana; la rejilla sí lo pondría el 30. Con `localDateStr` la
+ * ventana y la rejilla cuentan días del mismo calendario.
+ *
+ * `dias = 7` es **hoy más los seis siguientes**, que es literalmente lo que pinta
+ * la fila de pestañas, no "siete días desde ahora".
+ *
+ * Se devuelven las dos mitades y no solo la de después para que un test pueda
+ * comprobar que no se solapan y que no se pierde nada por el medio. Un evento con
+ * fecha ilegible no entra en ninguna: pintarlo sería inventar un día.
+ */
+export function partirEnSemana<T extends { date: string }>(
+  eventos: T[],
+  ahora: number,
+  dias = 7
+): { semana: T[]; despues: T[] } {
+  const hoy = new Date(ahora);
+  hoy.setHours(0, 0, 0, 0);
+  const desdeHoy = localDateStr(hoy);
+
+  const corte = new Date(hoy);
+  corte.setDate(corte.getDate() + dias);
+  const desdeDespues = localDateStr(corte);
+
+  const semana: T[] = [];
+  const despues: T[] = [];
+
+  for (const ev of eventos) {
+    const d = new Date(ev.date);
+    if (isNaN(d.getTime())) continue;
+    const dia = localDateStr(d);
+    if (dia < desdeHoy) continue;
+    if (dia < desdeDespues) semana.push(ev);
+    else despues.push(ev);
+  }
+
+  return { semana, despues };
+}
+
 export function sourceLabel(source?: string): string {
   if (!source) return "";
   // El mapa se resuelve en la llamada y no al cargar el módulo. Este fichero lo

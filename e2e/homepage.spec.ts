@@ -104,7 +104,7 @@ test.describe("Homepage", () => {
     // decir "Top 10" sobre una lista de un solo día es mentira en la primera
     // pantalla, que es donde más se lee.
     await expect(page.getByRole("heading", { name: /Lo que recomendamos para hoy/i })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("heading", { name: /Próximos eventos/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Más adelante/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Conciertos/i }).first()).toBeVisible();
   });
 

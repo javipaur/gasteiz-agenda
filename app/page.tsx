@@ -19,7 +19,7 @@ import { getPeliculas } from "@/lib/cines";
 import { getKidsEventos } from "@/lib/kids";
 import { getDeporteEventos } from "@/lib/deporte";
 import { recomendados } from "@/lib/recomendados";
-import { localDateStr } from "@/lib/utils";
+import { localDateStr, partirEnSemana } from "@/lib/utils";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
@@ -384,9 +384,40 @@ function EventsSkeleton() {
   );
 }
 
+/**
+ * **La última sección de la portada no repite la semana.**
+ *
+ * Medido en producción el 23 de octubre de 2026: pintaba doce tarjetas y **las
+ * doce** estaban ya en «Próximos 7 días». No era un fallo de composición sino de
+ * aritmética — las dos secciones recibían la agenda entera y cada una cortaba por
+ * su cuenta, así que la de abajo cortaba exactamente por donde empezaba la de
+ * arriba.
+ *
+ * Ahora recibe solo lo de **después** de la semana, y eso no es un hueco: ese
+ * mismo día había 1.968 eventos próximos, 448 dentro de la semana y **1.520 más
+ * allá del día séptimo**, porque el calendario municipal se publica con meses de
+ * antelación. La sección deja de ser un eco de la anterior y pasa a ser alcance.
+ *
+ * El enlace tampoco es `/culture`. «La agenda completa» es `/agenda/AAAA-MM`,
+ * que es donde está la lista entera —lo mismo que hace el pie—, y `/culture` es
+ * la vista cultural: dejaba fuera deporte, niños y agenda municipal.
+ */
 async function EventsWithData() {
   const eventos = await getCachedEventos();
-  return <HomeEventsClient eventos={eventos} />;
+  // El reloj se lee aquí y no en el cliente por el mismo motivo que en
+  // `HeroWithData` y `NextDaysWithData`: la home tiene `revalidate = 300`, así que
+  // la ventana se decide una vez por render. Si la calculara el cliente, el
+  // servidor hidrataría una lista y el navegador otra —y con la pestaña abierta
+  // cruzando la medianoche, el corte se movería solo mientras nadie mira—.
+  // eslint-disable-next-line react-hooks/purity
+  const ahora = Date.now();
+  const { despues } = partirEnSemana(eventos, ahora);
+  return (
+    <HomeEventsClient
+      eventos={despues}
+      mesHref={`/agenda/${localDateStr(new Date(ahora)).slice(0, 7)}`}
+    />
+  );
 }
 
 async function AtAGlanceWithData() {

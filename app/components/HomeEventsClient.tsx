@@ -22,17 +22,35 @@ type Evento = {
   source?: string;
 };
 
-export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
+/**
+ * Lo que viene **después** de esta semana. `eventos` ya llega cortado desde
+ * `EventsWithData` con `partirEnSemana`, y por eso aquí no hay ninguna resta de
+ * fechas: el corte se decide una sola vez, en el servidor, y con la misma función
+ * que usa la rejilla de siete pestañas. Cuando esto se llamaba «Próximos eventos»
+ * recibía la agenda entera y hacía `slice(0, 12)`, y las doce tarjetas eran doce
+ * veces lo que ya estaba arriba.
+ *
+ * `mesHref` es `/agenda/AAAA-MM` y llega como prop por el mismo motivo: el mes es
+ * una lectura del reloj, y un reloj leído en el cliente puede no coincidir con el
+ * que hidrató el servidor.
+ */
+export default function HomeEventsClient({
+  eventos,
+  mesHref,
+}: {
+  eventos: Evento[];
+  mesHref: string;
+}) {
   return (
     <section className="py-12 md:py-16 px-5 sm:px-6 bg-bg-muted">
       <div className="max-w-7xl mx-auto">
         <InViewWrapper>
           <SectionHead
             tag="Agenda"
-            title="Próximos eventos"
-            subtitle="Lo que viene en Vitoria-Gasteiz"
-            href="/culture"
-            linkLabel="Ver todos los eventos"
+            title="Más adelante"
+            subtitle="Lo que viene después de esta semana en Vitoria-Gasteiz."
+            href={mesHref}
+            linkLabel="La agenda completa"
             color="var(--violet)"
           />
         </InViewWrapper>
@@ -55,6 +73,11 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
             ))}
           </div>
         ) : (
+          /* Este vacío no es el de antes. Antes significaba «la agenda está en
+             blanco», y era cierto porque la sección recibía todo: si no había
+             nada, no había nada. Ahora la sección solo ve lo de después de la
+             semana, así que cero significa «no hay nada anunciado más allá», que
+             es una frase muy distinta y no dice nada del día de hoy. */
           <InViewWrapper>
             <EmptyState
               icon={
@@ -63,9 +86,9 @@ export default function HomeEventsClient({ eventos }: { eventos: Evento[] }) {
                   <path d="M2.5 8h15M6.5 2.5V5M13.5 2.5V5" />
                 </svg>
               }
-              title="La agenda está en blanco"
-              hint="No hay eventos publicados para los próximos días. Suele llenarse a principio de semana."
-              action={{ href: "/culture", label: "Explorar la agenda cultural" }}
+              title="Nada anunciado más allá de esta semana"
+              hint="Lo de estos siete días ya está arriba. El calendario municipal se publica con meses de antelación, así que esto se llena solo."
+              action={{ href: mesHref, label: "Ver la agenda del mes" }}
             />
           </InViewWrapper>
         )}

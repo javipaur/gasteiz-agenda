@@ -37,6 +37,22 @@ type DayGroup = {
   events: Evento[];
 };
 
+/**
+ * Cuántas tarjetas se pintan de un día antes de pedir permiso.
+ *
+ * Medido en producción el 23 de octubre de 2026: el día se pinta en rejilla de
+ * tres columnas dentro de `max-w-5xl`, y aquel viernes tenía **112 eventos**, que
+ * son **10.474 px** de alto. Una sección de diez mil píxeles no es una sección,
+ * es un archivo: deja de haber final visible y el resto de la portada queda
+ * detrás de un muro.
+ *
+ * Doce son cuatro filas, que es donde la rejilla se lee como una muestra. Lo que
+ * no se hace es esconder el resto: se expande en el sitio, con el botón de abajo,
+ * y el número sigue estando en la cabecera del panel («Hoy 23 · 112 eventos»), así
+ * que nadie tiene que adivinar cuánto falta.
+ */
+const TOPE_TARJETAS = 12;
+
 export default function NextDaysSection({
   eventos,
   ahora,
@@ -55,6 +71,9 @@ export default function NextDaysSection({
 }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(0);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  // Nace cerrado y se cierra solo al cambiar de día o de categoría: expandir
+  // «Hoy» para ver 112 no debe dejar «Mañana» abierto con tres eventos dentro.
+  const [expandido, setExpandido] = useState(false);
 
   const weekDays: DayGroup[] = useMemo(() => {
     const today = new Date(ahora);
@@ -91,6 +110,7 @@ export default function NextDaysSection({
   const toggleDay = useCallback((idx: number) => {
     setSelectedDay((prev) => (prev === idx ? null : idx));
     setCategoryFilter("all");
+    setExpandido(false);
   }, []);
 
   const dayRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -106,6 +126,7 @@ export default function NextDaysSection({
         return next;
       });
       setCategoryFilter("all");
+      setExpandido(false);
     },
     []
   );
@@ -136,9 +157,24 @@ export default function NextDaysSection({
      el destacado es la imagen más grande de la home, y por lo mismo que en las tarjetas
      tiene que saber si va por el proxy. */
   const featured = useMemo(
-    () => dayEvents.find((e) => propsImagen(e.image)) || null,
-    [dayEvents]
+    // `filteredEvents` y no `dayEvents`: si el destacado saliera del día entero,
+    // filtrar por «Teatro» en un viernes de conciertos seguiría enseñando un
+    // concierto en grande encima de una lista de teatro, y con «Teatro» sin
+    // resultados el panel diría «no hay eventos de Teatro» debajo de una tarjeta
+    // de música. El filtro gobierna el panel entero o no es un filtro.
+    () => filteredEvents.find((e) => propsImagen(e.image)) || null,
+    [filteredEvents]
   );
+
+  /* El destacado sale de la rejilla. Sin esto, el evento de la tarjeta grande
+     aparecía **otra vez** como tarjeta normal unas líneas más abajo: la misma
+     foto, el mismo título y el mismo enlace, dos veces en el mismo panel. */
+  const gridEvents = useMemo(
+    () => filteredEvents.filter((e) => e.id !== featured?.id),
+    [filteredEvents, featured]
+  );
+
+  const visibles = expandido ? gridEvents : gridEvents.slice(0, TOPE_TARJETAS);
 
   const weekendIdx = weekDays.findIndex((d, i) => {
     const wd = new Date(d.date).getDay();
@@ -163,7 +199,7 @@ export default function NextDaysSection({
         <div className="flex items-center gap-2 mb-4">
           {!todaySelected && (
             <button
-              onClick={() => { setSelectedDay(0); setCategoryFilter("all"); }}
+              onClick={() => { setSelectedDay(0); setCategoryFilter("all"); setExpandido(false); }}
               // `min-h-[44px]` en lugar de `h-9`: eran 36 px de alto. La fila de
               // pestañas es la forma principal de elegir día, y 36 es justo lo
               // que hace fallar un dedo gordo.
@@ -174,7 +210,7 @@ export default function NextDaysSection({
           )}
           {hasWeekend && !weekendSelected && (
             <button
-              onClick={() => { setSelectedDay(weekendIdx); setCategoryFilter("all"); }}
+              onClick={() => { setSelectedDay(weekendIdx); setCategoryFilter("all"); setExpandido(false); }}
               className="group inline-flex items-center gap-2 min-h-[44px] px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
             >
               Este finde
@@ -259,7 +295,7 @@ export default function NextDaysSection({
                 {availableCategories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setCategoryFilter(cat)}
+                    onClick={() => { setCategoryFilter(cat); setExpandido(false); }}
                     className={`min-w-[44px] min-h-[44px] px-3 font-medium rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer ${
                       categoryFilter === cat
                         ? `${cat !== "all" && CATEGORY_FILLS[cat] ? "" : "bg-accent "}text-white`
@@ -312,18 +348,40 @@ export default function NextDaysSection({
             )}
 
             {filteredEvents.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredEvents.map((evento, i) => (
-                  <EventCard
-                    key={evento.id}
-                    evento={evento}
-                    showCategory
-                    showSource
-                    categoryColors={CATEGORY_COLORS}
-                    priority={i < 3}
-                  />
-                ))}
-              </div>
+              <>
+                {gridEvents.length > 0 && (
+                  <div
+                    id={`day-grid-${selectedDay}`}
+                    className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+                  >
+                    {visibles.map((evento, i) => (
+                      <EventCard
+                        key={evento.id}
+                        evento={evento}
+                        showCategory
+                        showSource
+                        categoryColors={CATEGORY_COLORS}
+                        priority={i < 3}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {gridEvents.length > TOPE_TARJETAS && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandido((v) => !v)}
+                    aria-expanded={expandido}
+                    aria-controls={`day-grid-${selectedDay}`}
+                    className="mt-5 w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-bg-muted px-4 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.99]"
+                  >
+                    {expandido
+                      ? "Ver menos"
+                      : `Ver los otros ${gridEvents.length - TOPE_TARJETAS}`}
+                    <span aria-hidden="true">{expandido ? "↑" : "↓"}</span>
+                  </button>
+                )}
+              </>
             ) : (
               <div className="py-2">
                 {categoryFilter !== "all" ? (

@@ -956,6 +956,42 @@ atajo. Por eso los dos se apuntan al registro y solo uno atiende la tecla.
   `e2e/helpers.ts` lo cierra antes de pulsar. No es un bug de la app —el aviso
   se cierra con un clic— pero es una condición del entorno de prueba.
 
+## Hecho: la portada deja de repetirse (2026-10-23)
+
+El ritmo era el error, no el color. Dos medidas que se ven en datos:
+
+### La última sección deja de ser un eco
+
+Medido el 23 de octubre de 2026: **1.968 eventos próximos**, 448 dentro de la
+semana y **1.520 después**. Y «Próximos eventos» pintaba **12 tarjetas, las
+12 ya en «Próximos 7 días»** —solape 12/12. Recibía la agenda entera y hacía
+`slice(0, 12)` cortando por donde la rejilla ya empezaba.
+
+Ahora `partirEnSemana` corta **una sola vez** con el mismo calendario que usa
+`NextDaysSection` (localDateStr), `EventsWithData` pasa solo lo posterior al
+corte, y `HomeEventsClient` cambia de nombre a **«Más adelante»** con enlace a
+**`/agenda/AAAA-MM`** (la agenda completa) en vez de `/culture`. Cuando no hay
+nada más allá de la semana, el vacío explica que **lo de estos siete días ya
+está arriba**, no que «la agenda esté en blanco».
+
+### Un muro de 10.000 píxeles se reduce a una muestra
+
+El viernes en cuestión, el panel de «Hoy» mostraba **112 tarjetas** en una rejilla
+de tres columnas: **10.474 px** de alto. Una sección de diez mil píxeles hace
+que el resto de la portada desaparezca.
+
+Ahora se muestran **12 por defecto** con un botón «Ver los otros X» / «Ver menos».
+El destacado se elige **dentro del filtro** (no del día entero), se quita de la
+rejilla para no duplicarlo, el `tope` y el estado `expandido` se resetean al
+cambiar de día o de categoría, y el teclado de pestañas sigue funcionando.
+El número total sigue visible en la cabecera del panel, así que se sabe cuánto
+queda sin adivinarlo.
+
+Los tests que dependían del nombre «Próximos eventos» pasan al nuevo nombre; el
+invariante «ninguna sección se pinta dos veces» sigue siendo cierto, y hay un
+test nuevo que exige el corte por `partirEnSemana`. `tsc` 0 · tests verdes.
+
+
 ## Hecho: el cuadrante de guardia se lee (2026-10-20)
 
 El Colegio Oficial de Farmacéuticos de Álava publica el cuadrante en

@@ -87,4 +87,19 @@ describe("la composición de la home", () => {
 
     expect(repetidos).toEqual([]);
   });
+
+  it("la última sección no repite la semana: usa lo de después", () => {
+    // Antes recibía la agenda entera y hacía slice(0,12), así que las doce tarjetas
+    // eran las mismas que las de «Próximos 7 días». Ahora corta con partirEnSemana
+    // y pasa solo lo posterior al corte, con el enlace a la agenda por mes.
+    const src = fuente();
+    const eventos = en(src, "<EventsWithData />");
+    const despues = en(src, "partirEnSemana");
+    // El enlace se pasa como prop y no se pinta en `page.tsx`: el `<a>` lo pone
+    // `HomeEventsClient`. Se busca la prop, que es lo que la home decide.
+    const mesHref = en(src, 'mesHref={`/agenda/${localDateStr(new Date(ahora)).slice(0, 7)}`}');
+    expect(eventos).toBeGreaterThan(-1);
+    expect(despues).toBeGreaterThan(-1);
+    expect(mesHref).toBeGreaterThan(-1);
+  });
 });
