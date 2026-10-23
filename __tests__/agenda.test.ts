@@ -334,6 +334,25 @@ describe("aggregate", () => {
     expect(evs.map((e) => e.title)).toEqual(["Concierto de prueba"]);
   });
 
+  it("descarta el cancelado que solo viene en el título", async () => {
+    // Dos fuentes no rellenan `cancelled` y escriben el aviso dentro del título.
+    // Es el caso que se coló en el carrusel del 23 de octubre de 2026: una visita
+    // guiada cancelada salió como uno de «los diez planes» del día.
+    const evs = await aggregate([
+      entry({
+        run: async () => [
+          BASE,
+          {
+            ...BASE,
+            title: "Visita guiada: Palacio de Villa Suso. Cancelada",
+            link: "https://e/cancelada",
+          },
+        ],
+      }),
+    ]);
+    expect(evs.map((e) => e.title)).toEqual(["Concierto de prueba"]);
+  });
+
   it("filtra después del dedupe: manda el cancelado de la fuente que gana", async () => {
     // El filtro va después del dedupe a propósito, así que si la fuente de mayor
     // confianza dice que está cancelado el evento desaparece aunque otra fuente,

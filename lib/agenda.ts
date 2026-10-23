@@ -1,5 +1,6 @@
 import { getCachedOrFetch } from "./cache";
 import { agendaLink, agendaSlug, localDateKey } from "./slug";
+import { tituloCancelado } from "./cancelaciones";
 import { normalizeCategory } from "./categories";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
 import { logger } from "./axiom/server";
@@ -133,7 +134,10 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
     source: entry.id,
     kind: entry.kind,
     tags: entry.tags && entry.tags.length ? [...entry.tags] : undefined,
-    cancelled: raw.cancelled || undefined,
+    // El campo no basta: dos fuentes escriben el aviso dentro del título y dejan
+    // `cancelled` vacío, así que el filtro de abajo no los veía. El porqué largo
+    // y la medición están en `lib/cancelaciones.ts`.
+    cancelled: raw.cancelled || tituloCancelado(title) || undefined,
     price: typeof raw.price === "string" ? raw.price : undefined,
     rating: typeof raw.rating === "number" ? raw.rating : undefined,
   };
