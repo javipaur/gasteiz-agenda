@@ -89,11 +89,24 @@ describe("GET /api/promo", () => {
     }
   });
 
-  it("nunca más de nueve diapositivas, que es el límite de Instagram con la portada", async () => {
+  it("nunca más diapositivas de las que el publicador va a subir", async () => {
+    const { MAX_DIAPOSITIVAS } = await import("@/lib/promo");
     const body = await (await pedir(`?fecha=${FECHA}&limite=50`)).json();
 
-    // Portada más nueve. Si un día trae más, el selector recorta y el texto lo dice.
-    expect(body.imagenes.length).toBeLessThanOrEqual(9);
+    // **El número está en `lib/promo.ts` y aquí se comprueba el contrato, no la cifra.**
+    // n8n sube `portada` más `imagenes`, y no decide: si el paquete trae una más de las
+    // que el flujo espera, esa diapositiva se queda fuera del carrusel sin que nadie lo
+    // note. Antes este caso decía nueve copiando un "límite de Instagram" que no existe
+    // —Meta admite veinte hijos—, así que medía una creencia en vez de una promesa.
+    expect(body.imagenes.length).toBeLessThanOrEqual(MAX_DIAPOSITIVAS);
+  });
+
+  it("y el techo editorial cabe de sobra en el límite real de Meta", async () => {
+    const { MAX_DIAPOSITIVAS } = await import("@/lib/promo");
+
+    // Veinte hijos por carrusel, contando la portada. Se comprueba aquí para que subir
+    // `MAX_DIAPOSITIVAS` sin mirar la plataforma rompa un test y no una publicación.
+    expect(MAX_DIAPOSITIVAS + 1).toBeLessThanOrEqual(20);
   });
 
   it("acepta la ventana larga con `?desde=` y `?hasta=`", async () => {

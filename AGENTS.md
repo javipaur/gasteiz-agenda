@@ -1415,3 +1415,94 @@ blancas con filete y texto negro.
 - Los e2e que miden la home siguen verdes: el hero con la tarjeta destacada, la
   tira de un vistazo, la pastilla de categoria, y el conmutador de tema con sus
   tres estados.
+
+## Hecho: el carrusel deja de parecer un borrador (2026-10-23)
+
+El producto de este proyecto termina en un carrusel de Instagram, y era la unica
+pieza que seguia pareciendo un marcador de posicion: una portada con un contador
+en vez de un plan, tarjetas en un tema oscuro que **no era el de la marca**, y un
+pie que empezaba con un indice de seis vinetas que repetia lo que ya se veia en
+las diapositivas.
+
+### La referencia no es una cuenta grande, y aun asi sirve
+
+`@cazaplan`, medida el 23 de octubre de 2026: **3.703 seguidores, 14 posts**. Es
+la cuenta de referencia y no publica mas que esto. Sus carruseles llevan **trece
+o mas diapositivas** y su rejilla mezcla formatos, o sea que lo que funciona no es
+un numero magico de imagenes.
+
+De ahi salieron las dos decisiones que se ven:
+
+- **La portada es el plan de verdad**, no un contador. La foto, el titulo y el
+  recinto, con la marca arriba. Un `1/11` no le dice a nadie si merece la pena
+  deslizar; el plan si.
+- **`MAX_DIAPOSITIVAS` pasa de 6 a 10.** El comentario decia que Instagram
+  permite diez y **eso es falso**: Meta admite **veinte hijos** por carrusel. Los
+  seis no eran un limite de la plataforma, eran una decision editorial que nadie
+  habia revisado. Se suben a diez porque el paquete semanal tiene material de
+  sobra; no se suben a veinte porque veinte es la agenda entera, y la agenda entera
+  ya esta en el enlace de la bio.
+
+### La foto de la portada se recorta y la del cartel no
+
+Y no es una inconsistencia: son dos preguntas distintas. En la portada el titulo
+**se vuelve a escribir en tipografia** debajo de la foto, asi que la foto es
+ambiente y puede ir a sangre (`objectFit: cover`). En una diapositiva de evento el
+cartel **es** el dato: recortarlo corta la esquina del promotor o la fecha que el
+propio cartel pinta, y ahi se usa `objectFit: contain` dentro del marco.
+
+### El fallo que no se vio hasta que se miro la imagen
+
+La linea de la fecha de las diapositivas de evento decia, literalmente,
+`2026-10-23T17:30:00.000Z`. Lo encontro un subagente con vision leyendo el PNG, no
+un test.
+
+`AgendaEvento.date` **no es `AAAA-MM-DD`: es un instante ISO completo.** El codigo
+hacia `new Date(\`${date}T12:00:00\`)`, que con `2026-10-23T00:00:00.000ZT12:00:00`
+es `Invalid Date`; la funcion devolvia la entrada tal cual y la tarjeta pintaba la
+cadena cruda. **Ningun error en ningun sitio**: una fecha ilegible sigue siendo una
+fecha.
+
+`diaCivil()` se queda con los diez primeros caracteres y los reinterpreta a
+mediodia, y ahora las dos formas pasan por ahi.
+
+### Las fechas y los colores tienen un solo dueno
+
+- `fechaCortaPromo()` y `ventanaCortaPromo()` viven en `lib/promo.ts` y no en las
+  rutas. La portada necesitaba la ventana y la tarjeta necesitaba el dia; con una
+  copia en cada ruta, el dia que una aprendiera a leer ISO la otra seguiria
+  escupiendo la cadena, que es exactamente el fallo de arriba.
+- **Y no dice «HOY».** Lo decia, y una palabra que la imagen no puede saber: la
+  portada se pide por URL, y una URL guardada de la semana pasada habria seguido
+  afirmando que es hoy. El dia de la semana dice lo mismo sin poder mentir.
+- `PALETA_PROMO` sale del post de presentacion, que ya era marca. El tema oscuro
+  anterior (`#141210` y `#E0A34E`) no era de nadie.
+- `lib/promo-marca.tsx` es la marca en un solo sitio: el `<svg>` en linea, porque
+  **Satori no descarga ficheros externos** y un `<img src="/brand-mark.svg">` sale
+  como un hueco.
+
+### El pie del post dice una promesa, no un indice
+
+Decia seis vinetas con el nombre de cada plan, que es lo que ya se ve al deslizar.
+Ahora la primera linea es la promesa con el numero y la ventana, la segunda dice
+que hay dentro, y cierra con `¿Cual te llevas?` y el enlace de la bio. Las
+etiquetas bajan a cinco y dejan de ser genericas: `#Gasteiz` va ademas de
+`#VitoriaGasteiz` porque la ciudad se busca con las dos.
+
+### Lo que sigue sin verificar
+
+**El diseno no se ha mirado mas que por un subagente con vision**, y ese es el
+cambio de metodo que si importa: el modelo que escribe el codigo no ve las
+imagenes, asi que las diapositivas se revisan leyendolas. La primera pasada
+encontro el ISO crudo, el dominio casi ilegible sobre crema y un hueco inferior de
+150 px; las tres estan corregidas y verificadas en el PNG, no en el codigo.
+
+**Y sigue sin publicarse nada.** Este repositorio sirve el paquete y nunca
+publica; n8n publica y nunca decide. `MAX_DIAPOSITIVAS` tiene que coincidir con el
+numero de hijos que crea el flujo, o la diapositiva que sobre se cae sin aviso.
+
+## Verificado (2026-10-23)
+
+- `tsc` 0 · **1204/1204** tests · lint 0 errores (15 warnings, baseline) · build 0.
+- Cinco diapositivas renderizadas y leidas: sin ninguna fecha ISO, dominio
+  legible, sin hueco inferior.

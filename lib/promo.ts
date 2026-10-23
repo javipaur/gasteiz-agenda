@@ -47,13 +47,65 @@ export const TAMANO_HISTORIA = { width: 1080, height: 1920 } as const;
  * **`LIMITE_POR_DEFECTO` sigue siendo 8** y no se toca: es el valor por defecto de un
  * selector genérico, y este número es de un canal concreto.
  *
- * **Y bajó de nueve a seis.** Instagram admite diez, así que el nueve no lo ponía el
- * límite sino una decisión de lectura: con seis el carrusel se termina en el móvil sin
- * desplazar, y un post que hay que arrastrar hasta el final es un post que no se ve
- * entero. Además con la deduplicación de días, nueve plazas dejaban dos para el mismo
- * evento en fechas distintas.
+ * **Y subió de seis a diez, porque el «límite de diez» que lo justificaba era falso.**
+ * El comentario anterior afirmaba que Instagram no acepta más de diez diapositivas y de
+ * ahí salía el seis. Comprobado contra la documentación de Meta en octubre de 2026: un
+ * carrusel admite **veinte** hijos. Así que el seis nunca lo puso la plataforma, lo puso
+ * una decisión de lectura —«con seis el carrusel se termina sin desplazar»—, y esa
+ * decisión se revisa ahora con el número delante: medido el 23 de octubre de 2026, la
+ * cuenta de referencia del sector publica **13 diapositivas o más** por post, y nosotros
+ * seis, con 56 seguidores y dos publicaciones. Lo que falta ahí no es brevedad.
+ *
+ * **Diez y no veinte, por el mismo motivo en la otra dirección.** Veinte diapositivas de
+ * una ciudad de 250.000 habitantes son la agenda entera, y la agenda entera ya está en
+ * el enlace. Diez es lo que cabe en el pulgar sin que ninguna diapositiva sobre, y lo
+ * que hace que el «10 planes» del pie de foto sea verdad y no una promesa a medias.
+ *
+ * **El número aparece en tres sitios y tiene que ser el mismo:** el pie de foto, el
+ * carrusel y `/hoy`. Ya pasó una vez que el post llevaba nueve y la página ocho.
  */
-export const MAX_DIAPOSITIVAS = 6;
+export const MAX_DIAPOSITIVAS = 10;
+
+/**
+ * Los colores del paquete de redes.
+ *
+ * **Los mismos que la web y que `public/brand-mark.svg`**, y en un solo sitio por el
+ * mismo motivo que `TAMANO_PROMO`: el día que la marca cambie de rojo, este es el
+ * fichero que se toca. La versión anterior de estas tarjetas usaba `#141210` y
+ * `#E0A34E`, que no son de la marca: eran un tema oscuro elegido a mano para una serie
+ * de tres imágenes que no se parecía a nada de lo que hay en el sitio.
+ */
+export const PALETA_PROMO = {
+  /** El crema de la marca. Es el fondo de todas las tarjetas del carrusel. */
+  papel: "#faf9f5",
+  /** El marco de las fotos: un paso más oscuro que el papel, para que la foto tenga borde. */
+  marco: "#efece4",
+  tinta: "#1c1917",
+  tintaSuave: "#57534e",
+  tintaTenue: "#78716c",
+  rojo: "#dc2626",
+  mostaza: "#a16207",
+  filete: "#e7e5e4",
+} as const;
+
+/**
+ * Las etiquetas del pie de foto.
+ *
+ * **Cinco y no treinta.** Un muro de etiquetas no da alcance desde 2023: lo que mueve
+ * una cuenta pequeña es la primera línea y que alguien guarde o comparta, no la lista.
+ * Así que aquí van las cinco que describen la cuenta —ciudad, planes, agenda, ocio— y
+ * ninguna genérica del tipo `#photooftheday`, que trae seguidores que no son de aquí.
+ *
+ * **`#Gasteiz` además de `#VitoriaGasteiz`**, porque la ciudad se busca con las dos y la
+ * segunda es la que usa la gente de casa.
+ */
+export const HASHTAGS_PROMO = [
+  "#VitoriaGasteiz",
+  "#Gasteiz",
+  "#PlanesVitoria",
+  "#AgendaVitoria",
+  "#OcioVitoria",
+].join(" ");
 
 /** La base pública del sitio. Es la de `metadataBase` en `app/layout.tsx`. */
 export const ORIGEN_PROMO = "https://gasteizclick.javierpalacio.es";
@@ -97,9 +149,10 @@ export const URL_PRESENTACION = `${ORIGEN_PROMO}/api/promo/presentacion`;
 /**
  * El pie del post de presentación.
  *
- * **Va escrito a mano por el mismo motivo que `textoDelPie`:** un pie de foto es texto de
- * persona, y no una plantilla. Aquí además no hay ninguna lista que sacar de los datos:
- * es un texto fijo sobre la cuenta, y eso es justo lo que lo hace legible.
+ * **Va escrito a mano, y no generado como `textoDelPie`.** Aquel sí sale de los datos
+ * —cuántos planes, de qué categorías, para qué fechas—, porque eso cambia cada día.
+ * Este no: es un texto fijo sobre la cuenta, y un texto fijo es justo lo que lo hace
+ * legible.
  *
  * **Sin `utm_content` con fecha, a diferencia del enlace del carrusel.** El del día lo
  * lleva porque su pregunta es "qué post trajo visitas", y esa pregunta tiene respuesta
@@ -107,12 +160,14 @@ export const URL_PRESENTACION = `${ORIGEN_PROMO}/api/promo/presentacion`;
  * serviría para distinguir dos posts idénticos.
  */
 export const TEXTO_PRESENTACION = [
-  "Vitoria-Gasteiz tiene agenda de sobra. Lo que faltaba era alguien que la juntara.",
+  "Vitoria-Gasteiz tiene planes de sobra. El problema era encontrarlos.",
   "",
-  "Gasteiz Click recoge lo que pasa en 28 sitios y te dice qué merece la pena.",
-  "Sin registro, sin cuenta y sin que te manden nada.",
+  "Gasteiz Click junta la agenda de toda la ciudad en un solo sitio y te dice qué merece la pena hoy.",
+  "Gratis, sin registro y sin que te manden nada.",
   "",
-  "La agenda entera está aquí abajo 👇",
+  "Guárdalo, y mándaselo a quien siempre te dice «cuando quieras». 👇",
+  "",
+  HASHTAGS_PROMO,
 ].join("\n");
 
 /** El enlace del post de presentación: siempre el mismo, y sin utm. */
@@ -305,8 +360,19 @@ export type PaquetePromo = {
  * que llama a esta hoja, y el script importa la misma. Dos copias divergirían el día que
  * se tocara una, y las dos seguirían funcionando: ese es el fallo caro, el que nadie ve.
  *
- * **No hay ninguna llamada a la Graph API aquí ni en ninguna parte de este proyecto.**
- * Publicar es una decisión editorial y la publicación es manual.
+ * **Aquí no hay ninguna llamada a la Graph API, y no la va a haber.** Este fichero
+ * prepara el paquete y nada más: el token no vive en el repositorio y publicar es una
+ * decisión editorial de una persona.
+ *
+ * **Lo que sí se ha decidido después es no hacerlo todo a mano.** Cuando esa persona
+ * decida publicar, subir once imágenes una por una desde el móvil es donde se pierden
+ * los posts. Esa parte vive **fuera** de este proyecto, en el flujo de n8n, que lee
+ * `/api/promo?fecha=` y es quien guarda el token. Así que la frontera queda así: el
+ * repositorio sirve el paquete y nunca publica; n8n publica y nunca decide.
+ *
+ * **Y por eso `MAX_DIAPOSITIVAS` importa más que antes.** Ese número es exactamente el
+ * de imágenes que n8n sube como hijos del carrusel: si el límite cambia aquí y no en el
+ * flujo, el carrusel sale incompleto sin que nada falle.
  */
 export function paqueteDePromo(
   lista: Array<{ slug: string; title: string; location: string }>,
@@ -338,30 +404,228 @@ function sumarDias(ymd: string, dias: number): string {
 /**
  * El pie de foto.
  *
- * Va escrito a mano y no se genera con una plantilla: un pie de foto es texto de
- * persona, y la diferencia entre "3 planes para hoy" y "3 planes para hoy 👇" es la
- * diferencia entre un post que se lee y uno que se salta. Lo que sí es mecánico es
- * la lista, y esa sale de los datos.
+ * **La forma la copia la cuenta de referencia del sector, y no por imitación sino porque
+ * cada línea hace un trabajo.**
+ *
+ * 1. **La promesa, con número y con fechas.** «10 planes en Vitoria-Gasteiz, del sábado
+ *    10 al domingo 11 de octubre.» Es lo único que se lee en el feed antes del «ver
+ *    más», así que tiene que decir cuánto hay y para cuándo. El pie anterior empezaba
+ *    por «HOY en Vitoria-Gasteiz: 6 planes que recomendamos», que promete lo mismo sin
+ *    decir cuándo acaba.
+ * 2. **Qué hay dentro.** «Día, hora, sitio y precio en cada uno.» Es la razón para
+ *    deslizar: si el carrusel tiene lo que hace falta para decidir, no hace falta abrir
+ *    el enlace.
+ * 3. **El abanico de categorías.** Sustituye a la lista de seis viñetas. Una lista de
+ *    títulos en el pie es un índice de algo que ya está en las diapositivas; el abanico
+ *    dice de qué va la semana, que es lo que decide si alguien sigue leyendo. Y sale de
+ *    los datos, no de una plantilla.
+ * 4. **La pregunta.** «¿Cuál te llevas?» es lo que se comparte, y compartir es el único
+ *    crecimiento que tiene una cuenta de 56 seguidores.
+ * 5. **Los hashtags.** Cinco, los de `HASHTAGS_PROMO`.
+ *
+ * **Se fue la línea «la agenda completa, con las 28 fuentes».** Era un número interno:
+ * a quien lee el post le da igual de cuántas webs sale el dato, y decírselo convierte
+ * una recomendación en un inventario. El enlace lo pone el paquete, no el pie.
  */
 export function textoDelPie(
-  lista: Array<{ title: string; location: string }>,
+  lista: Array<{ title: string; location: string; category?: string }>,
   desde: string,
   hasta: string
 ): string {
-  const ventana = desde === hasta ? "HOY" : "ESTE FINDE";
   if (lista.length === 0) {
-    return `${ventana} no hay nada recomendado.\n\nPero el resto de la agenda sí: mira la de aquí abajo.`;
+    return [
+      `${ventanaEnPalabras(desde, hasta)} no hay nada que recomendarte.`,
+      "",
+      "Pero el resto de la agenda sigue en pie. Está aquí abajo.",
+    ].join("\n");
   }
 
-  const lineas = lista.map(
-    (e) => `• ${e.title}${e.location ? ` — ${e.location}` : ""}`
-  );
+  const cuenta = lista.length === 1 ? "hay 1 plan" : `hay ${lista.length} planes`;
+  const abanico = abanicoDeCategorias(lista);
 
   return [
-    `${ventana} en Vitoria-Gasteiz: ${lista.length} ${lista.length === 1 ? "plan" : "planes"} que recomendamos.`,
+    `${ventanaEnPalabras(desde, hasta)} ${cuenta} en Vitoria-Gasteiz.`,
+    "Día, hora, sitio y precio en cada uno: solo hay que elegir.",
+    ...(abanico ? ["", abanico] : []),
     "",
-    ...lineas,
+    "¿Cuál te llevas? 👇",
     "",
-    "La agenda completa, con las 28 fuentes:",
+    "Los demás, por día y por hora, en el enlace de la bio.",
+    "",
+    HASHTAGS_PROMO,
   ].join("\n");
+}
+
+/** Los días y los meses, en minúscula y enteros: el pie es una frase, no una etiqueta. */
+const DIAS_SEMANA = [
+  "domingo",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+];
+
+const MESES_LARGOS = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+
+const DIAS_CORTOS = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+
+const MESES_CORTOS = [
+  "ENE",
+  "FEB",
+  "MAR",
+  "ABR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AGO",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DIC",
+];
+
+/**
+ * La fecha de un `AgendaEvento` como día civil, a mediodía.
+ *
+ * **`evento.date` no es `AAAA-MM-DD`: es un instante ISO completo**, del tipo
+ * `2026-10-23T00:00:00.000Z`. Y ahí estaba el fallo que se vio en la primera
+ * diapositiva renderizada: `new Date("2026-10-23T00:00:00.000Z" + "T12:00:00")` es
+ * `Invalid Date`, la función devolvía el texto de entrada y la tarjeta acabó enseñando
+ * la cadena ISO cruda en la línea de la fecha. **No dio ningún error**: una fecha
+ * ilegible es una fecha.
+ *
+ * Se queda con los diez primeros caracteres y los reinterpreta a mediodía, que es lo
+ * mismo que hace `lib/agenda` con estas fechas en el resto del proyecto: el día no se
+ * mueve por el huso porque a las 12:00 no hay frontera cerca.
+ */
+function diaCivil(iso: string): Date | null {
+  const ymd = iso.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+
+  const d = new Date(`${ymd}T12:00:00`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** `miércoles 21 de octubre` a partir de `2026-10-21` o de su instante ISO. */
+function diaEnPalabras(fecha: string): string {
+  const d = diaCivil(fecha);
+  if (!d) return fecha;
+  return `${DIAS_SEMANA[d.getDay()]} ${d.getDate()} de ${MESES_LARGOS[d.getMonth()]}`;
+}
+
+/**
+ * `VIE 23 OCT`: la fecha de las imágenes, en caja alta y corta.
+ *
+ * **Va aquí y no en la ruta por el mismo motivo que todo lo demás del paquete.** La
+ * tarjeta de evento la necesitaba y la portada necesitaba la de la ventana, y las dos
+ * son la misma pregunta —«¿qué día es esto?»— con dos respuestas distintas. Con una
+ * copia en cada ruta, el día que una aprenda a leer `evento.date` la otra seguiría
+ * escupiendo la cadena ISO, que es exactamente el fallo que esto corrige.
+ */
+export function fechaCortaPromo(fecha: string): string {
+  const d = diaCivil(fecha);
+  if (!d) return fecha;
+  return `${DIAS_CORTOS[d.getDay()]} ${d.getDate()} ${MESES_CORTOS[d.getMonth()]}`;
+}
+
+/**
+ * La ventana en la esquina de la portada: `VIE 23 OCT`, `23 — 25 OCT`, `31 OCT — 1 NOV`.
+ *
+ * **No dice «HOY».** Lo decía, y es una palabra que la imagen no puede saber: la portada
+ * se pide por URL con una fecha, y una URL guardada de la semana pasada habría seguido
+ * afirmando que es hoy. El día de la semana dice lo mismo sin poder mentir.
+ *
+ * El mes se escribe **una vez** cuando la ventana no cruza de mes, que es lo que hace
+ * que `23 — 25 OCT` se lea de un vistazo y `23 OCT — 25 OCT` no.
+ */
+export function ventanaCortaPromo(desde: string, hasta: string): string {
+  const d1 = diaCivil(desde);
+  if (!d1) return "";
+
+  const d2 = desde === hasta ? d1 : diaCivil(hasta);
+  if (!d2) return "";
+
+  if (desde === hasta) return fechaCortaPromo(desde);
+
+  const mismoMes = d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
+  if (mismoMes) return `${d1.getDate()} — ${d2.getDate()} ${MESES_CORTOS[d2.getMonth()]}`;
+
+  return `${d1.getDate()} ${MESES_CORTOS[d1.getMonth()]} — ${d2.getDate()} ${MESES_CORTOS[d2.getMonth()]}`;
+}
+
+/**
+ * La ventana, al principio de la frase.
+ *
+ * **`T12:00:00` y no medianoche**, por el mismo motivo que el resto del paquete: una
+ * fecha sin hora la parsea el motor como UTC y en `Europe/Madrid` eso es el día
+ * anterior. A mediodía el día no se puede mover por el huso.
+ *
+ * Devuelve «Este miércoles 21 de octubre» o «Del sábado 10 al 11 de octubre»: las dos
+ * empiezan por mayúscula porque van al principio de la frase, y el mes se escribe una
+ * sola vez cuando es el mismo.
+ */
+function ventanaEnPalabras(desde: string, hasta: string): string {
+  if (desde === hasta) return `Este ${diaEnPalabras(desde)}`;
+
+  const d1 = diaCivil(desde);
+  const d2 = diaCivil(hasta);
+  if (!d1 || !d2) return `Del ${desde} al ${hasta}`;
+
+  const mismoMes =
+    d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
+
+  if (mismoMes) {
+    return `Del ${DIAS_SEMANA[d1.getDay()]} ${d1.getDate()} al ${d2.getDate()} de ${MESES_LARGOS[d2.getMonth()]}`;
+  }
+  return `Del ${diaEnPalabras(desde)} al ${diaEnPalabras(hasta)}`;
+}
+
+/**
+ * De qué va la semana, en una línea, sacado de las categorías de verdad.
+ *
+ * **Sale de los datos y no de una lista de categorías escrita aquí.** Si un día el post
+ * es todo teatro, el pie dice «Todo de teatro»; si hay cinco cosas distintas, dice de
+ * dónde a dónde va. Una plantilla con las quince categorías de `lib/categories.ts`
+ * mentiría el día que el carrusel no las traiga.
+ *
+ * Devuelve `null` cuando no hay ninguna categoría —los tests construyen eventos sin
+ * ella— y entonces el pie simplemente no lleva la línea. Un hueco se lee mejor que
+ * «De undefined a undefined».
+ */
+function abanicoDeCategorias(lista: Array<{ category?: string }>): string | null {
+  const vistas: string[] = [];
+  for (const evento of lista) {
+    const categoria = evento.category?.trim().toLowerCase();
+    if (categoria && !vistas.includes(categoria)) vistas.push(categoria);
+  }
+
+  if (vistas.length === 0) return null;
+  if (vistas.length === 1) return `Todo de ${vistas[0]}.`;
+  if (vistas.length === 2) return `De ${vistas[0]} a ${vistas[1]}.`;
+
+  const primera = vistas[0];
+  const ultima = vistas[vistas.length - 1];
+  const intermedias = vistas.slice(1, -1);
+
+  if (intermedias.length === 1) {
+    return `De ${primera} a ${ultima}, pasando por ${intermedias[0]}.`;
+  }
+
+  const cola = intermedias[intermedias.length - 1];
+  return `De ${primera} a ${ultima}, pasando por ${intermedias.slice(0, -1).join(", ")} y ${cola}.`;
 }

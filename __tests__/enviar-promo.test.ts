@@ -589,7 +589,10 @@ describe("el post de presentación", () => {
 
     expect(opciones.html).toContain("cid:presentacion");
     expect(opciones.html).toContain("POST ADICIONAL");
-    expect(opciones.html).toContain("tiene agenda de sobra");
+    // El arranque del pie es lo que se lee primero, así que el test fija la frase: es la
+    // promesa de la cuenta, no un relleno. Decía "tiene agenda de sobra", que describe el
+    // dato; ahora dice "tiene planes de sobra" y añade el problema que resuelve.
+    expect(opciones.html).toContain("tiene planes de sobra");
   });
 
   it("no aparece numerada como diapositiva del carrusel", async () => {

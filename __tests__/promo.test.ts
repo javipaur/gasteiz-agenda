@@ -8,6 +8,8 @@ import {
   radioImagenPromo,
   urlImagenPromo,
   textoDelPie,
+  fechaCortaPromo,
+  ventanaCortaPromo,
 } from "@/lib/promo";
 import { IMAGE_HOSTS } from "@/lib/image-hosts";
 import { HOSTS_CON_WAF_QUE_RECHAZA_NODE } from "@/lib/image-proxy";
@@ -134,22 +136,70 @@ describe("la imagen que la tarjeta le da a satori", () => {
 });
 
 describe("el pie de foto", () => {
-  const ev = (title: string, location = "") => ({ title, location });
+  const ev = (title: string, category?: string) => ({ title, location: "", category });
 
-  it("con tres planes los lista y cuenta", () => {
+  it("empieza por la promesa: cuántos, para qué fechas y qué hay dentro", () => {
     const texto = textoDelPie(
-      [ev("Concierto en el Joyel", "Sala Ganueta"), ev("Cine", "Florida"), ev("Mercado", "")],
+      [ev("Concierto en el Joyel"), ev("Cine"), ev("Mercado")],
       "2026-10-07",
       "2026-10-07"
     );
 
-    expect(texto).toContain("HOY");
-    expect(texto).toContain("3 planes");
-    expect(texto).toContain("• Concierto en el Joyel — Sala Ganueta");
+    expect(texto).toContain("Este miércoles 7 de octubre hay 3 planes en Vitoria-Gasteiz.");
+    expect(texto).toContain("Día, hora, sitio y precio");
   });
 
   it("uno solo en singular, que «1 planes» delata el generador", () => {
-    expect(textoDelPie([ev("Uno")], "2026-10-07", "2026-10-07")).toContain("1 plan");
+    expect(textoDelPie([ev("Uno")], "2026-10-07", "2026-10-07")).toContain("hay 1 plan");
+  });
+
+  it("la ventana larga nombra los dos días y no finge que es hoy", () => {
+    // Un sábado se publica sábado y domingo: decir «HOY» ahí es mentir en la primera
+    // línea, que es la única que se lee antes del «ver más».
+    const texto = textoDelPie([ev("Uno")], "2026-10-10", "2026-10-11");
+
+    expect(texto).toContain("Del sábado 10 al 11 de octubre");
+    expect(texto).not.toContain("HOY");
+  });
+
+  it("el abanico sale de las categorías de verdad, no de una plantilla", () => {
+    const texto = textoDelPie(
+      [ev("Uno", "Teatro"), ev("Dos", "Cine"), ev("Tres", "Conciertos")],
+      "2026-10-10",
+      "2026-10-11"
+    );
+
+    expect(texto).toContain("De teatro a conciertos, pasando por cine.");
+  });
+
+  it("no repite una categoría que sale dos veces", () => {
+    const texto = textoDelPie(
+      [ev("Uno", "Teatro"), ev("Dos", "Teatro"), ev("Tres", "Cine")],
+      "2026-10-10",
+      "2026-10-11"
+    );
+
+    expect(texto).toContain("De teatro a cine.");
+  });
+
+  it("sin categorías no inventa el abanico", () => {
+    // Un hueco se lee mejor que «De undefined a undefined».
+    expect(textoDelPie([ev("Uno")], "2026-10-07", "2026-10-07")).not.toContain("pasando por");
+  });
+
+  it("cierra con la pregunta y los hashtags, que es lo que se comparte", () => {
+    const texto = textoDelPie([ev("Uno")], "2026-10-07", "2026-10-07");
+
+    expect(texto).toContain("¿Cuál te llevas?");
+    expect(texto).toContain("#VitoriaGasteiz");
+  });
+
+  it("no enseña números internos como «28 fuentes»", () => {
+    // A quien lee el post le da igual de cuántas webs sale el dato: eso convierte una
+    // recomendación en un inventario.
+    const texto = textoDelPie([ev("Uno", "Teatro")], "2026-10-07", "2026-10-07");
+
+    expect(texto).not.toContain("fuentes");
   });
 
   it("un día sin nada lo dice sin fingir que hay algo", () => {
@@ -158,14 +208,37 @@ describe("el pie de foto", () => {
     // en blanco.
     const texto = textoDelPie([], "2026-10-07", "2026-10-07");
 
-    expect(texto).toContain("HOY");
-    expect(texto).toContain("no hay nada recomendado");
+    expect(texto).toContain("Este miércoles 7 de octubre no hay nada que recomendarte.");
+  });
+});
+
+describe("la fecha que se pinta en la imagen", () => {
+  it("entiende el instante ISO de un evento, que no es «AAAA-MM-DD»", () => {
+    // Esto salió de una imagen renderizada, no de un test: la tarjeta enseñaba
+    // `2026-10-23T17:30:00.000Z` en la línea de la fecha. `new Date` recibía
+    // `"...T17:30:00.000ZT12:00:00"`, devolvía `Invalid Date` y la función devolvía
+    // la entrada tal cual. Un fallo sin error, que es la peor clase.
+    expect(fechaCortaPromo("2026-10-23T17:30:00.000Z")).toBe("VIE 23 OCT");
+    expect(fechaCortaPromo("2026-10-23T00:00:00Z")).toBe("VIE 23 OCT");
   });
 
-  it("la ventana larga no dice HOY", () => {
-    const texto = textoDelPie([ev("Uno")], "2026-10-10", "2026-10-11");
+  it("y también el día suelto del paquete", () => {
+    expect(fechaCortaPromo("2026-10-24")).toBe("SÁB 24 OCT");
+  });
 
-    expect(texto).toContain("ESTE FINDE");
-    expect(texto).not.toContain("HOY");
+  it("la ventana escribe el mes una sola vez cuando no cruza de mes", () => {
+    expect(ventanaCortaPromo("2026-10-24", "2026-10-25")).toBe("24 — 25 OCT");
+  });
+
+  it("y los dos cuando cruza, que es lo que hace legible el fin de año", () => {
+    expect(ventanaCortaPromo("2026-10-31", "2026-11-01")).toBe("31 OCT — 1 NOV");
+  });
+
+  it("un solo día no finge ser una ventana", () => {
+    expect(ventanaCortaPromo("2026-10-23", "2026-10-23")).toBe("VIE 23 OCT");
+  });
+
+  it("no dice «HOY»: una URL guardada de la semana pasada mentiría", () => {
+    expect(ventanaCortaPromo("2026-10-23", "2026-10-23")).not.toContain("HOY");
   });
 });

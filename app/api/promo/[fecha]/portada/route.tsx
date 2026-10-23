@@ -1,7 +1,15 @@
 import { ImageResponse } from "next/og";
 import { getAgendaEventos } from "@/lib/agenda";
 import { recomendados } from "@/lib/recomendados";
-import { MAX_DIAPOSITIVAS, TAMANO_PROMO } from "@/lib/promo";
+import {
+  MAX_DIAPOSITIVAS,
+  PALETA_PROMO,
+  TAMANO_PROMO,
+  urlImagenPromo,
+  ventanaCortaPromo,
+  ventanaDelDia,
+} from "@/lib/promo";
+import { CabeceraPromo, MarcaPromo } from "@/lib/promo-marca";
 
 export const runtime = "nodejs";
 // Es una imagen que se puede cachear un rato: el mismo día da la misma portada.
@@ -10,58 +18,56 @@ export const revalidate = 1800;
 type Ctx = { params: Promise<{ fecha: string }> };
 
 /*
- * **`numero` y `pie` se calculan aquí y se pintan como interpolación simple.**
+ * **La portada es el plan que de verdad hay, no un contador.**
  *
- * Antes el número iba como `{lista.length > 0 ? lista.length : "—"}` dentro del `<div>`,
- * y eso **hacía fallar la ruta entera en producción con un 502**. El motivo está medido,
- * no supuesto: se bisecció la composición contra un servidor local hasta dar con la
- * línea, y el ternario puede devolver un **número** o una **cadena** — Satori los cuenta
- * como hijos distintos y responde «Expected `<div>` to have explicit "display: flex"… if
- * it has more than one child node».
+ * Antes era un número de 190 px sobre fondo negro y el título del primer evento debajo,
+ * sin foto y sin marca. Funcionaba como cartel de «cuántos planes hay» y mal como
+ * diapositiva: en el feed, la primera imagen es la única que se ve antes de decidir si
+ * se desliza, y un «6» gigante no dice de qué va el post.
  *
- * Dos cosas hicieron que pasara tanto tiempo:
+ * Lo que se imita de la cuenta de referencia del sector no es el estilo, es la función:
+ * la primera diapositiva **enseña el mejor plan** —foto, título, sitio y fecha— porque
+ * eso es lo que hace que alguien pare. El número sigue estando, pero como promesa
+ * pequeña arriba a la derecha, que es donde informa sin ocupar el sitio del contenido.
  *
- * - **El error no señalaba la línea.** Es el mismo que tira la imagen de presentación, y
- *   en la portada no hay nada que lo sugiera.
- * - **`next build` no lo cazaba**, porque `/api/promo/[fecha]/portada` es dinámica y no se
- *   prerenderiza. La presentación sí es estática, y por eso aquella se vio en el build y
- *   ésta lleva desde octubre fallen: solo se ha comprobado en ejecución.
- *
- * `String(...)` deja el número en un solo hijo de texto y el problema desaparece.
+ * **La foto va con `objectFit: "cover"` aquí y con `contain` en las diapositivas de
+ * evento, y la diferencia es deliberada.** En la portada el título se reescribe en
+ * tipografía debajo, así que recortar el cartel original no pierde información. En una
+ * diapositiva de evento el póster *es* el contenido: recortarlo corta el nombre del
+ * grupo o la fecha que el cartel trae impresa, y eso es destruir el dato.
  */
 export async function GET(_req: Request, { params }: Ctx) {
   const { fecha } = await params;
 
+  // `ventanaDelDia` lanza si la fecha no es `YYYY-MM-DD`, y una URL vieja no puede
+  // tumbar la imagen: sin ventana se usa ese mismo día, que es lo que hacía antes.
+  let desde = fecha;
+  let hasta = fecha;
+  try {
+    const ventana = ventanaDelDia(fecha);
+    if (ventana) {
+      desde = ventana.desde;
+      hasta = ventana.hasta;
+    }
+  } catch {
+    // La fecha del enlace no es una fecha. Se pinta lo que haya para ese día, y si no
+    // hay nada el carrusel enseña el estado vacío en vez de un 502.
+  }
+
   const eventos = await getAgendaEventos();
-  // `MAX_DIAPOSITIVAS` y no un `9` a pelo: la portada cuenta lo mismo que el paquete,
-  // y dos números escritos en dos sitios son dos números que un día no coinciden. Este
-  // estaba a pelo y el otro en `app/api/promo/route.ts`, y solo se veían distintos si
-  // alguien miraba los dos.
-  const lista = recomendados(eventos, {
-    desde: fecha,
-    hasta: fecha,
-    limite: MAX_DIAPOSITIVAS,
-  });
+  const lista = recomendados(eventos, { desde, hasta, limite: MAX_DIAPOSITIVAS });
+  const principal = lista[0];
 
-  // `T12:00:00` y no medianoche: una fecha sin hora la parsea el motor como UTC, y en
-  // `Europe/Madrid` eso es las dos de la mañana del día anterior. A mediodía el día no
-  // se puede mover por el huso.
-  const titulo = new Date(`${fecha}T12:00:00`).toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const imagen = urlImagenPromo(principal?.image);
 
-  // Los dos textos del centro se calculan aquí y no dentro del JSX, por el motivo que
-  // explica el bloque de abajo. `numero` además lleva `String()` porque un número y una
-  // cadena no son el mismo tipo de hijo para Satori.
-  const numero = lista.length > 0 ? String(lista.length) : "—";
-  const pie =
-    lista.length === 0
-      ? "Hoy no hay nada recomendado"
-      : lista.length === 1
-        ? "plan recomendado"
-        : "planes recomendados";
+  // Todo lo que se interpola se calcula aquí y se pinta como una sola cadena: un
+  // ternario que pueda devolver número o cadena rompe Satori con un 502 sin cuerpo.
+  const cuenta = String(lista.length);
+  const promesa =
+    lista.length === 0 ? "LA AGENDA" : `${cuenta} ${lista.length === 1 ? "PLAN" : "PLANES"}`;
+  const cuando = ventanaCortaPromo(desde, hasta);
+  const titulo = recortar(principal?.title ?? "La agenda sigue en marcha", 104);
+  const sitio = recortar(principal?.location ?? "", 64);
 
   return new ImageResponse(
     (
@@ -71,30 +77,173 @@ export async function GET(_req: Request, { params }: Ctx) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
-          background: "#141210",
-          color: "#F5F1EA",
-          padding: 80,
+          background: PALETA_PROMO.papel,
+          color: PALETA_PROMO.tinta,
+          padding: 64,
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 34, letterSpacing: 6, color: "#E0A34E" }}>
-            HOY EN VITORIA
+        <CabeceraPromo
+          extra={
+            <div
+              style={{
+                display: "flex",
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: 3,
+                color: PALETA_PROMO.rojo,
+              }}
+            >
+              {promesa}
+            </div>
+          }
+        />
+
+        <div
+          style={{
+            display: "flex",
+            height: 1,
+            background: PALETA_PROMO.filete,
+            marginTop: 22,
+            marginBottom: 30,
+          }}
+        />
+
+        {imagen ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={imagen}
+            alt=""
+            width={952}
+            height={600}
+            style={{ objectFit: "cover", borderRadius: 20, background: PALETA_PROMO.marco }}
+          />
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 952,
+              height: 600,
+              borderRadius: 20,
+              background: PALETA_PROMO.marco,
+            }}
+          >
+            <MarcaPromo tamano={280} />
           </div>
-          <div style={{ fontSize: 86, marginTop: 18, textTransform: "capitalize" }}>
-            {titulo}
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 30 }}>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 24,
+              fontWeight: 800,
+              letterSpacing: 3,
+              color: PALETA_PROMO.rojo,
+            }}
+          >
+            EL MÁS RECOMENDADO
+          </div>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: 3,
+              color: PALETA_PROMO.mostaza,
+            }}
+          >
+            {cuando}
           </div>
         </div>
 
-<div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 190, lineHeight: 1 }}>{numero}</div>
-          <div style={{ fontSize: 40, color: "#B9B2A6", marginTop: 12 }}>{pie}</div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 54,
+            fontWeight: 800,
+            lineHeight: 1.1,
+            letterSpacing: "-0.02em",
+            marginTop: 14,
+          }}
+        >
+          {titulo}
         </div>
 
-        <div style={{ fontSize: 30, color: "#8B8377" }}>gasteizclick.javierpalacio.es/hoy</div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 30,
+            color: PALETA_PROMO.tintaSuave,
+            marginTop: 16,
+          }}
+        >
+          {sitio}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            marginTop: "auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              fontSize: 28,
+              color: PALETA_PROMO.tintaSuave,
+              marginBottom: 18,
+            }}
+          >
+            Día, hora, sitio y precio de cada plan
+          </div>
+          <div
+            style={{
+              display: "flex",
+              height: 1,
+              background: PALETA_PROMO.filete,
+              marginBottom: 20,
+            }}
+          />
+          <div style={{ display: "flex", width: "100%", justifyContent: "space-between" }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 26,
+                fontWeight: 700,
+                color: PALETA_PROMO.tintaSuave,
+              }}
+            >
+              Vitoria-Gasteiz
+            </div>
+            <div style={{ display: "flex", fontSize: 26, color: PALETA_PROMO.tintaSuave }}>
+              gasteizclick.javierpalacio.es
+            </div>
+          </div>
+        </div>
       </div>
     ),
     TAMANO_PROMO
   );
+}
+
+/**
+ * Corta un texto largo por donde se pueda leer, con puntos suspensivos.
+ *
+ * **No es cosmética: el título de una diapositiva tiene tres líneas de sitio.** Un
+ * título municipal de 140 caracteres a 54 px ocupa seis y empuja el pie fuera del
+ * lienzo, y Satori no recorta: pinta lo que le des. Se corta aquí, en el último espacio
+ * antes del límite, para no partir una palabra por la mitad.
+ */
+function recortar(texto: string, maximo: number): string {
+  const limpio = texto.replace(/\s+/g, " ").trim();
+  if (limpio.length <= maximo) return limpio;
+
+  const corte = limpio.slice(0, maximo);
+  const ultimoEspacio = corte.lastIndexOf(" ");
+  return `${(ultimoEspacio > maximo / 2 ? corte.slice(0, ultimoEspacio) : corte).trimEnd()}…`;
 }
