@@ -666,11 +666,17 @@ describe("la cobertura del documento", () => {
     // guardar un secreto —una clave dentro de un APK sale con un `strings`—, así que
     // la puerta se abre por ruta y con su motivo escrito. De 19 a 31 públicas, y de 29
     // a 17 protegidas.
+    //
+    // 50 = 49 + `/api/gastronomia`, los dos catálogos de dónde comer. La web los lee en
+    // el servidor; la app no comparte proceso con el servidor ni lleva los JSON curados en
+    // su bundle, así que sin esta ruta o se inventa sus propios sitios —y la web y la app
+    // dicen dos cosas distintas de la misma ciudad— o no tiene sección de dónde comer.
+    // De 32 a 33 públicas.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 49, publicas: 32, protegidas: ProtectedCount });
+    }).toEqual({ total: 50, publicas: 33, protegidas: ProtectedCount });
   });
 });
 

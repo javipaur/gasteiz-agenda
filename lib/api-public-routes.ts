@@ -224,6 +224,16 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRoute[] = [
     motivo: "la lee la app movil, que no puede guardar un secreto",
   },
   {
+    // Los dos catálogos de gastronomía —los sitios y las rutas de pintxos—
+    // viven en `data/gastronomia/` y la web los lee en el servidor. La app no
+    // puede: no comparte proceso con el servidor y no lleva los JSON en su
+    // bundle. Sin esta exención, o la app se inventa sus propios sitios —y la
+    // web y la app dicen dos cosas distintas de la misma ciudad— o no hay
+    // sección de dónde comer en la app.
+    path: "/api/gastronomia",
+    motivo: "la lee la app movil, y los catalogos curados viven en el servidor",
+  },
+  {
     path: "/api/v1/recomendados",
     motivo: "la lee la app movil, que no puede guardar un secreto",
   },

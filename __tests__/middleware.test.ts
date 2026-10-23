@@ -374,13 +374,14 @@ const ESPERADAS: Record<string, string> = {
   "/api/actividades/senderismo": "la lee la app movil, que no puede guardar un secreto",
   "/api/v1/events": "la lee la app movil, que no puede guardar un secreto",
   "/api/v1/recomendados": "la lee la app movil, que no puede guardar un secreto",
+  "/api/gastronomia": "la lee la app movil, y los catalogos curados viven en el servidor",
 };
 
 describe("la lista de rutas públicas", () => {
-  // "Veintisiete" y no "trece" a propósito: el nombre del caso es el número, así
+  // "Veintiocho" y no "trece" a propósito: el nombre del caso es el número, así
   // que añadir una ruta sin tocarlo deja el nombre mintiendo, y el nombre es lo
   // que se lee en el diff.
-  it("son exactamente estas veintisiete, y ninguna más", () => {
+  it("son exactamente estas veintiocho, y ninguna más", () => {
     const enCodigo = PUBLIC_API_ROUTES.map((r) => r.path).sort();
     expect(enCodigo).toEqual(Object.keys(ESPERADAS).sort());
   });
