@@ -374,6 +374,30 @@ export type PaquetePromo = {
  * de imágenes que n8n sube como hijos del carrusel: si el límite cambia aquí y no en el
  * flujo, el carrusel sale incompleto sin que nada falle.
  */
+function normalizarTituloPromo(titulo: string): string {
+  if (!titulo) return titulo;
+
+  let t = titulo;
+
+  // Corrige erratas conocidas
+  t = t.replace(/Vitoira-Gasteiz/gi, "Vitoria-Gasteiz");
+  t = t.replace(/Vitoira\b/gi, "Vitoria");
+
+  // Elimina fechas/parentesis con día + mes que quedan pegados al título
+  // (p. ej. "PAULA MATTHEUS (23 de octubre, Vitoria-Gasteiz)")
+  t = t.replace(/\s*\(\s*\d{1,2}\s+de\s+[^\)]+\)\s*$/i, "").trim();
+  t = t.replace(/\s*\[\s*\d{1,2}\s+de\s+[^\]]+\]\s*$/i, "").trim();
+
+  // Quita años sueltos entre paréntesis al final: "(2026)"
+  t = t.replace(/\s*\(\s*20\d{2}\s*\)\s*$/i, "").trim();
+  t = t.replace(/\s*\[\s*20\d{2}\s*\]\s*$/i, "").trim();
+
+  // Colapsa espacios dobles
+  t = t.replace(/\s{2,}/g, " ").trim();
+
+  return t;
+}
+
 export function paqueteDePromo(
   lista: Array<{ slug: string; title: string; location: string }>,
   { desde, hasta }: { desde: string; hasta: string },
@@ -383,7 +407,7 @@ export function paqueteDePromo(
   return {
     portada: urlDePromo(desde),
     imagenes: lista.map((e) => urlDePromo(desde, e.slug)),
-    titulos: lista.map((e) => e.title),
+    titulos: lista.map((e) => normalizarTituloPromo(e.title)),
     casting,
     pie: ventana,
     texto: textoDelPie(lista, desde, hasta),
