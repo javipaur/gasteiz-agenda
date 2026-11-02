@@ -10,6 +10,7 @@ import {
   urlImagenPromo,
   ventanaDelDia,
 } from "@/lib/promo";
+import { paraInstagramJpeg } from "@/lib/promo-image";
 import { CabeceraPromo, MarcaPromo } from "@/lib/promo-marca";
 
 export const runtime = "nodejs";
@@ -30,7 +31,7 @@ type Ctx = { params: Promise<{ fecha: string; slug: string }> };
  * La portada hace lo contrario a propósito —`cover`— porque allí el título se reescribe
  * en tipografía y la foto solo tiene que llenar. El motivo largo está en la portada.
  */
-export async function GET(_req: Request, { params }: Ctx) {
+export async function GET(request: Request, { params }: Ctx) {
   const { slug, fecha } = await params;
 
   // `getEventoBySlug` devuelve `{ evento, related } | null`, no el evento suelto.
@@ -67,7 +68,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   const sitio = recortar(evento.location ?? "", 64);
   const precio = recortar(evento.price ?? "", 40);
 
-  return new ImageResponse(
+  const imagenPromo = new ImageResponse(
     (
       <div
         style={{
@@ -228,6 +229,8 @@ export async function GET(_req: Request, { params }: Ctx) {
     ),
     TAMANO_PROMO
   );
+
+  return paraInstagramJpeg(request, imagenPromo);
 }
 
 /**

@@ -9,6 +9,7 @@ import {
   ventanaCortaPromo,
   ventanaDelDia,
 } from "@/lib/promo";
+import { paraInstagramJpeg } from "@/lib/promo-image";
 import { CabeceraPromo, MarcaPromo } from "@/lib/promo-marca";
 
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ type Ctx = { params: Promise<{ fecha: string }> };
  * diapositiva de evento el póster *es* el contenido: recortarlo corta el nombre del
  * grupo o la fecha que el cartel trae impresa, y eso es destruir el dato.
  */
-export async function GET(_req: Request, { params }: Ctx) {
+export async function GET(request: Request, { params }: Ctx) {
   const { fecha } = await params;
 
   // `ventanaDelDia` lanza si la fecha no es `YYYY-MM-DD`, y una URL vieja no puede
@@ -69,7 +70,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   const titulo = recortar(principal?.title ?? "La agenda sigue en marcha", 104);
   const sitio = recortar(principal?.location ?? "", 64);
 
-  return new ImageResponse(
+  const imagenPromo = new ImageResponse(
     (
       <div
         style={{
@@ -229,6 +230,8 @@ export async function GET(_req: Request, { params }: Ctx) {
     ),
     TAMANO_PROMO
   );
+
+  return paraInstagramJpeg(request, imagenPromo);
 }
 
 /**
