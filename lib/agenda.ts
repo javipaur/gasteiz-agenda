@@ -1,5 +1,5 @@
 import { getCachedOrFetch } from "./cache";
-import { agendaLink, agendaSlug, localDateKey } from "./slug";
+import { agendaLink, agendaSlug, localDateKey, slugify } from "./slug";
 import { tituloCancelado } from "./cancelaciones";
 import { normalizeCategory } from "./categories";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
@@ -317,7 +317,16 @@ export function findBySlug(
   eventos: readonly AgendaEvento[],
   slug: string
 ): AgendaEvento | undefined {
-  return eventos.find((ev) => ev.slug === slug);
+  const exacto = eventos.find((ev) => ev.slug === slug);
+  if (exacto) return exacto;
+
+  // Los slugs existentes incluyen un hash del enlace de origen, que puede cambiar
+  // aunque título y fecha sigan iguales. Resuelve esos enlaces antiguos solo si la
+  // parte legible identifica un único evento; ante una colisión, no adivina.
+  const coincidencias = eventos.filter((ev) =>
+    slug.startsWith(`${slugify(ev.title)}-${localDateKey(ev.date)}-`)
+  );
+  return coincidencias.length === 1 ? coincidencias[0] : undefined;
 }
 
 /**

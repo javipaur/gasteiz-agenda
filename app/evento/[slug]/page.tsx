@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getEventoBySlug } from "@/lib/agenda";
 import { propsImagen } from "@/lib/image-proxy";
 import {
@@ -105,6 +105,7 @@ export default async function EventoDetallePage({ params }: PageProps) {
   if (!result) notFound();
 
   const { evento, related } = result;
+  if (evento.slug !== slug) permanentRedirect(`/evento/${evento.slug}`);
   const eventLd = eventToJsonLd(evento);
   if (!eventLd) notFound();
   const fecha = eventDisplayDate(evento);

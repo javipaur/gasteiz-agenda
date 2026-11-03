@@ -43,6 +43,41 @@ describe("aggregate", () => {
     expect(evs[0].source).toBe("a");
   });
 
+  it("resuelve un enlace antiguo si cambió el enlace de origen", async () => {
+    const [evento] = await aggregate([
+      entry({
+        run: async () => [
+          {
+            ...BASE,
+            title: 'Exposición de arte: "Sueños dibujados"',
+            date: "2026-11-02T07:30Z",
+            link: "https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?uid=u62992c29_1a0f4fa44a1_3aaa",
+            image: "https://www.vitoria-gasteiz.org/docs/wb021/img/gestor/38/54/gi_93854.png",
+          },
+        ],
+      }),
+    ]);
+
+    expect(
+      findBySlug(
+        [evento],
+        "exposicion-de-arte-suenos-dibujados-2026-11-02-8e5a1y"
+      )
+    ).toBe(evento);
+    expect(evento.image).toBe(
+      "https://www.vitoria-gasteiz.org/docs/wb021/img/gestor/38/54/gi_93854.png"
+    );
+  });
+
+  it("no adivina si varios eventos comparten título y fecha", async () => {
+    const [evento] = await aggregate([entry({ run: async () => [BASE] })]);
+    const eventos = [evento, { ...evento, slug: "otro-slug" }];
+
+    expect(
+      findBySlug(eventos, "concierto-de-prueba-2027-03-15-enlaceantiguo")
+    ).toBeUndefined();
+  });
+
   it("la clave de dedupe usa el día local, no el prefijo ISO", async () => {
     // `scrapeSenderismo` emite `new Date(y, m, d).toISOString()`, o sea la
     // medianoche local pasada por UTC. Al este de UTC eso es
