@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 import { PUBLIC_API_ROUTES } from "./lib/api-public-routes";
-import { REMOTE_PATTERNS } from "./lib/image-hosts";
+import { CALIDAD_IMAGEN, REMOTE_PATTERNS } from "./lib/image-hosts";
 
 /**
  * Cabeceras que van igual en todas las rutas de `/api`.
@@ -50,6 +50,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    qualities: [75, CALIDAD_IMAGEN],
     // Lista cerrada, medida sobre los scrapers y sobre los fixtures. Ver
     // `lib/image-hosts.ts` para de dónde sale cada host y para lo que no está y
     // por qué. Añadir uno es una decisión consciente, no una consecuencia.

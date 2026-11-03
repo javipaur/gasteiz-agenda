@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import nextConfig from "../next.config";
-import { IMAGE_HOSTS } from "@/lib/image-hosts";
+import { CALIDAD_IMAGEN, IMAGE_HOSTS } from "@/lib/image-hosts";
 import { isPublicApiRoute } from "@/lib/api-public-routes";
 
 /**
@@ -507,6 +507,12 @@ describe("images.remotePatterns", () => {
     // test quiere; subirlo porque salta es lo que no.
     expect(IMAGE_HOSTS.length).toBeGreaterThanOrEqual(20);
     expect(IMAGE_HOSTS.length).toBeLessThanOrEqual(34);
+  });
+});
+
+describe("images.qualities", () => {
+  it("permite la calidad usada por las miniaturas y conserva la calidad por defecto", () => {
+    expect(nextConfig.images?.qualities).toEqual([75, CALIDAD_IMAGEN]);
   });
 });
 

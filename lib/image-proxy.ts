@@ -7,14 +7,14 @@
  * la cadena "node", así que sus fotos nunca llegan al optimizador y las tarjetas pintaban
  * el degradado gris del tile: 65 de las 111 imágenes de la home.
  *
- * **Por qué las tarjetas llaman a `propsImagen` y no a las dos piezas.** Un `<Image
- * src={…} unoptimized={…}>` repetido trece veces es trece sitios donde se puede olvidar
- * la segunda prop, y olvidarla no rompe la página: hace que la imagen vuelva a pasar por
- * el optimizador, que la pide a nuestro propio origen y la devuelve sin redimensionar.
- * Un fallo silencioso que se ve en el peso de la imagen y en ningún error. Devolviendo
- * las dos props juntas no hay forma de dejar una fuera.
+ * **Por qué las tarjetas llaman a `propsImagen` y no a las piezas por separado.** Un
+ * `<Image src={…} unoptimized={…} quality={…}>` repetido trece veces es trece sitios
+ * donde se puede olvidar una prop, y olvidar `unoptimized` no rompe la página: hace que
+ * la imagen vuelva a pasar por el optimizador, que la pide a nuestro propio origen y la
+ * devuelve sin redimensionar. Un fallo silencioso que se ve en el peso de la imagen y en
+ * ningún error. Devolviendo las tres props juntas no hay forma de dejar una fuera.
  */
-import { imagenServible } from "@/lib/image-hosts";
+import { CALIDAD_IMAGEN, imagenServible } from "@/lib/image-hosts";
 
 /**
  * Los hosts cuyo WAF rechaza las cabeceras del optimizador de Next.
@@ -90,6 +90,7 @@ export function debeUsarProxy(url: string | undefined | null): boolean {
 export type PropsImagen = {
   readonly src: string;
   readonly unoptimized: boolean;
+  readonly quality: typeof CALIDAD_IMAGEN;
 };
 
 /**
@@ -110,8 +111,14 @@ export type PropsImagen = {
  */
 export function propsImagen(url: string | undefined | null): PropsImagen | undefined {
   if (!imagenServible(url)) return undefined;
-  if (!debeUsarProxy(url)) return { src: url, unoptimized: false };
-  return { src: `/api/img?url=${encodeURIComponent(url)}`, unoptimized: true };
+  if (!debeUsarProxy(url)) {
+    return { src: url, unoptimized: false, quality: CALIDAD_IMAGEN };
+  }
+  return {
+    src: `/api/img?url=${encodeURIComponent(url)}`,
+    unoptimized: true,
+    quality: CALIDAD_IMAGEN,
+  };
 }
 
 /**

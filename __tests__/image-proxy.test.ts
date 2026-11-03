@@ -136,14 +136,23 @@ describe("propsImagen", () => {
     expect(propsImagen(GENTERULA)).toEqual({
       src: `/api/img?url=${encodeURIComponent(GENTERULA)}`,
       unoptimized: true,
+      quality: 85,
     });
   });
 
   it("los demás hosts van optimizados, como antes", () => {
     // Lo que no está en la lista de WAF son veinticinco hosts que funcionan, y mandarlos
     // al proxy sería perder el redimensionado y el AVIF/WebP a cambio de nada.
-    expect(propsImagen(VITORIA)).toEqual({ src: VITORIA, unoptimized: false });
-    expect(propsImagen("/logo.svg")).toEqual({ src: "/logo.svg", unoptimized: false });
+    expect(propsImagen(VITORIA)).toEqual({
+      src: VITORIA,
+      unoptimized: false,
+      quality: 85,
+    });
+    expect(propsImagen("/logo.svg")).toEqual({
+      src: "/logo.svg",
+      unoptimized: false,
+      quality: 85,
+    });
   });
 
   it("lo que no se puede pintar sale como undefined, y no como unas props a medias", () => {

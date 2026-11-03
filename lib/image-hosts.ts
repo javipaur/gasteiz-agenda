@@ -62,6 +62,8 @@ export type ImageHost = {
   readonly motivo: string;
 };
 
+export const CALIDAD_IMAGEN = 85;
+
 export const IMAGE_HOSTS: readonly ImageHost[] = [
   {
     hostname: "www.vitoria-gasteiz.org",
