@@ -1506,3 +1506,72 @@ numero de hijos que crea el flujo, o la diapositiva que sobre se cae sin aviso.
 - `tsc` 0 · **1204/1204** tests · lint 0 errores (15 warnings, baseline) · build 0.
 - Cinco diapositivas renderizadas y leidas: sin ninguna fecha ISO, dominio
   legible, sin hueco inferior.
+
+## Hecho: un enlace compartido deja de morir cuando cambia el de origen (2026-11-03)
+
+`eventSlug` mete en el slug un hash de `titulo|fecha|enlace`. Eso hace el slug
+estable frente a cambios de título, pero **no frente a un cambio del enlace**: el
+municipal reescribe sus URLs, un scraper normaliza una ruta, y el mismo concierto
+del mismo día pasa a tener otro slug. El enlace que alguien compartió por
+WhatsApp, y el que está en el post de Instagram de la semana pasada, empiezan a
+dar 404 sin que nada falle.
+
+### El respaldo exige coincidencia única, y no es prudencia
+
+`findBySlug` intenta primero el slug completo y, si no hay, compara **la parte
+legible** (`slugify(title)` + `localDateKey(date)`) y devuelve el evento **solo
+si coincide exactamente uno**.
+
+Devolver el primero sería más corto y estaría mal: dos entradas del mismo título
+el mismo día —dos sesiones, o el mismo plan publicado por dos fuentes que el
+agregador no ha fundido— comparten prefijo, y "el primero" es entonces un evento
+**distinto** con la página, el cartel y el JSON-LD de otro. Un 404 es un fallo
+honesto; servir el evento equivocado no se nota y manda a alguien a un sitio al
+que no quería ir. Ante colisión, no se adivina.
+
+### El `permanentRedirect` es la mitad que impide que esto se repita
+
+Resolver el slug viejo sin redirigir deja dos URLs vivas para el mismo evento,
+que es lo que el `canonical` y el sitemap intentan evitar. La página de detalle
+manda un 308 a `/evento/<slug actual>` cuando el resuelto no es el pedido, así
+que el buscador consolida y la barra de direcciones se corrige sola.
+
+Y `related` se sigue filtrando por el slug **pedido**, no por `evento.slug`: el
+`findBySlug` de cada relacionado recibe el mismo slug antiguo y lo resuelve por
+la misma puerta, así que la lista sale igual con las dos formas.
+
+## Hecho: el `quality` de las imágenes tiene un solo dueño (2026-11-03)
+
+Las tarjetas pedían a `next/image` su calidad por defecto (75) mientras el
+carrusel y las diapositivas piden 85, así que **la misma foto se veía más blanda
+en una tarjeta que en un post**. No había ningún error: era un valor por defecto
+que nadie había escrito.
+
+- `CALIDAD_IMAGEN` vive en `lib/image-hosts.ts`, que ya es el módulo que decide
+  qué imágenes se pueden servir. Un número suelto en doce componentes es doce
+  sitios donde divergen.
+- `propsImagen` devuelve ahora **tres** props (`src`, `unoptimized`, `quality`) y
+  no dos, por el mismo motivo por el que ya devolvía dos: las tarjetas hacen
+  `{...imagen}`, y una prop que se olvida no rompe la página, solo empeora la
+  imagen. Con tres juntas no hay forma de dejar una fuera.
+- `next.config.ts` declara `images.qualities: [75, CALIDAD_IMAGEN]`. **Las dos, y
+  la de 75 no es un descuido**: Next compara contra la lista, y dejar fuera la
+  que usa el resto del sitio cambiaría el aviso de desarrollo por uno nuevo. El
+  aviso es solo de desarrollo, pero una lista incompleta es una trampa para el
+  siguiente que toque el número.
+- En las imágenes proxeadas (`unoptimized: true`) el `quality` es decorativo:
+  Next lo ignora porque no pasa por el optimizador. Va igual para que el tipo sea
+  uno solo, y está escrito donde se lee.
+
+## Verificado (2026-11-03)
+
+- `tsc` 0 · **1217/1217** tests (130 suites) · lint 0 errores (15 warnings,
+  baseline) · build 0.
+- Los doce consumidores de `propsImagen` hacen `{...imagen}`; ninguno lo
+  desestructura, así que la tercera prop llega de verdad al `<Image>` y no se
+  queda a medio camino.
+- `__tests__/sources/musikaze.test.ts` genera sus fechas dentro del test, como
+  `helldorado`: el fixture era de septiembre y en noviembre el scraper filtraba
+  los 51 eventos, así que fallaba por un recuento de 0 lejos de la causa. No se
+  extendió `loadFixtureWithFutureDates` porque cada ficha reparte día, mes y año
+  en tres `<span>` y el helper solo entiende el literal `"Fecha: …"`.
