@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "newsletter:send": "tsx scripts/send-newsletter.ts",
+    "boletin": "tsx scripts/boletin.ts",
     "promo:send": "tsx scripts/enviar-promo.ts",
     "promo:casting": "tsx scripts/casting.ts",
     "promo:presentacion": "tsx scripts/enviar-presentacion.ts",

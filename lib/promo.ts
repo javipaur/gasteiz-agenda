@@ -374,7 +374,7 @@ export type PaquetePromo = {
  * de imágenes que n8n sube como hijos del carrusel: si el límite cambia aquí y no en el
  * flujo, el carrusel sale incompleto sin que nada falle.
  */
-function normalizarTituloPromo(titulo: string): string {
+export function normalizarTituloPromo(titulo: string): string {
   if (!titulo) return titulo;
 
   let t = titulo;
@@ -537,7 +537,7 @@ const MESES_CORTOS = [
  * mismo que hace `lib/agenda` con estas fechas en el resto del proyecto: el día no se
  * mueve por el huso porque a las 12:00 no hay frontera cerca.
  */
-function diaCivil(iso: string): Date | null {
+export function diaCivil(iso: string): Date | null {
   const ymd = iso.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
 

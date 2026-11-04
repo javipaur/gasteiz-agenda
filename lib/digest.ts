@@ -84,7 +84,7 @@ export async function buildDailyDigest(): Promise<PushPayload | null> {
  * donde está escrito por qué arreglarlo necesita tocar `/api/v1/salud`, que es
  * contrato con un cliente de fuera.
  */
-async function agregadoNoEsConfiable(): Promise<boolean> {
+export async function agregadoNoEsConfiable(): Promise<boolean> {
   const salud = await getAgendaSalud();
   const caidas = salud.sourcesFallidas.map((s) => s.id);
   const noTolerables = caidas.filter((id) => !FUENTES_TOLERABLES.has(id));
