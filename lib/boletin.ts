@@ -1,6 +1,7 @@
 import { normalizeCategory } from "./categories";
 import { localDateKey } from "./slug";
 import { normalizarTituloPromo, ORIGEN_PROMO } from "./promo";
+import { colapsarDiasConsecutivos, ordenarPorInteres } from "./recomendados";
 import type { AgendaEvento } from "./agenda";
 import type { FarmaciaGuardia } from "./sources/farmacias-guardia";
 
@@ -276,32 +277,25 @@ export function etiquetaDeVentana(desde: string, hasta: string, hoy: string): st
   return `DEL ${inicio.getDate()} DE ${mesInicio} AL ${fin.getDate()} DE ${mesFin}`;
 }
 
-/** Los minutos de un `time` de fuente, o `null` si no hay una hora legible. */
-function minutosDe(hora: string | undefined): number | null {
-  if (!hora) return null;
-  const m = hora.match(/(\d{1,2})[:.](\d{2})/);
-  if (!m) return null;
-
-  const h = Number(m[1]);
-  const min = Number(m[2]);
-  if (!Number.isFinite(h) || !Number.isFinite(min) || h > 23 || min > 59) return null;
-
-  return h * 60 + min;
-}
-
 /**
- * La agenda del día, ordenada como se lee: primero lo que empieza hoy y a una
- * hora concreta, después lo que ya está en marcha.
+ * La agenda del día, ordenada **por interés y no por hora**.
+ *
+ * **El orden lo decide `ordenarPorInteres`, que es el mismo que usan la portada,
+ * `/hoy` y el carrusel.** Antes se ordenaba aquí por la hora de la fuente, y el
+ * resultado era que el chat empezaba por el taller de las 10:00 y la portada por
+ * el concierto de las 20:00: dos reglas de orden no fallan, **divergen**, y el
+ * día que alguien toca una la otra sigue funcionando y diciendo otra cosa.
  *
  * **El filtro por día se hace con `localDateKey` y no con `slice(0, 10)`.** El
  * `date` de un `AgendaEvento` es un instante ISO completo, y un plan de las
  * 00:30 en Madrid guardado en UTC tiene un día menos en la cadena que el día en
  * que la persona lo vive. Es el mismo criterio que usan la rejilla y el slug.
  *
- * **Lo que dura varios días entra por el final más próximo**, no por el
- * comienzo: una exposición abierta desde septiembre y una que abre el sábado
- * no se ordenan por cuál empezó antes, sino por cuál se acaba antes. Lo que se
- * pierde primero va primero.
+ * **Lo que ya está en marcha entra en la misma lista, no en un segundo bloque.**
+ * Una exposición abierta desde septiembre es un plan de hoy, pero `scoreEvento`
+ * le da el bono de cercanía por su fecha de inicio —que ya pasó— y no lo tiene,
+ * así que se queda detrás de lo que empieza hoy sin necesidad de una regla
+ * aparte. Eso es lo que se quiere: el boletín responde "qué hago hoy".
  */
 export function seleccionarDelDia(
   eventos: AgendaEvento[],
@@ -324,35 +318,30 @@ export function seleccionarDelDia(
     }
   }
 
-  deHoy.sort((a, b) => {
-    const ma = minutosDe(a.time);
-    const mb = minutosDe(b.time);
+  // El reloj es el día que se está pidiendo, no `Date.now()`: el bono de cercanía
+  // de `scoreEvento` se mide contra esta fecha, así que el mismo día da el mismo
+  // boletín a las 8:00 y a las 23:00. Una fecha ilegible deja `Invalid Date` y
+  // `scoreEvento` simplemente no suma cercanía; no revienta.
+  const hoy = new Date(`${fecha}T00:00:00`);
 
-    // Sin hora no se adivina: va detrás de lo que sí la tiene, y entre iguales
-    // se mantiene el orden de entrada, que ya viene ordenado por el agregado.
-    if (ma === null && mb === null) return 0;
-    if (ma === null) return 1;
-    if (mb === null) return -1;
-    return ma - mb;
-  });
+  const ordenados = ordenarPorInteres([...deHoy, ...enMarcha], hoy);
 
-  enMarcha.sort((a, b) => {
-    const fa = localDateKey(a.dateEnd ?? a.date);
-    const fb = localDateKey(b.dateEnd ?? b.date);
-    return fa.localeCompare(fb);
-  });
-
+  // El mismo plan no se lista dos veces, y aquí la identidad es el slug. Hace
+  // falta aunque `colapsarDiasConsecutivos` venga después: ese funde **títulos**
+  // que coinciden y solo por encima de 20 caracteres, así que un título corto
+  // repetido se le escapa.
   const vistos = new Set<string>();
-  const seleccion: AgendaEvento[] = [];
-
-  for (const evento of [...deHoy, ...enMarcha]) {
+  const unicos: AgendaEvento[] = [];
+  for (const evento of ordenados) {
     if (vistos.has(evento.slug)) continue;
     vistos.add(evento.slug);
-    seleccion.push(evento);
-    if (seleccion.length >= limite) break;
+    unicos.push(evento);
   }
 
-  return seleccion;
+  // El fundido va **antes** del tope: fundir después de cortar dejaría fuera un
+  // plan que sí cabía. `colapsarDiasConsecutivos` no reordena, así que de cada
+  // grupo de títulos se queda el primero, que es el mejor puntuado.
+  return colapsarDiasConsecutivos(unicos).slice(0, limite);
 }
 
 /** El enlace que se comparte: la ficha de aquí, no la web de origen. */

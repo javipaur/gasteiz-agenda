@@ -171,34 +171,39 @@ describe("seleccionarDelDia", () => {
     expect(seleccionarDelDia([tarde], "2026-11-05")).toHaveLength(1);
   });
 
-  it("ordena por hora y deja al final lo que no tiene hora legible", () => {
-    const sinHora = evento({ slug: "sin-hora", time: undefined });
-    const tarde = evento({ slug: "tarde", time: "19:00" });
-    const manana = evento({ slug: "manana", time: "10:00h" });
-    const raro = evento({ slug: "raro", time: "De 11:15 a 13:00" });
+  it("ordena por interés y no por hora", () => {
+    // El orden es el de la portada y el del carrusel, no el del reloj: un plan de
+    // las 19:00 con foto y precio puntúa más que uno de las 10:00 sin nada, y va
+    // primero. Antes el chat empezaba por la hora y la web por el interés, así
+    // que el mismo día se leía de dos maneras.
+    const temprano = evento({ slug: "temprano", time: "10:00" });
+    const tarde = evento({
+      slug: "tarde",
+      time: "19:00",
+      image: "https://example.com/cartel.jpg",
+      price: "8 €",
+    });
 
-    const orden = seleccionarDelDia([sinHora, tarde, raro, manana], "2026-11-04").map(
-      (e) => e.slug
-    );
-
-    expect(orden).toEqual(["manana", "raro", "tarde", "sin-hora"]);
+    expect(seleccionarDelDia([temprano, tarde], "2026-11-04").map((e) => e.slug)).toEqual([
+      "tarde",
+      "temprano",
+    ]);
   });
 
-  it("incluye lo que dura varios días y lo ordena por el final más próximo", () => {
-    const largo = evento({
-      slug: "largo",
+  it("incluye lo que dura varios días, detrás de lo que empieza hoy", () => {
+    // Una exposición abierta desde septiembre es un plan de hoy, pero el bono de
+    // cercanía de `scoreEvento` se mide por la fecha de inicio, que ya pasó: se
+    // queda detrás de lo que empieza hoy sin necesidad de un segundo bloque.
+    const enMarcha = evento({
+      slug: "en-marcha",
       date: "2026-09-01T10:00:00.000Z",
       dateEnd: "2026-12-20T10:00:00.000Z",
     });
-    const corto = evento({
-      slug: "corto",
-      date: "2026-10-01T10:00:00.000Z",
-      dateEnd: "2026-11-10T10:00:00.000Z",
-    });
+    const deHoy = evento({ slug: "de-hoy", time: "20:00" });
 
-    expect(seleccionarDelDia([largo, corto], "2026-11-04").map((e) => e.slug)).toEqual([
-      "corto",
-      "largo",
+    expect(seleccionarDelDia([enMarcha, deHoy], "2026-11-04").map((e) => e.slug)).toEqual([
+      "de-hoy",
+      "en-marcha",
     ]);
   });
 
