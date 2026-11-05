@@ -401,6 +401,368 @@ describe("aggregate", () => {
   });
 });
 
+describe("dedupe por título normalizado", () => {
+  // Las fuentes escriben el mismo plan con comillas, dos puntos, apóstrofos y
+  // acentos distintos. Medido el 5 de noviembre de 2026: 33 parejas del mismo
+  // día tenían el título igual tras normalizar y distinto en crudo, y todas eran
+  // duplicados de verdad. Se colaban por las dos puertas a la vez, porque la
+  // clave exacta comparaba el texto crudo y la pasada por contención no funde
+  // dos títulos que ya son iguales.
+  const DIA = "2027-03-15T20:00:00.000Z";
+
+  it("funde el mismo título con y sin comillas de apertura", async () => {
+    // El caso real: `"RESISTENCIA EN LA RESIDENCIA` (una comilla sin cerrar, en
+    // mayúsculas) y `Resistencia en la Residencia`.
+    const evs = await aggregate([
+      entry({
+        id: "municipal",
+        priority: 0,
+        run: async () => [
+          {
+            ...BASE,
+            title: '"RESISTENCIA EN LA RESIDENCIA',
+            date: DIA,
+            time: "16:30",
+            location: "Centro Cívico Iparralde",
+          },
+        ],
+      }),
+      entry({
+        id: "agregadora",
+        priority: 4,
+        run: async () => [
+          {
+            ...BASE,
+            title: "Resistencia en la Residencia",
+            date: DIA,
+            location: "Centro Cívico Iparralde",
+            link: "https://example.com/otra",
+          },
+        ],
+      }),
+    ]);
+
+    expect(evs).toHaveLength(1);
+  });
+
+  it("funde el mismo título con apóstrofo tipográfico y con apóstrofo recto", async () => {
+    const evs = await aggregate([
+      entry({
+        id: "municipal",
+        priority: 0,
+        run: async () => [{ ...BASE, title: "Thursday's", date: DIA, time: "20:00" }],
+      }),
+      entry({
+        id: "agregadora",
+        priority: 4,
+        run: async () => [
+          { ...BASE, title: "Thursday’s", date: DIA, time: "20:00", link: "https://example.com/otra" },
+        ],
+      }),
+    ]);
+
+    expect(evs).toHaveLength(1);
+  });
+
+  it("no funde dos títulos normalizados distintos el mismo día", async () => {
+    // La normalización no puede comerse palabras: dos planes del mismo día en el
+    // mismo recinto siguen siendo dos.
+    const evs = await aggregate([
+      entry({
+        id: "municipal",
+        priority: 0,
+        run: async () => [{ ...BASE, title: "Concierto de prueba", date: DIA, time: "20:00" }],
+      }),
+      entry({
+        id: "agregadora",
+        priority: 4,
+        run: async () => [
+          {
+            ...BASE,
+            title: "Concierto de prueba (segunda sesión)",
+            date: DIA,
+            time: "22:00",
+            link: "https://example.com/otra",
+          },
+        ],
+      }),
+    ]);
+
+    expect(evs).toHaveLength(2);
+  });
+});
+
+describe("dedupe por contención", () => {
+  // La primera pasada casa por título exacto. Estas parejas son el caso que se
+  // colaba: el mismo plan con el título de la fuente y el título del ciclo, así
+  // que el carrusel y el boletín lo publicaban dos veces. La regla se midió sobre
+  // 2010 eventos el 4 de noviembre de 2026 y está escrita en
+  // `fusionarDuplicadosPorContencion`.
+  const DIA = "2027-03-15T20:00:00.000Z";
+
+  function par(
+    largo: string,
+    corto: string,
+    over: { largo?: Record<string, string | undefined>; corto?: Record<string, string | undefined> } = {}
+  ) {
+    return [
+      entry({
+        id: "municipal",
+        priority: 0,
+        run: async () => [
+          {
+            ...BASE,
+            title: largo,
+            date: DIA,
+            time: "19:30",
+            location: "Palacio Europa",
+            ...over.largo,
+          },
+        ],
+      }),
+      entry({
+        id: "agregadora",
+        priority: 4,
+        run: async () => [
+          {
+            ...BASE,
+            title: corto,
+            date: DIA,
+            time: "19:30",
+            location: "Palacio Europa",
+            link: "https://example.com/otra",
+            ...over.corto,
+          },
+        ],
+      }),
+    ];
+  }
+
+  it("funde el título del ciclo con el título del plan", async () => {
+    const evs = await aggregate(
+      par(
+        "Banda Municipal de Música de Vitoria-Gasteiz 2026-2027: El tiempo de los mitos",
+        "El tiempo de los mitos"
+      )
+    );
+
+    expect(evs).toHaveLength(1);
+    expect(evs[0].title).toBe(
+      "Banda Municipal de Música de Vitoria-Gasteiz 2026-2027: El tiempo de los mitos"
+    );
+  });
+
+  it("funde un título corto dentro del largo", async () => {
+    const evs = await aggregate(
+      par(
+        "Festival Internacional de Teatro de Vitoria-Gasteiz 2026: Deserto",
+        "Deserto",
+        { largo: { location: "Teatro Principal" }, corto: { location: "Teatro Principal" } }
+      )
+    );
+
+    expect(evs).toHaveLength(1);
+  });
+
+  it("no funde dos días distintos", async () => {
+    const evs = await aggregate(
+      par("El tiempo de los mitos en concierto", "El tiempo de los mitos", {
+        corto: { date: "2027-03-16T20:00:00.000Z" },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("no funde dos horas distintas del mismo día", async () => {
+    // La hora es la señal de que dos fichas son el mismo pase. Sin ella, una
+    // exposición de mes entero se fundiría con cualquier cosa del día.
+    const evs = await aggregate(
+      par("El tiempo de los mitos en concierto", "El tiempo de los mitos", {
+        corto: { time: "21:00" },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("no funde dos recintos distintos", async () => {
+    const evs = await aggregate(
+      par("El tiempo de los mitos en concierto", "El tiempo de los mitos", {
+        largo: { location: "Palacio Europa" },
+        corto: { location: "Teatro Principal" },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("no funde cuando el título corto no es un nombre", async () => {
+    // Cuatro letras son una etiqueta, no un plan: `Jazz` está dentro de `Jazz en
+    // la plaza` como palabra y no por eso son el mismo concierto.
+    const evs = await aggregate(
+      par("Jazz en la plaza", "Jazz", {
+        largo: { location: "Plaza de la Virgen Blanca" },
+        corto: { location: "Plaza de la Virgen Blanca" },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("no funde dos centros cívicos que solo comparten las palabras genéricas", async () => {
+    // `Centro Cívico Lakua` y `Centro Cívico Hegoalde` comparten dos tokens, y los
+    // dos son genéricos. Lo que los distingue es justo el que no lo es.
+    const evs = await aggregate(
+      par("Taller de cerámica para familias", "Taller de cerámica", {
+        largo: { location: "Centro Cívico Lakua" },
+        corto: { location: "Centro Cívico Hegoalde" },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("no funde la exposición con la visita guiada a esa exposición", async () => {
+    // Es el único caso medido en el que todas las señales —día, hora, recinto y
+    // casi todo el título— dicen que son el mismo plan y no lo son.
+    const evs = await aggregate(
+      par(
+        'Exposición: "1976-M3-2026: Recordar y Contar"',
+        'Visita guiada a la exposición: "1976-M3-2026: Recordar y Contar"',
+        {
+          largo: { location: "Museo de Bellas Artes", time: "18:30" },
+          corto: { location: "Museo de Bellas Artes", time: "18:30" },
+        }
+      )
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("sí funde dos visitas guiadas publicadas por fuentes distintas", async () => {
+    // La etiqueta solo separa cuando la lleva una de las dos. Si la llevan las dos,
+    // son dos fuentes contando la misma visita.
+    const evs = await aggregate(
+      par(
+        "Visita guiada: Recordar y Contar, una mirada a 1976",
+        "Visita guiada: Recordar y Contar",
+        {
+          largo: { location: "Museo de Bellas Artes", time: "18:30" },
+          corto: { location: "Museo de Bellas Artes", time: "18:30" },
+        }
+      )
+    );
+
+    expect(evs).toHaveLength(1);
+  });
+
+  it("no funde nada sin hora", async () => {
+    const evs = await aggregate(
+      par("El tiempo de los mitos en concierto", "El tiempo de los mitos", {
+        largo: { time: undefined },
+        corto: { time: undefined },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("funde cuando solo una de las dos trae hora", async () => {
+    // Medido el 5 de noviembre de 2026: `MUERDO (Urban Rock Concept)` a las 20:00
+    // y `Muerdo` sin hora son el mismo concierto, y sin esta rama salían los dos
+    // en el carrusel y en el boletín. Que una fuente no publique la hora no es
+    // señal de dos pases; que las dos publiquen horas distintas sí.
+    const evs = await aggregate(
+      par("MUERDO (Urban Rock Concept)", "Muerdo", {
+        largo: { time: "20:00" },
+        corto: { time: undefined },
+      })
+    );
+
+    expect(evs).toHaveLength(1);
+  });
+
+  it("no funde la segunda función cuando el título lo dice", async () => {
+    // El único caso medido en el que «una trae hora y la otra no» se equivoca.
+    // Medido el 5 de noviembre de 2026 sobre 1731 eventos, la única pareja que la
+    // rama nueva fundía y no debía era esta: `2ª FUNCIÓN` es un pase distinto del
+    // mismo día, y la segunda ficha simplemente no trae hora. Es la misma forma
+    // que la visita guiada: todas las demás señales dicen «el mismo plan» y una
+    // etiqueta en el título dice que no.
+    const evs = await aggregate(
+      par(
+        'DREAMING BUBBLES, "El Show de Burbujas Mágicas" 2ª FUNCIÓN',
+        'DREAMING BUBBLES, "El Show de Burbujas Mágicas"',
+        {
+          largo: { time: undefined, location: "Teatro Jesús Ibáñez de Matauco" },
+          corto: { time: "12:30", location: "Teatro Jesús Ibáñez de Matauco" },
+        }
+      )
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("sí funde dos segundas funciones publicadas por fuentes distintas", async () => {
+    // La etiqueta solo separa cuando la lleva una de las dos. Si la llevan las dos,
+    // son dos fuentes contando la misma segunda función, igual que con la visita
+    // guiada.
+    const evs = await aggregate(
+      par(
+        'DREAMING BUBBLES, "El Show de Burbujas Mágicas" 2ª FUNCIÓN',
+        "El Show de Burbujas Mágicas 2ª FUNCIÓN",
+        {
+          largo: { time: undefined, location: "Teatro Jesús Ibáñez de Matauco" },
+          corto: { time: "12:30", location: "Teatro Jesús Ibáñez de Matauco" },
+        }
+      )
+    );
+
+    expect(evs).toHaveLength(1);
+  });
+
+  it("no funde un evento de varios días con uno de un solo día", async () => {
+    // Una exposición que dura un mes comparte día con cualquier cosa que caiga
+    // dentro, así que el `dateEnd` que la delata tiene que impedir la fusión
+    // aunque el título se solape y una de las dos traiga hora.
+    const evs = await aggregate(
+      par("Exposición: Recordar y Contar", "Recordar y Contar", {
+        largo: { dateEnd: "2027-04-20T20:00:00.000Z" },
+        corto: { time: undefined },
+      })
+    );
+
+    expect(evs).toHaveLength(2);
+  });
+
+  it("hereda la hora del perdedor cuando el ganador no la trae", async () => {
+    // El ganador es el primero por prioridad del registro, y si es justo el que
+    // no publica la hora, quedarse sin ella sería perder el único dato que decía
+    // cuándo es el plan.
+    const [ev] = await aggregate(
+      par("El tiempo de los mitos en concierto", "El tiempo de los mitos", {
+        largo: { time: undefined },
+        corto: { time: "19:30" },
+      })
+    );
+
+    expect(ev.title).toBe("El tiempo de los mitos en concierto");
+    expect(ev.time).toBe("19:30");
+  });
+
+  it("hereda la imagen del perdedor y suma la corroboración", async () => {
+    const [ev] = await aggregate(
+      par("El tiempo de los mitos en concierto", "El tiempo de los mitos", {
+        corto: { image: "https://cdn.example.com/cartel.jpg" },
+      })
+    );
+
+    expect(ev.image).toBe("https://cdn.example.com/cartel.jpg");
+    expect(ev.corrobora).toBe(2);
+  });
+});
+
 describe("caché por fuente", () => {
   const TTL = 2 * 60 * 60 * 1000;
 

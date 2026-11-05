@@ -1,6 +1,7 @@
 import { normalizeCategory } from "./categories";
 import { localDateKey } from "./slug";
 import { normalizarTituloPromo, ORIGEN_PROMO } from "./promo";
+import { desescaparHtml } from "./html-entities";
 import { colapsarDiasConsecutivos, ordenarPorInteres } from "./recomendados";
 import type { AgendaEvento } from "./agenda";
 import type { FarmaciaGuardia } from "./sources/farmacias-guardia";
@@ -113,62 +114,6 @@ export function emojiDeCategoria(categoria: string): string {
  */
 export function titularDeBoletin(evento: AgendaEvento): string {
   return normalizarTituloPromo(evento.title);
-}
-
-const ENTIDADES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-  aacute: "á",
-  eacute: "é",
-  iacute: "í",
-  oacute: "ó",
-  uacute: "ú",
-  Aacute: "Á",
-  Eacute: "É",
-  Iacute: "Í",
-  Oacute: "Ó",
-  Uacute: "Ú",
-  ntilde: "ñ",
-  Ntilde: "Ñ",
-  uuml: "ü",
-  Uuml: "Ü",
-  laquo: "«",
-  raquo: "»",
-  hellip: "…",
-  mdash: "—",
-  ndash: "–",
-  euro: "€",
-  deg: "°",
-  ordf: "ª",
-  ordm: "º",
-  iquest: "¿",
-  iexcl: "¡",
-};
-
-/**
- * Desescapa las entidades que llegan dentro de las descripciones del
- * Ayuntamiento, que vienen con `&aacute;` y `&nbsp;` a puñados.
- *
- * Se resuelven las numéricas y un juego corto de nombres. Lo que no se conoce
- * se deja **tal cual**: un `&foo;` raro se lee mal, pero convertirlo en nada
- * borra texto.
- */
-function desescaparHtml(texto: string): string {
-  return texto.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (entidad, codigo: string) => {
-    if (codigo.startsWith("#x") || codigo.startsWith("#X")) {
-      const punto = parseInt(codigo.slice(2), 16);
-      return punto > 0 && punto <= 0x10ffff ? String.fromCodePoint(punto) : entidad;
-    }
-    if (codigo.startsWith("#")) {
-      const punto = parseInt(codigo.slice(1), 10);
-      return punto > 0 && punto <= 0x10ffff ? String.fromCodePoint(punto) : entidad;
-    }
-    return ENTIDADES[codigo] ?? entidad;
-  });
 }
 
 /**
@@ -341,7 +286,51 @@ export function seleccionarDelDia(
   // El fundido va **antes** del tope: fundir después de cortar dejaría fuera un
   // plan que sí cabía. `colapsarDiasConsecutivos` no reordena, así que de cada
   // grupo de títulos se queda el primero, que es el mejor puntuado.
-  return colapsarDiasConsecutivos(unicos).slice(0, limite);
+  const seleccion = colapsarDiasConsecutivos(unicos).slice(0, limite);
+
+  return conHuecoFamiliar(seleccion, unicos, limite);
+}
+
+/**
+ * Si un plan es para familias. Es la misma regla que `lib/kids.ts`: la categoría
+ * o la etiqueta, porque hay fuentes que marcan el público con `tags` y dejan la
+ * categoría en `Otros`.
+ */
+function esFamiliar(evento: AgendaEvento): boolean {
+  return evento.category === "Infantil" || evento.tags?.includes("infantil") === true;
+}
+
+/**
+ * El hueco de las familias, y por qué es un hueco y no un peso.
+ *
+ * **`Infantil` ya pesa 26 en `lib/popularity.ts`, por encima de Teatro, y no
+ * basta.** Medido el 4 de noviembre de 2026: el día tenía **un** plan infantil
+ * —un cuentacuentos publicado por dos fuentes— y quedaba en el puesto 20 de 2010
+ * eventos, así que con el peso solo el boletín salía sin nada para familias. Un
+ * peso ordena lo que hay; no crea lo que no hay, y el problema no era el orden.
+ *
+ * Es un hueco porque un plan infantil compite en la misma lista contra toda la
+ * agenda del día y pierde casi siempre: los hay una vez por semana, y los otros
+ * cientos no. Si en el top no hay ninguno, se cambia **el último** por el mejor
+ * plan familiar del día. El último y no el primero: el hueco es para que las
+ * familias tengan algo, no para decir que su plan es el mejor del día.
+ *
+ * Si no hay ningún plan familiar, la lista se queda como está. Inventar uno, o
+ * dejar el hueco vacío, sería peor que no tener el hueco.
+ */
+function conHuecoFamiliar(
+  seleccion: AgendaEvento[],
+  candidatos: readonly AgendaEvento[],
+  limite: number
+): AgendaEvento[] {
+  if (limite < 1 || seleccion.length === 0) return seleccion;
+  if (seleccion.some(esFamiliar)) return seleccion;
+
+  const yaElegidos = new Set(seleccion.map((e) => e.slug));
+  const familiar = candidatos.find((e) => esFamiliar(e) && !yaElegidos.has(e.slug));
+  if (!familiar) return seleccion;
+
+  return [...seleccion.slice(0, -1), familiar];
 }
 
 /** El enlace que se comparte: la ficha de aquí, no la web de origen. */

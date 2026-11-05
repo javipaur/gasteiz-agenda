@@ -2,6 +2,7 @@ import { getCachedOrFetch } from "./cache";
 import { agendaLink, agendaSlug, localDateKey, slugify } from "./slug";
 import { tituloCancelado } from "./cancelaciones";
 import { normalizeCategory } from "./categories";
+import { desescaparHtml } from "./html-entities";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
 import { logger } from "./axiom/server";
 
@@ -90,7 +91,12 @@ export type AgendaMeta = {
 type AgendaCacheada = { eventos: AgendaEvento[]; meta: AgendaMeta };
 
 function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
-  const title = (raw.title || "").trim();
+  // Las entidades se desescapan **antes de nada**, y el orden importa: el slug se
+  // deriva del título, así que decodificar después dejaría dos formas del mismo
+  // texto conviviendo —la del agregador y la de `agendaSlug`— y un favorito
+  // guardado apuntaría a un id que ya no existe. Aquí se limpia una vez y todos
+  // los consumidores —web, app, carrusel y boletín— leen lo mismo.
+  const title = desescaparHtml((raw.title || "").trim());
   if (!title || title === "Sin título") return null;
 
   // `dateIso` manda sobre `date` porque hay fuentes cuyo `date` no es parseable y
@@ -127,9 +133,9 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
     dateEnd: raw.dateEnd || undefined,
     time: (raw.time || raw.timeStart || "").trim() || undefined,
     image: raw.image?.startsWith("http") ? raw.image : undefined,
-    location: (raw.location || raw.venue || "").trim() || SIN_LUGAR,
+    location: desescaparHtml((raw.location || raw.venue || "").trim()) || SIN_LUGAR,
     link,
-    description: raw.description?.trim() || undefined,
+    description: raw.description ? desescaparHtml(raw.description.trim()) || undefined : undefined,
     category,
     source: entry.id,
     kind: entry.kind,
@@ -150,8 +156,292 @@ function dedupeKey(ev: AgendaEvento): string {
   // Europe/Madrid, así que el prefijo ISO señalaría el día equivocado y la misma
   // pareja de eventos deduplicaría en Dokploy y no en local. Al ser el mismo
   // normalizador que usa `eventSlug`, las dos claves no pueden divergir.
-  return `${ev.title.toLowerCase().trim()}|${localDateKey(ev.date)}`;
+  // El título va por `normalizarParaComparar` y no por `toLowerCase().trim()`
+  // porque las fuentes escriben el mismo plan con comillas, dos puntos o acentos
+  // distintos: medido el 5 de noviembre de 2026, 33 parejas del mismo día eran
+  // el mismo plan con el título igual tras normalizar y distinto en crudo
+  // (`"RESISTENCIA EN LA RESIDENCIA` frente a `Resistencia en la Residencia`,
+  // `MOTÖRHITS` frente a `MOTORHEAD`). Se colaban por las dos puertas: esta no
+  // las veía y la de contención no funde dos títulos que ya son iguales. Las 33
+  // medidas eran duplicados de verdad, sin un solo falso positivo.
+  return `${normalizarParaComparar(ev.title)}|${localDateKey(ev.date)}`;
 }
+
+/**
+ * El mínimo de caracteres que tiene que tener el título corto para que se pueda
+ * decir que está contenido en el largo.
+ *
+ * Sin este suelo, `Deserto` se fusiona con cualquier cosa que lleve la palabra
+ * dentro, y `Concierto` con `Concierto de Año Nuevo`. Seis es donde el título
+ * corto ya es un nombre y no una etiqueta.
+ */
+const MINIMO_TITULO_CONTENIDO = 6;
+
+/** Longitud mínima de un token de recinto para que cuente como distintivo. */
+const MINIMO_TOKEN_RECINTO = 4;
+
+/**
+ * Las palabras que nombran un **tipo** de sitio y no un sitio.
+ *
+ * `Centro Cívico Lakua` y `Centro Cívico Hegoalde` comparten dos tokens de
+ * recinto y son dos planes distintos: lo que los separa es justo el que no es
+ * genérico. Con esta lista fuera, un mismo título a la misma hora en dos centros
+ * cívicos se fusionaría y desaparecería uno de los dos.
+ */
+const RECINTOS_GENERICOS = new Set([
+  "centro",
+  "civico",
+  "biblioteca",
+  "teatro",
+  "antzokia",
+  "sala",
+  "casa",
+  "cultural",
+  "kulturunea",
+  "espacio",
+  "museo",
+  "palacio",
+  "fundacion",
+  "adultos",
+  "vitoria",
+  "gasteiz",
+  "jardin",
+  "parque",
+]);
+
+/**
+ * El título sin acentos, sin puntuación y en minúsculas.
+ *
+ * Es la forma en la que se comparan los títulos de dos fuentes, y **no es la
+ * forma en la que se muestran**: aquí solo se decide si dos fichas son el mismo
+ * plan, y para eso `«Ardi batek kontatutako ipuinak»` y
+ * `"Ardi batek kontatutako ipuinak"` tienen que ser la misma cadena.
+ */
+function normalizarParaComparar(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9ñ ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Los tokens de un recinto, sin repetir y sin los que no distinguen nada. */
+function tokensDeRecinto(recinto: string): string[] {
+  const tokens = normalizarParaComparar(recinto)
+    .split(" ")
+    .filter((t) => t.length >= MINIMO_TOKEN_RECINTO && !RECINTOS_GENERICOS.has(t));
+  return [...new Set(tokens)];
+}
+
+/**
+ * La hora de un evento como `HH:MM`, o `null` si no la tiene.
+ *
+ * Las fuentes la escriben de cinco maneras: `19:30`, `19.30`, `19:30h`,
+ * `19:30 - 21:00` y `19:30:00`. Se queda la primera que aparezca y se rellena a
+ * dos dígitos, porque `9:30` y `09:30` son la misma hora y compararlas como
+ * cadenas las separaría.
+ */
+function horaNormalizada(time: string | undefined): string | null {
+  if (!time) return null;
+  const m = /(\d{1,2})[:.h](\d{2})/.exec(time);
+  if (!m) return null;
+  const horas = Number(m[1]);
+  const minutos = Number(m[2]);
+  if (horas > 23 || minutos > 59) return null;
+  return `${String(horas).padStart(2, "0")}:${m[2]}`;
+}
+
+/**
+ * Si un título está contenido en el otro como **secuencia de palabras
+ * completas**, y el corto es lo bastante largo para ser un nombre.
+ *
+ * Por palabras y no por subcadena: `Arte` está dentro de `Martes` como subcadena
+ * y no como título.
+ */
+function titulosSeSolapan(a: AgendaEvento, b: AgendaEvento): boolean {
+  const na = normalizarParaComparar(a.title);
+  const nb = normalizarParaComparar(b.title);
+  if (!na || !nb || na === nb) return false;
+
+  const [corto, largo] = na.length <= nb.length ? [na, nb] : [nb, na];
+  if (corto.length < MINIMO_TITULO_CONTENIDO) return false;
+  return ` ${largo} `.includes(` ${corto} `);
+}
+
+/** Si los dos recintos comparten al menos un token que no sea genérico. */
+function recintosCompatibles(a: AgendaEvento, b: AgendaEvento): boolean {
+  const suyos = new Set(tokensDeRecinto(b.location));
+  return tokensDeRecinto(a.location).some((t) => suyos.has(t));
+}
+
+/** `Visita guiada a la exposición…`, en su forma normalizada. */
+const ETIQUETA_VISITA_GUIADA = /\bvisitas? guiadas?\b/;
+
+/**
+ * El único caso medido en el que dos fichas que se parecen **no son el mismo
+ * plan**: la exposición y la visita guiada a esa misma exposición.
+ *
+ * Se publican con el mismo título casi entero, el mismo día, la misma hora y el
+ * mismo recinto, así que todas las demás señales dicen que son la misma cosa. La
+ * que las separa es la etiqueta del principio. Se exige que la lleve **una sola**
+ * de las dos: si la llevan las dos, son dos fuentes publicando la misma visita
+ * guiada y sí se fusionan.
+ */
+function unaEsVisitaGuiadaYLaOtraNo(a: AgendaEvento, b: AgendaEvento): boolean {
+  const visita = (ev: AgendaEvento) => ETIQUETA_VISITA_GUIADA.test(normalizarParaComparar(ev.title));
+  return visita(a) !== visita(b);
+}
+
+/**
+ * `2ª FUNCIÓN`, `segunda sesión`, `2º pase`, `tercer pase`, en su forma
+ * normalizada: `normalizarParaComparar` convierte `2ª FUNCIÓN` en `2 funcion`, así
+ * que la etiqueta se busca ya sin ordinal volado ni acentos.
+ */
+const ETIQUETA_FUNCION_EXTRA =
+  /\b(?:[2-9][ao]?\s*(?:funcion|sesion|pase|representacion)|(?:segund|tercer|cuart)[oa]?\s+(?:funcion|sesion|pase|representacion))\b/;
+
+/**
+ * El único caso medido en el que «una trae hora y la otra no» se equivoca: la
+ * segunda función del mismo espectáculo, que una fuente publica sin hora.
+ *
+ * Es la misma forma que la visita guiada —todas las demás señales dicen «el mismo
+ * plan» y una etiqueta del título dice que no— y por eso la regla es la misma: se
+ * exige que la lleve **una sola** de las dos. Si la llevan las dos, son dos
+ * fuentes publicando la misma segunda función y sí se fusionan.
+ */
+function unaEsFuncionExtraYLaOtraNo(a: AgendaEvento, b: AgendaEvento): boolean {
+  const extra = (ev: AgendaEvento) =>
+    ETIQUETA_FUNCION_EXTRA.test(normalizarParaComparar(ev.title));
+  return extra(a) !== extra(b);
+}
+
+/** Si el evento dura varios días, no solo el día en que empieza. */
+function esMultidia(evento: AgendaEvento): boolean {
+  if (!evento.dateEnd) return false;
+  return localDateKey(evento.dateEnd) > localDateKey(evento.date);
+}
+
+/**
+ * Si dos fichas del mismo día cuentan el mismo plan.
+ *
+ * La hora no se exige en las dos: se exige que **al menos una** la traiga, para
+ * que un `20:00` y un «sin hora» puedan ser el mismo pase y dos «sin hora» no.
+ */
+function sonElMismoPlan(a: AgendaEvento, b: AgendaEvento): boolean {
+  if (!titulosSeSolapan(a, b)) return false;
+  if (!recintosCompatibles(a, b)) return false;
+  if (unaEsVisitaGuiadaYLaOtraNo(a, b)) return false;
+  if (unaEsFuncionExtraYLaOtraNo(a, b)) return false;
+
+  // Un festival de tres días y el concierto suelto de uno de esos días tienen
+  // títulos contenidos y el mismo recinto, y son dos planes distintos. Lo que los
+  // separa es que uno dura varios días y el otro no.
+  if (esMultidia(a) !== esMultidia(b)) return false;
+
+  const horaA = horaNormalizada(a.time);
+  const horaB = horaNormalizada(b.time);
+
+  // Dos horas distintas son dos pases: la matinée y la función de la noche del
+  // mismo espectáculo se quedan las dos. Sin hora en ninguna de las dos no hay
+  // señal de que sea el mismo pase, así que no se toca.
+  if (horaA && horaB) return horaA === horaB;
+  return Boolean(horaA || horaB);
+}
+
+/**
+ * Le pasa al ganador lo que el perdedor tiene y a él le falta.
+ *
+ * `location` es el caso especial: `normalizeRaw` la deja siempre rellena, así que
+ * el hueco se reconoce comparando con el valor por defecto y no por falsy.
+ */
+function heredarDelPerdedor(ganador: AgendaEvento, perdedor: AgendaEvento): void {
+  if (!ganador.image && perdedor.image) ganador.image = perdedor.image;
+  if (!ganador.description && perdedor.description) ganador.description = perdedor.description;
+  if (ganador.location === SIN_LUGAR && perdedor.location !== SIN_LUGAR) {
+    ganador.location = perdedor.location;
+  }
+  // La hora entra en el mismo saco porque la fusión puede juntar una ficha con
+  // hora y otra sin ella: quedarse con la del perdedor es lo que evita que el
+  // plan que sobrevive pierda el único dato que decía cuándo es.
+  if (!ganador.time && perdedor.time) ganador.time = perdedor.time;
+}
+
+/**
+ * La segunda pasada del dedupe: el mismo plan publicado por dos fuentes con
+ * títulos que no son idénticos.
+ *
+ * La primera pasada casa por título exacto, y con 28 fuentes sin esquema eso deja
+ * fuera lo que más se ve: `El tiempo de los mitos` y `Banda Municipal de Música de
+ * Vitoria-Gasteiz 2026-2027: "El tiempo de los mitos"` son el mismo concierto, y
+ * con la clave exacta salen dos veces en el carrusel y dos veces en el boletín.
+ *
+ * **Se mide antes de escribirlo, y por eso la regla es esta y no otra.** Medido el
+ * 4 de noviembre de 2026 sobre 2010 eventos: 60 parejas de títulos contenidos, de
+ * las que 36 son la misma cosa con distinto título. Exigir que el recinto corto
+ * esté **entero** dentro del largo rechaza 20 de las 60 —`Félix Petite Antzokia`
+ * contra `Teatro Félix Petite (Centro Cívico Ibaiondo)`—, así que la regla es
+ * «comparten un token de recinto que no sea genérico»: las 60 pasan y las
+ * parejas que no son el mismo plan se separan por la etiqueta de visita guiada.
+ *
+ * **Una de las dos tiene que traer hora, y la otra puede no traerla.** Medido el 5
+ * de noviembre de 2026 sobre 1850 eventos: 119 parejas del mismo día se solapan en
+ * el título, comparten recinto y solo una de las dos trae hora —`MUERDO (Urban Rock
+ * Concept)` a las 20:00 y `Muerdo` sin hora son el mismo concierto—. Eso no es una
+ * señal de que sean dos pases: es una fuente que no publica la hora. Sin esta
+ * rama, el plan salía dos veces en el carrusel y dos veces en el boletín.
+ *
+ * **Dos horas distintas no se fusionan**, porque ahí sí hay señal de dos pases:
+ * la matinée y la función de la noche del mismo espectáculo se quedan las dos. Y
+ * **dos fichas sin hora tampoco**, porque no hay ninguna señal de que sean el
+ * mismo pase.
+ *
+ * **Y una etiqueta de pase extra separa, aunque todo lo demás coincida.** Medido
+ * el 5 de noviembre de 2026 sobre 1731 eventos, la única pareja que la rama de
+ * arriba fundía y no debía era `DREAMING BUBBLES … 2ª FUNCIÓN` sin hora contra el
+ * mismo espectáculo a las 12:30: la segunda ficha es un pase distinto y la fuente
+ * simplemente no le puso hora. La etiqueta solo separa cuando la lleva una de las
+ * dos, igual que la visita guiada.
+ */
+function fusionarDuplicadosPorContencion(eventos: readonly AgendaEvento[]): AgendaEvento[] {
+  // Se agrupa **por día y nada más**. Agrupar por día y hora dejaba fuera del
+  // todo a los eventos sin hora, que son justo la mitad de las parejas reales; y
+  // agrupar por hora obligaría a repetir la comparación en cada cubo para juntar
+  // un `20:00` con un `sin hora`.
+  const porDia = new Map<string, number[]>();
+  eventos.forEach((ev, i) => {
+    const clave = localDateKey(ev.date);
+    const indices = porDia.get(clave);
+    if (indices) indices.push(i);
+    else porDia.set(clave, [i]);
+  });
+
+  const absorbidos = new Set<number>();
+
+  for (const indices of porDia.values()) {
+    if (indices.length < 2) continue;
+    // El primero de la lista es el que gana, y el orden de la lista es el de
+    // prioridad del registro: municipal antes que agregadoras. No se reordena
+    // aquí, porque eso sería decidir la fuente ganadora por segunda vez.
+    for (let a = 0; a < indices.length; a++) {
+      const i = indices[a];
+      if (absorbidos.has(i)) continue;
+      for (let b = a + 1; b < indices.length; b++) {
+        const j = indices[b];
+        if (absorbidos.has(j)) continue;
+        if (!sonElMismoPlan(eventos[i], eventos[j])) continue;
+        heredarDelPerdedor(eventos[i], eventos[j]);
+        eventos[i].corrobora = (eventos[i].corrobora ?? 1) + (eventos[j].corrobora ?? 1);
+        absorbidos.add(j);
+      }
+    }
+  }
+
+  if (absorbidos.size === 0) return [...eventos];
+  return eventos.filter((_, i) => !absorbidos.has(i));
+}
+
 
 /**
  * El agregado, y junto a él cómo se construyó.
@@ -216,19 +506,18 @@ export async function aggregateConMeta(
       continue;
     }
     // Las fuentes municipales suelen venir sin imagen y las comerciales con,
-    // así que se la robamos al perdedor antes de descartarlo. `location` es el
-    // caso especial: `normalizeRaw` la deja siempre rellena, así que el hueco se
-    // reconoce comparando con el valor por defecto, no por falsy.
-    if (!winner.image && ev.image) winner.image = ev.image;
-    if (!winner.description && ev.description) winner.description = ev.description;
-    if (winner.location === SIN_LUGAR && ev.location !== SIN_LUGAR) {
-      winner.location = ev.location;
-    }
+    // así que se la robamos al perdedor antes de descartarlo.
+    heredarDelPerdedor(winner, ev);
     // Una fuente más cuenta este mismo evento. Va después de las herencia de campos
     // porque es lo único que se acumula: las tres de arriba son "rellena un hueco" y
     // esta es "suma uno".
     winner.corrobora = (winner.corrobora ?? 1) + 1;
   }
+
+  // Y una segunda pasada por contención, porque la clave exacta solo caza el mismo
+  // título y las fuentes no lo escriben igual. El porqué de cada condición está en
+  // `fusionarDuplicadosPorContencion`.
+  const fundidos = fusionarDuplicadosPorContencion([...byKey.values()]);
 
   // Los cancelados se van después del dedupe, no antes: manda la fuente que
   // gana, que es la que más se fía de la ficha. Antes se filtraban aquí mismo,
@@ -236,7 +525,7 @@ export async function aggregateConMeta(
   // aparece en pantalla igual que uno que va a celebrarse, porque no hay badge
   // de cancelado en ninguna tarjeta y lo único que leería el campo sería el
   // JSON-LD, que además declara lo contrario de lo que ve el usuario.
-  const eventos = [...byKey.values()]
+  const eventos = fundidos
     .filter((ev) => !ev.cancelled)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

@@ -227,6 +227,65 @@ describe("seleccionarDelDia", () => {
     expect(seleccion).toHaveLength(LIMITE_BOLETIN);
     expect(seleccion.filter((e) => e.slug === "repetido")).toHaveLength(1);
   });
+
+  it("cambia el último plan por el mejor familiar cuando no hay ninguno en el top", () => {
+    // `Infantil` pesa 26 y aun así pierde casi siempre: hay uno por semana y los
+    // otros cientos no. El hueco es para que las familias tengan algo, no para
+    // decir que su plan es el mejor del día, así que se cambia el último.
+    const concurrido = (slug: string) =>
+      evento({
+        slug,
+        category: "Música",
+        image: "https://example.com/cartel.jpg",
+        price: "10 €",
+      });
+    const familiar = evento({ slug: "cuentacuentos-familias", category: "Infantil" });
+
+    const seleccion = seleccionarDelDia(
+      [concurrido("concierto-a"), concurrido("concierto-b"), concurrido("concierto-c"), familiar],
+      "2026-11-04",
+      3
+    );
+
+    expect(seleccion.map((e) => e.slug)).toEqual([
+      "concierto-a",
+      "concierto-b",
+      "cuentacuentos-familias",
+    ]);
+  });
+
+  it("no toca la lista si el top ya tiene un plan familiar", () => {
+    const familiar = evento({
+      slug: "cuentacuentos-familias",
+      category: "Infantil",
+      image: "https://example.com/cartel.jpg",
+      price: "3 €",
+    });
+    const otros = ["concierto-a", "concierto-b"].map((slug) => evento({ slug, category: "Música" }));
+
+    const seleccion = seleccionarDelDia([familiar, ...otros], "2026-11-04", 3);
+
+    expect(seleccion.map((e) => e.slug)).toEqual([
+      "cuentacuentos-familias",
+      "concierto-a",
+      "concierto-b",
+    ]);
+  });
+
+  it("deja la lista como está si no hay ningún plan familiar", () => {
+    // Inventar uno o dejar el hueco vacío sería peor que no tener el hueco.
+    const otros = ["concierto-a", "concierto-b", "concierto-c"].map((slug) =>
+      evento({ slug, category: "Música" })
+    );
+
+    const seleccion = seleccionarDelDia(otros, "2026-11-04", 3);
+
+    expect(seleccion.map((e) => e.slug)).toEqual([
+      "concierto-a",
+      "concierto-b",
+      "concierto-c",
+    ]);
+  });
 });
 
 describe("bloqueDeEvento", () => {
