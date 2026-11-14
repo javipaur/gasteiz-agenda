@@ -137,27 +137,32 @@ export async function scrapeMercadoAbastos(): Promise<EventoConFecha[]> {
       signal: AbortSignal.timeout(20000),
     });
     if (!resp.ok) {
-      console.error(`[mercado-abastos] HTTP ${resp.status}, se devuelve la cache`);
-      return cache || [];
+      if (cache) {
+        console.error(`[mercado-abastos] HTTP ${resp.status}, se devuelve la cache`);
+        return cache;
+      }
+      throw new Error(`[mercado-abastos] HTTP ${resp.status}`);
     }
 
     const payload = (await resp.json()) as { events?: TecEvent[] };
-    const events = Array.isArray(payload.events) ? payload.events : [];
-    const normalized = events
+    if (!payload || !Array.isArray(payload.events)) {
+      if (cache) {
+        console.warn("[mercado-abastos] respuesta inesperada, se conserva la cache");
+        return cache;
+      }
+      throw new Error("[mercado-abastos] respuesta inesperada de la API");
+    }
+    const normalized = payload.events
       .map(normalize)
       .filter((e): e is EventoConFecha => e !== null)
       .sort((a, b) => a.date.localeCompare(b.date));
-
-    if (normalized.length === 0) {
-      console.warn("[mercado-abastos] la API respondio sin eventos, se conserva la cache");
-      return cache || [];
-    }
 
     cache = normalized;
     lastFetch = now;
     return normalized;
   } catch (error) {
     console.error("[mercado-abastos] fallo el scrape", error);
-    return cache || [];
+    if (cache) return cache;
+    throw error;
   }
 }

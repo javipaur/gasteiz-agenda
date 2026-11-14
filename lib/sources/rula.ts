@@ -88,8 +88,7 @@ export async function scrapeRula(): Promise<RulaEvent[]> {
   });
 
   if (!res.ok) {
-    console.error(`MEC API returned ${res.status}`);
-    return [];
+    throw new Error(`MEC API returned ${res.status}`);
   }
 
   const json: any = await res.json();
