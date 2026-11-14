@@ -124,6 +124,8 @@ export async function scrapeVital(): Promise<VitalEvent[]> {
   const events: VitalEvent[] = [];
   const today = new Date().toISOString().slice(0, 10);
 
+  const cardCount = $(".fundacion-agenda-evento").length;
+
   $(".fundacion-agenda-evento").each((_, el) => {
     const card = $(el);
 
@@ -151,6 +153,11 @@ export async function scrapeVital(): Promise<VitalEvent[]> {
 
     events.push({ title, date, location, link: fullLink, category });
   });
+
+  // Sin tarjetas en la página, probable cambio de estructura/bloqueo: no es lectura sana vacía.
+  if (events.length === 0 && cardCount === 0) {
+    throw new Error("Fundación Vital: no se encontraron tarjetas de eventos (posible cambio de estructura o bloqueo)");
+  }
 
   return events;
 }

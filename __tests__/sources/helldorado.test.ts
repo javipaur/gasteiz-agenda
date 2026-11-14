@@ -82,19 +82,16 @@ describe("scrapeHelldorado", () => {
 });
 
 describe("scrapeHelldorado, la fecha no se fabrica", () => {
-  it("si la ficha de detalle no trae fecha, el evento no sale", async () => {
-    // Este es el bug. `date || e.postDate` convertía "no hemos podido leer la
-    // ficha" en "el concierto es el día que se anunció", que es un dato falso
-    // en la agenda, en la home y en el digest — y con el slug dentro, tampoco
-    // casaba con la ficha de detalle. La regla del repo es que sin fecha no entra.
+  it("si la ficha de detalle no trae fecha, la lectura se considera incompleta (no sana vacía)", async () => {
+    // La fecha nunca se fabrica. Además, si se encontraron entradas pero no se pudo
+    // extraer ninguna fecha válida, no se devuelve [] como lectura sana: eso podría
+    // confirmar ausencias en falso ante un cambio/bloqueo de las fichas.
     mockFetchWith([
       { match: /helldorado\.net\/wp-json/, content: articulos(2) },
       { match: /.*/, content: EMPTY_HTML },
     ]);
 
-    const events = await scrapeHelldorado();
-
-    expect(events).toEqual([]);
+    await expect(scrapeHelldorado()).rejects.toThrow(/fecha de evento/i);
   });
 
   it("la fecha de la ficha sigue siendo la que manda", async () => {

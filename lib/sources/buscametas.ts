@@ -115,6 +115,8 @@ export async function scrapeBuscametasInscripciones(): Promise<any[]> {
   // `.insc-item` = 21, o sea que el `.each()` no recorria nada y la ruta
   // respondia 200 con `{"eventos":[]}`. Un fallo de selector aqui no se ve: es
   // una lista vacia, que es lo que devuelve un cine sin eventos.
+  const inscItems = $(".insc-item").length;
+
   $(".insc-item").each((_, el) => {
     const row = $(el);
     const title = row.find(".i2-nombre").text().trim();
@@ -172,6 +174,10 @@ export async function scrapeBuscametasInscripciones(): Promise<any[]> {
     return 0;
   });
 
+  // Sin tarjetas en el HTML, probable cambio de estructura/bloqueo.
+  if (eventos.length === 0 && inscItems === 0) {
+    throw new Error("Buscametas inscripciones: no se encontraron tarjetas (posible cambio de estructura o bloqueo)");
+  }
+
   return eventos;
 }
-

@@ -150,6 +150,7 @@ export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
   // calendario de quien la lee—, así que compararla contra un día UTC no tiene
   // sentido ni siquiera "a veces".
   const today = hoyLocal();
+  const mobileCards = $("a.event-card").length;
 
   $("a.event-card").each((_, el) => {
     const card = $(el);
@@ -184,6 +185,8 @@ export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
   });
 
   // Si la home móvil no listó eventos, fallback a la home de escritorio (más densa)
+  let desktopCards = 0;
+  let desktopOk = false;
   if (events.length === 0) {
     const desktop = await fetch("https://entradium.com/es", {
       headers: { "User-Agent": USER_AGENT_MOBILE },
@@ -191,7 +194,9 @@ export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
       signal: AbortSignal.timeout(25000),
     });
     if (desktop.ok) {
+      desktopOk = true;
       const $d = cheerio.load(await desktop.text());
+      desktopCards = $d("a.event-card").length;
       $d("a.event-card").each((_, el) => {
         const card = $d(el);
         const title = strip(card.find(".event-title").first().text());
@@ -217,7 +222,13 @@ export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
           price: strip(card.find(".price").text().replace(/^Desde/, "")),
         });
       });
+    } else if (mobileCards === 0) {
+      throw new Error(`Entradium desktop fallback returned ${desktop.status}`);
     }
+  }
+
+  if (events.length === 0 && mobileCards === 0 && (!desktopOk || desktopCards === 0)) {
+    throw new Error("Entradium: no se encontraron tarjetas de eventos (posible cambio de estructura o bloqueo)");
   }
 
   return events;

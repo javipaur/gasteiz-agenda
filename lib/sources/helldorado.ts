@@ -136,8 +136,18 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
     })
   );
 
-  return scraped
+  const result = scraped
     .filter((r): r is PromiseFulfilledResult<HelldoradoEvent> => r.status === "fulfilled")
     .map((r) => r.value)
     .filter((e) => e.title && e.date);
+
+  // Si había fichas a revisar y no se obtuvo ninguna con fecha válida, probable
+  // cambio/bloqueo en páginas de detalle: no se trata como lectura sana vacía.
+  if (toScrape.length > 0 && result.length === 0) {
+    throw new Error(
+      "[helldorado] se encontraron entradas pero no se pudo extraer ninguna fecha de evento válida"
+    );
+  }
+
+  return result;
 }

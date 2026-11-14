@@ -209,5 +209,14 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
     );
   }
 
+  // Si la portada listó eventos pero no se pudo extraer ninguno válido, es más
+  // probable un bloqueo/cambio de estructura que una ausencia real. No se marca
+  // como lectura sana vacía para evitar confirmar ausencias en falso.
+  if (urls.size > 0 && allEvents.length === 0) {
+    throw new Error(
+      `[fever] la portada listó ${urls.size} enlaces pero no se pudo extraer ningún evento válido`
+    );
+  }
+
   return allEvents;
 }
