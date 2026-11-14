@@ -2,9 +2,9 @@ import { ImageResponse } from "next/og";
 import { TAMANO_PROMO, ORIGEN_PROMO } from "@/lib/promo";
 
 export const runtime = "nodejs";
-// La presentación no cambia de un día a otro, así que se cachea mucho más que las
-// tarjetas de eventos: si el texto no cambia, la imagen tampoco.
-export const revalidate = 86400;
+// Evita prerender en build (ImageResponse + entorno vips puede fallar en algunos entornos);
+// la imagen es determinista y puede cachearse en CDN por cabeceras de respuesta.
+export const dynamic = "force-dynamic";
 
 /**
  * La imagen del post de presentación: quiénes somos y qué hay en la cuenta.

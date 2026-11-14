@@ -226,7 +226,7 @@ describe("las ausencias", () => {
     expect(fila.fallos).toBe(0);
   });
 
-  it("cambio de enlace/slug con misma identidad actualiza la fila sin duplicar", () => {
+  it("cambio de enlace/slug con misma identidad actualiza la fila sin duplicar y crea alias determinista", () => {
     ledger.registrarImportacion(
       [{ source: "municipal", title: "Uno", date: FECHA, slug: "uno-viejo", link: "https://example.com/viejo" }],
       ["municipal"],
@@ -245,6 +245,48 @@ describe("las ausencias", () => {
     expect(filas[0].slug).toBe("uno-nuevo");
     expect(filas[0].link).toBe("https://example.com/nuevo");
     expect(filas[0].estado).toBe("activo");
+
+    expect(ledger.resolverAliasSlug("uno-viejo")).toEqual({
+      canonical: "uno-nuevo",
+      tracking_id: ledger.trackingId("municipal", FECHA, "Uno"),
+      source: "municipal",
+    });
+  });
+
+  it("mismo source+external_id con identidad/slug distinto crea alias al canónico actual (sin colisión)", () => {
+    ledger.registrarImportacion(
+      [{
+        source: "municipal",
+        title: "Uno",
+        date: FECHA,
+        slug: "slug-v1",
+        link: "https://example.com/1",
+        externalId: "ext-1",
+      }],
+      ["municipal"],
+      1_000
+    );
+
+    // Cambia título => cambia tracking_id y slug, pero external_id estable es el mismo.
+    ledger.registrarImportacion(
+      [{
+        source: "municipal",
+        title: "Uno renombrado",
+        date: FECHA,
+        slug: "slug-v2",
+        link: "https://example.com/1",
+        externalId: "ext-1",
+      }],
+      ["municipal"],
+      2_000
+    );
+
+    const resuelto = ledger.resolverAliasSlug("slug-v1");
+    expect(resuelto).toEqual({
+      canonical: "slug-v2",
+      tracking_id: ledger.trackingId("municipal", FECHA, "Uno"),
+      source: "municipal",
+    });
   });
 
   it("sin fuentes sanas no se cuenta ninguna ausencia", () => {
