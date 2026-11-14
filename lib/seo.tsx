@@ -105,6 +105,8 @@ export type EventoJsonLd = {
   link: string;
   description?: string;
   cancelled?: boolean;
+  price?: string;
+  officialUrl?: string;
 };
 
 export function eventToJsonLd(evento: EventoJsonLd) {
@@ -122,6 +124,8 @@ export function eventToJsonLd(evento: EventoJsonLd) {
     eventStatus: evento.cancelled
       ? "https://schema.org/EventCancelled"
       : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    inLanguage: "es",
     location: {
       "@type": "Place",
       name: evento.location,
@@ -139,13 +143,25 @@ export function eventToJsonLd(evento: EventoJsonLd) {
   if (evento.image) event.image = [evento.image];
   if (evento.description)
     event.description = evento.description.slice(0, 300);
+  if (evento.officialUrl && evento.officialUrl !== evento.link) {
+    event.sameAs = [evento.officialUrl];
+  }
 
   if (evento.link) {
-    event.offers = {
+    const offer: Record<string, unknown> = {
       "@type": "Offer",
       url: evento.link,
       availability: "https://schema.org/InStock",
     };
+    const price = evento.price?.trim().toLowerCase();
+    if (
+      price &&
+      /^(gratis|gratuito|gratuita|entrada libre|0(?:[.,]00)?\s*€?|0\s*eur)$/.test(price)
+    ) {
+      offer.price = "0";
+      offer.priceCurrency = "EUR";
+    }
+    event.offers = offer;
   }
 
   return event;

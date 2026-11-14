@@ -15,6 +15,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
+      url: `${BASE_URL}/hoy`,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
       url: `${BASE_URL}/culture`,
       changeFrequency: "daily",
       priority: 0.9,
@@ -28,6 +33,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE_URL}/fiestas-blanca`,
       changeFrequency: "daily",
       priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/gazte-film-fest-2026`,
+      changeFrequency: "daily",
+      priority: 0.8,
     },
     {
       url: `${BASE_URL}/deporte`,
