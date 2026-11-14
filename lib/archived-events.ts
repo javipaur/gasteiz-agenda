@@ -1,5 +1,19 @@
 import type { AgendaEvento } from "./agenda";
 
+export type RecoveredEventState =
+  | "recuperado" // info contrastada, servible
+  | "archivado" // conocido pero sin ficha completa, servible informativamente
+  | "retirado"; // retirado confirmado; se sirve info conocida si existe
+
+export type RecoveredAgendaEvento = AgendaEvento & {
+  /** Slugs/URLs antiguas que deben resolver a este evento. */
+  aliases?: readonly string[];
+  /** Estado operativo del registro recuperado. */
+  recoveredState?: RecoveredEventState;
+  /** Procedencia breve para control/auditoría interna. */
+  provenance?: string;
+};
+
 /**
  * Eventos recuperados/archivados para URLs ya indexadas o compartidas y para
  * información contrastada que la ingesta automática no está sirviendo.
@@ -8,15 +22,16 @@ import type { AgendaEvento } from "./agenda";
  * contenido recuperable sin inventar datos. Cada entrada debe proceder de una
  * fuente contrastada (ficha oficial, programa, captura, logs/cache).
  *
- * No sustituye la solución estructural completa (identidad externa estable,
- * alias persistentes, last-seen/estados, confirmación multi-ejecución y 410 de
- * retirados), pero centraliza la recuperación y permite integrarla en listados.
+ * No sustituye la solución estructural completa en base de datos (identidad
+ * externa estable por fuente, historial de importaciones, 410 automático para
+ * retirados confirmados sin información), pero centraliza la recuperación,
+ * alias conocidos y estados para integrarlos en listados y detalle.
  */
 const BASE_DESC_GFF =
   "Sesión de Gazte Film Fest 2026 en Vitoria-Gasteiz. Consulta el programa y la información actualizada en la web oficial del festival.";
 
 /** Programa contrastado desde https://www.gaztefilmfest.com/gaztefilmfest2026 */
-const GAZTE_FILM_FEST_2026_SESIONES: readonly AgendaEvento[] = [
+const GAZTE_FILM_FEST_2026_SESIONES: readonly RecoveredAgendaEvento[] = [
   { id: "gazte-film-fest-2026-inauguracion-concierto-visual-2026-11-19-s3191o", slug: "gazte-film-fest-2026-inauguracion-concierto-visual-2026-11-19-s3191o", title: "Gazte Film Fest 2026: Inauguración - Concierto visual", date: "2026-11-19T19:00:00+01:00", time: "19:00", location: "Conservatorio Jesús Guridi, Vitoria-Gasteiz", link: "https://www.gaztefilmfest.com/inaugurazioa", description: "Inauguración de Gazte Film Fest 2026 con concierto visual. Consulta la información actualizada en la web oficial.", category: "Cine", source: "gaztefilmfest", kind: "agenda", tags: ["infantil"] },
   { id: "al-son-de-la-vida-canta-la-tierra-2026-11-20-7zj8ma", slug: "al-son-de-la-vida-canta-la-tierra-2026-11-20-7zj8ma", title: "Al son de la vida, canta la tierra", date: "2026-11-20T17:30:00+01:00", time: "17:30", location: "Sala Baratza, Vitoria-Gasteiz", link: "https://www.gaztefilmfest.com/programazioa/filmlaburrak/al-son-de-la-vida-canta-la-tierra", description: BASE_DESC_GFF, category: "Cine", source: "gaztefilmfest", kind: "agenda", tags: ["infantil"] },
   { id: "mary-anning-2026-11-20-miw9y4", slug: "mary-anning-2026-11-20-miw9y4", title: "Mary Anning", date: "2026-11-20T19:00:00+01:00", time: "19:00", location: "Sala Baratza, Vitoria-Gasteiz", link: "https://www.gaztefilmfest.com/programazioa/mary-anning", description: BASE_DESC_GFF, category: "Cine", source: "gaztefilmfest", kind: "agenda", tags: ["infantil"] },
@@ -52,7 +67,7 @@ const GAZTE_FILM_FEST_2026_SESIONES: readonly AgendaEvento[] = [
   { id: "gazte-film-fest-2026-clausura-y-entrega-de-premios-2026-11-29-a0wn9l", slug: "gazte-film-fest-2026-clausura-y-entrega-de-premios-2026-11-29-a0wn9l", title: "Gazte Film Fest 2026: Clausura y entrega de premios", date: "2026-11-29T19:30:00+01:00", time: "19:30", location: "Arkabia, Vitoria-Gasteiz", link: "https://www.gaztefilmfest.com/gaztefilmfest2026", description: "Clausura de Gazte Film Fest 2026 y entrega de premios. Consulta la información actualizada en la web oficial.", category: "Festival", source: "gaztefilmfest", kind: "agenda", tags: ["infantil"] },
 ];
 
-export const ARCHIVED_EVENTS: readonly AgendaEvento[] = [
+export const ARCHIVED_EVENTS: readonly RecoveredAgendaEvento[] = [
   {
     // Slug/id preservados exactamente: son la URL indexada/compartida.
     id: "gazte-film-fest-2026-festival-de-cine-infantil-2026-11-19-ije7tx",
@@ -63,23 +78,42 @@ export const ARCHIVED_EVENTS: readonly AgendaEvento[] = [
     time: "11:00",
     location: "Vitoria-Gasteiz",
     link: "https://www.kulturklik.euskadi.eus/evento/2026/11/19/gazte-film-fest-2026-festival-de-cine-infantil/webkklik00-detalle/es/",
+    image:
+      "https://www.kulturklik.euskadi.eus/evento/2026/11/19/gazte-film-fest-2026-festival-de-cine-infantil/webkklik00-detalle/es/images/3.jpg",
     description:
       "GazteFilm Fest celebra su novena edición del 19 al 29 de noviembre de 2026 en Vitoria-Gasteiz, con México como país invitado. Festival de cine para la infancia y la juventud con proyecciones, talleres y actividades en sedes como Arkabia, Izaskun Arrue Kulturgunea, Sala Baratza, el Conservatorio Jesús Guridi y centros cívicos. Incluye sección oficial, programación dedicada a México, jurado infantil, doblaje al euskera y talleres participativos. Consulta el programa y la información actualizada en la fuente.",
     category: "Festival",
     source: "euskadi",
     kind: "agenda",
     tags: ["infantil"],
+    recoveredState: "recuperado",
+    provenance:
+      "Recuperado desde Kulturklik (ficha y programa público) tras desaparición del feed automático; slug preservado por URL indexada.",
   },
-  ...GAZTE_FILM_FEST_2026_SESIONES,
+  ...GAZTE_FILM_FEST_2026_SESIONES.map((ev) => ({
+    ...ev,
+    recoveredState: "recuperado" as const,
+    provenance: "Programa contrastado desde https://www.gaztefilmfest.com/gaztefilmfest2026",
+  })),
 ];
 
-const bySlug = new Map(ARCHIVED_EVENTS.map((ev) => [ev.slug, ev]));
+const bySlug = new Map<string, RecoveredAgendaEvento>();
+for (const ev of ARCHIVED_EVENTS) {
+  bySlug.set(ev.slug, ev);
+  for (const alias of ev.aliases ?? []) bySlug.set(alias, ev);
+}
 
 /** Eventos recuperados que deben integrarse en la agenda/listados. */
 export function getRecoveredAgendaEvents(): readonly AgendaEvento[] {
   return ARCHIVED_EVENTS;
 }
 
-export function getArchivedEventoBySlug(slug: string): AgendaEvento | undefined {
+export function getArchivedEventoBySlug(
+  slug: string
+): RecoveredAgendaEvento | undefined {
   return bySlug.get(slug);
+}
+
+export function isRecoveredSlug(slug: string): boolean {
+  return bySlug.has(slug);
 }

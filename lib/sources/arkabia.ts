@@ -100,8 +100,7 @@ export async function scrapeArkabia(): Promise<ArkabiaEvento[]> {
   });
 
   if (!home.ok) {
-    console.error(`Arkabia homepage returned ${home.status}`);
-    return [];
+    throw new Error(`Arkabia homepage returned ${home.status}`);
   }
 
   const homeHtml = await home.text();
@@ -122,11 +121,9 @@ export async function scrapeArkabia(): Promise<ArkabiaEvento[]> {
     return desdeLaHome;
   }
 
-  // La home tampoco traia nada. Se registra por que, porque ahora mismo es un
-  // fallo de scrape y no se distingue de un centro sin programacion.
-  console.error(
-    "Arkabia: la home no trajo tarjetas de " +
-      ".modulo-programacion__item. Si el site sigue asi, no hay agenda que leer."
+  // La home tampoco traía tarjetas: fallo de lectura/parsing o cambio de
+  // estructura. No se devuelve lista vacía sana para no marcar ausencia falsa.
+  throw new Error(
+    "Arkabia: la home no trajo tarjetas de .modulo-programacion__item"
   );
-  return [];
 }

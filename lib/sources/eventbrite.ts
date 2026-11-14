@@ -37,8 +37,7 @@ export async function scrapeEventbrite(): Promise<EventbriteEvent[]> {
   });
 
   if (!res.ok) {
-    console.error(`Eventbrite returned ${res.status}`);
-    return [];
+    throw new Error(`Eventbrite returned ${res.status}`);
   }
 
   const html = await res.text();

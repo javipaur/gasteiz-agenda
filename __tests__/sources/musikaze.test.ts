@@ -65,13 +65,9 @@ describe("scrapeMusikaze", () => {
     }
   });
 
-  it("returns an empty array when the fetch fails", async () => {
-    mockFetchWith([
-      { match: /musikaze\.com/, content: "", status: 500 },
-    ]);
-
-    const events = await scrapeMusikaze();
-    expect(events).toEqual([]);
+  it("propaga el fallo cuando la petición falla", async () => {
+    mockFetchWith([{ match: /musikaze\.com/, content: "", status: 500 }]);
+    await expect(scrapeMusikaze()).rejects.toThrow(/Musikaze/i);
   });
 
   it("is resilient to HTML with no ticket items", async () => {

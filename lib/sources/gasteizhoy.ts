@@ -101,10 +101,9 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
    * eventos.
    */
   if (!calendarRes.ok) {
-    console.error(
-      `[gasteizhoy] ${calendarRes.status} ${calendarRes.statusText} en el calendario: la agenda sale vacía, y no es que no haya eventos`
+    throw new Error(
+      `[gasteizhoy] ${calendarRes.status} ${calendarRes.statusText} en el calendario`
     );
-    return [];
   }
 
   const calendarHtml = await calendarRes.text();

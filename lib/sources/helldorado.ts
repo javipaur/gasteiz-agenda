@@ -85,8 +85,9 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
       // tampoco. Los dos son indistinguibles de "la sala no tiene nada", que es lo
       // único que el `[]` de esta función significaba.
       if (!res.ok) {
-        console.warn(`[helldorado] la pagina ${page} respondio ${res.status}, se corta la paginacion`);
-        break;
+        // Página 1 fallida = no se pudo leer la fuente; páginas siguientes con datos
+        // parciales también se tratan como fallo para no registrar ausencias falsas.
+        throw new Error(`[helldorado] la pagina ${page} respondio ${res.status}`);
       }
       const data: any[] = await res.json();
       if (!data.length) break;
@@ -99,8 +100,11 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
       const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1", 10);
       if (page >= totalPages) break;
     } catch (error) {
-      console.warn(`[helldorado] fallo la pagina ${page}: ${error instanceof Error ? error.message : String(error)}`);
-      break;
+      const msg = `[helldorado] fallo la pagina ${page}: ${error instanceof Error ? error.message : String(error)}`;
+      console.warn(msg);
+      // Sin datos previos no hay lectura válida; con datos parciales tampoco
+      // (evita tratar como sanos eventos no vistos en páginas no leídas).
+      throw new Error(msg);
     }
   }
 

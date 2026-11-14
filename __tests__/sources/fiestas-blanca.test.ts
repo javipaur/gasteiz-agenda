@@ -187,10 +187,10 @@ describe("scrapeFiestasBlanca", () => {
     expect(fiestas.map((f) => f.title)).not.toContain("Torneo de la Blanca");
   });
 
-  it("devuelve vacío si el calendario falla, sin lanzar", async () => {
+  it("propaga el fallo si el calendario falla y no hay caché", async () => {
     const { scrapeFiestasBlanca } = await scraperLimpio();
     mockFetchWith([{ match: MUNICIPAL, content: "", status: 500 }]);
 
-    await expect(scrapeFiestasBlanca()).resolves.toEqual([]);
+    await expect(scrapeFiestasBlanca()).rejects.toThrow();
   });
 });

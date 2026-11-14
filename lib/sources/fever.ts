@@ -158,10 +158,9 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
    * corrigiendo desde el principio.
    */
   if (!res.ok) {
-    console.error(
-      `[fever] ${res.status} ${res.statusText} en la portada: puede ser un interstitial de Cloudflare, no una agenda vacía`
+    throw new Error(
+      `[fever] ${res.status} ${res.statusText} en la portada`
     );
-    return [];
   }
   const html = await res.text();
 

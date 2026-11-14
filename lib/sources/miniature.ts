@@ -101,18 +101,16 @@ async function fetchPagina(page: number): Promise<WpEtn[]> {
     });
 
     if (!res.ok) {
-      if (res.status !== 400) {
-        console.error(`MINIATURE API returned ${res.status} (page ${page})`);
-      }
-      return [];
+      // 400 suele indicar fin de paginación en WP; no es fallo de lectura.
+      if (res.status === 400) return [];
+      throw new Error(`MINIATURE API returned ${res.status} (page ${page})`);
     }
 
     return (await res.json()) as WpEtn[];
   } catch (err) {
-    console.error(
+    throw new Error(
       `MINIATURE API failed (page ${page}): ${err instanceof Error ? err.message : String(err)}`
     );
-    return [];
   }
 }
 

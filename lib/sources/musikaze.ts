@@ -46,7 +46,9 @@ async function scrapePage(page: number): Promise<MusikazeEvent[]> {
     signal: AbortSignal.timeout(20000),
     next: { revalidate: 3600 },
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    throw new Error(`Musikaze returned ${res.status} on page ${page}`);
+  }
 
   const html = await res.text();
   const $ = cheerio.load(html);

@@ -110,11 +110,7 @@ export async function scrapeJimmyJazz(): Promise<any[]> {
 
     return events;
   } catch (error) {
-    // Antes esto se comía el fallo en silencio y devolvía una lista vacía
-    // indistinguible de "la sala no tiene nada cartelado", que es el mismo
-    // agujero que cerró `municipal.ts` propagando. Aquí no se propaga porque no
-    // es el contrato de esta fuente, pero sí se dice qué pasó.
     console.error(`[jimmyjazz] ${error instanceof Error ? error.message : String(error)}`);
-    return [];
+    throw error;
   }
 }

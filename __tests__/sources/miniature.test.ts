@@ -48,12 +48,11 @@ describe("scrapeMiniature", () => {
     }
   });
 
-  it("returns an empty array when the API fails", async () => {
+  it("propaga el fallo cuando la API falla", async () => {
     jest
       .spyOn(global, "fetch")
       .mockImplementation(async () => new Response("", { status: 500 }));
 
-    const events = await scrapeMiniature();
-    expect(events).toEqual([]);
+    await expect(scrapeMiniature()).rejects.toThrow(/MINIATURE/i);
   });
 });

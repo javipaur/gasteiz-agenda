@@ -126,8 +126,7 @@ export async function scrapeEntradium(): Promise<EntradiumEvent[]> {
   });
 
   if (!res.ok) {
-    console.error(`Entradium returned ${res.status}`);
-    return [];
+    throw new Error(`Entradium returned ${res.status}`);
   }
 
   const html = await res.text();

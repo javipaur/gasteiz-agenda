@@ -114,14 +114,12 @@ describe("scrapeEntradium", () => {
     expect(events.map((e) => e.title)).not.toContain("Concierto en Bilbao");
   });
 
-  it("devuelve vacío si la home no responde", async () => {
+  it("propaga el fallo si la home no responde", async () => {
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
     mockFetchWith([{ match: /entradium\.com/, content: "", status: 500 }]);
 
-    const events = await scrapeEntradium();
-
-    expect(events).toEqual([]);
-    expect(errorSpy).toHaveBeenCalled();
+    await expect(scrapeEntradium()).rejects.toThrow(/500/);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it("cae a la home de escritorio cuando la móvil no trae eventos", async () => {

@@ -75,13 +75,9 @@ describe("scrapeHelldorado", () => {
     expect(Array.isArray(events)).toBe(true);
   });
 
-  it("returns an empty array when the API is unreachable", async () => {
-    mockFetchWith([
-      { match: /helldorado\.net/, content: "", status: 500 },
-    ]);
-
-    const events = await scrapeHelldorado();
-    expect(events).toEqual([]);
+  it("propaga el fallo cuando la API no responde", async () => {
+    mockFetchWith([{ match: /helldorado\.net/, content: "", status: 500 }]);
+    await expect(scrapeHelldorado()).rejects.toThrow(/helldorado/i);
   });
 });
 
@@ -117,24 +113,17 @@ describe("scrapeHelldorado, la fecha no se fabrica", () => {
 });
 
 describe("scrapeHelldorado, los cortes se dicen", () => {
-  it("avisa cuando la primera página falla", async () => {
-    // El `break` sin log del bucle de paginación devolvía `[]` sin decir nada: un
-    // 500 puntual era indistinguible de una sala sin cartelera. Y como la fecha
-    // ya no se fabrica, ese `[]` es además la diferencia entre "no hay eventos" y
-    // "no lo hemos podido mirar".
+  it("propaga el fallo cuando la primera página falla", async () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
 
     mockFetchWith([{ match: /helldorado\.net/, content: "", status: 500 }]);
 
-    const events = await scrapeHelldorado();
-
-    expect(events).toEqual([]);
+    await expect(scrapeHelldorado()).rejects.toThrow(/helldorado/i);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/helldorado/i));
   });
 
-  it("avisa cuando una página intermedia falla", async () => {
-    // Un 500 en la página 2 con la 1 buena: el bucle salía por `break` y se
-    // quedaba con la mitad de la cartelera, también sin decir nada.
+  it("propaga el fallo cuando una página intermedia falla", async () => {
+    // Con lectura parcial no se puede tratar la fuente como sana: faltan páginas.
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
 
     mockFetchWith([
@@ -142,9 +131,7 @@ describe("scrapeHelldorado, los cortes se dicen", () => {
       { match: /.*/, content: "", status: 500 },
     ]);
 
-    const events = await scrapeHelldorado();
-
+    await expect(scrapeHelldorado()).rejects.toThrow(/helldorado/i);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/helldorado/i));
-    expect(Array.isArray(events)).toBe(true);
   });
 });

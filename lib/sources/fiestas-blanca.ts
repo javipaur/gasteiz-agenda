@@ -289,6 +289,6 @@ export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
   } catch (error) {
     console.error("Error scraping Fiestas de la Blanca:", error);
     if (cache) return cache;
-    return [];
+    throw error;
   }
 }

@@ -86,20 +86,18 @@ it("extrae las tarjetas de la home", async () => {
     expect((await scrapeArkabia())[0].date).toBe("2026-10-07");
   });
 
-  it("devuelve una lista vacia si la home no trae tarjetas", async () => {
-    // Es lo que devuelve hoy el sitio: el modulo vacio. Se distingue del fallo
-    // de red, que lanza en vez de devolver lista.
+  it("propaga el fallo si la home no trae tarjetas", async () => {
+    // Sin tarjetas no hay lectura válida de la fuente (estructura cambiada o sitio roto);
+    // no se devuelve lista vacía sana para no registrar ausencias falsas.
     mockHome("<html><body><div class='no-results'></div></body></html>");
 
-    const events = await scrapeArkabia();
-    expect(events).toEqual([]);
+    await expect(scrapeArkabia()).rejects.toThrow(/Arkabia/i);
   });
 
-  it("devuelve una lista vacia si la home falla", async () => {
+  it("propaga el fallo si la home falla", async () => {
     mockFetchWith([{ match: /arkabia\.eus/, content: "", status: 500 }]);
 
-    const events = await scrapeArkabia();
-    expect(events).toEqual([]);
+    await expect(scrapeArkabia()).rejects.toThrow(/500/);
   });
 });
 

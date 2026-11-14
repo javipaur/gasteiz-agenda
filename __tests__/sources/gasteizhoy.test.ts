@@ -122,15 +122,12 @@ describe("scrapeGasteizHoy", () => {
     }
   });
 
-  it("returns an empty array when the calendar fetch fails, and says so", async () => {
+  it("propaga el fallo cuando el calendario no responde", async () => {
     mockFetchWith([{ match: /gasteizhoy\.com/, content: "", status: 500 }]);
     const errorSpy = espiaErrores();
 
-    const events = await scrapeGasteizHoy();
-    expect(events).toEqual([]);
-    // El `?view=list` sí puede caerse en silencio —solo trae imágenes—, pero la
-    // petición que trae los eventos no, y es la que decidía la agenda de La Blanca.
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/gasteizhoy/i));
+    await expect(scrapeGasteizHoy()).rejects.toThrow(/gasteizhoy/i);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it("is resilient to malformed HTML", async () => {

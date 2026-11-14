@@ -116,8 +116,7 @@ export async function scrapeVital(): Promise<VitalEvent[]> {
   });
 
   if (!res.ok) {
-    console.error(`Fundación Vital returned ${res.status}`);
-    return [];
+    throw new Error(`Fundación Vital returned ${res.status}`);
   }
 
   const html = (await res.text()).replace(/\u00ef\u00bf\u00bd/gi, "");
