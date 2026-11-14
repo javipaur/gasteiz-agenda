@@ -6,6 +6,7 @@ import { propsImagen } from "@/lib/image-proxy";
 import { InViewWrapper } from "@/lib/shared";
 import { SECTION_TINT } from "@/lib/sectionTint";
 import FavoriteButton from "./FavoriteButton";
+import EmptyState from "./EmptyState";
 
 type Evento = {
   id: string;
@@ -34,9 +35,17 @@ export default function KidsPageClient({ eventos }: { eventos: Evento[] }) {
       </header>
 
       {eventos.length === 0 ? (
-        <p className="text-fg-subtle text-center py-12 font-mono text-sm">
-          No hay eventos disponibles
-        </p>
+        <EmptyState
+          icon={
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" />
+            </svg>
+          }
+          title="No hay planes familiares ahora mismo"
+          hint="Cuando se publiquen actividades para niños y familias en Vitoria-Gasteiz, aparecerán aquí."
+          action={{ href: "/culture", label: "Ver agenda cultural" }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {eventos.map((evento, index) => {

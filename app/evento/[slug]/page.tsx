@@ -59,7 +59,7 @@ export async function generateMetadata({
 
 function CalendarIcon() {
   return (
-    <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg aria-hidden="true" focusable="false" className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <rect x="2.5" y="4" width="15" height="13" rx="2" />
       <path d="M2.5 8h15M6.5 2.5V5M13.5 2.5V5" />
     </svg>
@@ -68,7 +68,7 @@ function CalendarIcon() {
 
 function StarIcon() {
   return (
-    <svg className="w-4 h-4 shrink-0 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+    <svg aria-hidden="true" focusable="false" className="w-4 h-4 shrink-0 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
       <path d="M10 1.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.9l-5.3 2.7 1-5.8L1.5 7.7l5.9-.9L10 1.5z" />
     </svg>
   );
@@ -76,7 +76,7 @@ function StarIcon() {
 
 function ExternalIcon() {
   return (
-    <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <svg aria-hidden="true" focusable="false" className="w-4 h-4" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M3 11l8-8M5 3h6v6" />
     </svg>
   );
@@ -84,7 +84,7 @@ function ExternalIcon() {
 
 function TicketIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 4.5h14v7H1z" />
       <path d="M5.5 6v4M8 6v4M10.5 6v4" />
     </svg>
@@ -93,7 +93,7 @@ function TicketIcon({ className }: { className?: string }) {
 
 function PinIcon() {
   return (
-    <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" focusable="false" className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 18s-6-5.1-6-9.5A6 6 0 0110 2.5a6 6 0 016 6C16 12.9 10 18 10 18z" />
       <circle cx="10" cy="8.5" r="2" />
     </svg>
@@ -286,32 +286,35 @@ export default async function EventoDetallePage({ params }: PageProps) {
           </div>
 
           <div className="mb-8">
-            <div className="flex flex-wrap items-center gap-3">
-              <AddToCalendar
-                title={evento.title}
-                date={evento.date}
-                dateEnd={evento.dateEnd}
-                time={evento.time}
-                location={lugar}
-                slug={evento.slug}
-              />
-              <FavoriteButton
-                event={{
-                  id: evento.id,
-                  slug: evento.slug,
-                  title: evento.title,
-                  date: evento.date,
-                  image: evento.image,
-                  location: evento.location,
-                  link: evento.link,
-                }}
-              />
-              <ShareButton
-                title={evento.title}
-                slug={evento.slug}
-                location={evento.location}
-              />
-            </div>
+            <section aria-label="Acciones del evento">
+              <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-fg-subtle mb-3">Acciones</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <AddToCalendar
+                  title={evento.title}
+                  date={evento.date}
+                  dateEnd={evento.dateEnd}
+                  time={evento.time}
+                  location={lugar}
+                  slug={evento.slug}
+                />
+                <FavoriteButton
+                  event={{
+                    id: evento.id,
+                    slug: evento.slug,
+                    title: evento.title,
+                    date: evento.date,
+                    image: evento.image,
+                    location: evento.location,
+                    link: evento.link,
+                  }}
+                />
+                <ShareButton
+                  title={evento.title}
+                  slug={evento.slug}
+                  location={evento.location}
+                />
+              </div>
+            </section>
           </div>
 
           {parrafos.length > 0 && (
@@ -323,26 +326,29 @@ export default async function EventoDetallePage({ params }: PageProps) {
           )}
 
           {(evento.link || (evento.officialUrl && evento.officialUrl !== evento.link)) && (
-            <div className="rounded-2xl border border-border bg-surface p-5 md:p-6 mb-10">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
+            <div className="rounded-2xl border border-border bg-surface p-5 md:p-6 mb-10 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span aria-hidden="true" className="inline-block h-4 w-[3px] rounded-full bg-accent-subtle" />
-                    <span className="font-display italic text-fg-subtle text-sm">
+                    <span aria-hidden="true" className="inline-block h-4 w-[3px] rounded-full bg-accent" />
+                    <span className="font-display italic text-fg-muted text-sm">
                       {evento.link ? "Información y entradas" : "Web oficial"}
                     </span>
                   </div>
                   <p className="font-display text-xl font-semibold text-fg">
                     {evento.price || "Acceso al evento"}
                   </p>
+                  {evento.officialUrl && evento.officialUrl !== evento.link && evento.link && (
+                    <p className="mt-1 text-sm text-fg-muted">También puedes consultar la web oficial del evento u organizador.</p>
+                  )}
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:justify-end">
                   {evento.officialUrl && evento.officialUrl !== evento.link && (
                     <a
                       href={evento.officialUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border bg-bg text-fg font-semibold hover:border-accent/40 hover:text-accent transition-colors duration-300 active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-full border border-border bg-bg text-fg font-semibold hover:border-accent/40 hover:text-accent transition-colors duration-300 active:scale-[0.98]"
                     >
                       Web oficial
                       <ExternalIcon />
@@ -353,7 +359,7 @@ export default async function EventoDetallePage({ params }: PageProps) {
                       href={evento.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300 active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 min-h-[44px] rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300 active:scale-[0.98] sm:min-w-[220px]"
                     >
                       {isTicketSource(evento.source) ? (
                         <>

@@ -125,7 +125,7 @@ function getVisibleNavItems() {
 
 function DownloadIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 3v10M6 9l4 4 4-4" />
       <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" />
     </svg>
@@ -134,7 +134,7 @@ function DownloadIcon({ className }: { className?: string }) {
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="8" cy="8" r="5.5" />
       <path d="M12.5 12.5L17 17" />
     </svg>
@@ -143,7 +143,7 @@ function SearchIcon({ className }: { className?: string }) {
 
 function CloseIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <path d="M5 5l10 10M15 5l-10 10" />
     </svg>
   );
@@ -151,7 +151,7 @@ function CloseIcon({ className }: { className?: string }) {
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 512 512" fill="currentColor">
+    <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 512 512" fill="currentColor">
       <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
     </svg>
   );
@@ -411,6 +411,7 @@ export default function Header() {
                     className={`w-3 h-3 transition-transform duration-300 ${explorarOpen ? "rotate-180" : ""}`}
                     viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                     aria-hidden="true"
+                    focusable="false"
                   >
                     <path d="M4 6l4 4 4-4" />
                   </svg>
@@ -700,7 +701,7 @@ export default function Header() {
                 <span className="absolute inset-0 flex items-center justify-center transition-all duration-[600ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
                   style={{ opacity: isMenuOpen ? 0 : 1, transform: isMenuOpen ? 'rotate(90deg) scale(0.8)' : 'rotate(0deg) scale(1)' }}
                 >
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-5 h-5">
+                  <svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-5 h-5">
                     <path d="M3 6h14M3 10h14M3 14h14" />
                   </svg>
                 </span>
@@ -732,13 +733,13 @@ export default function Header() {
         >
           <form onSubmit={handleSearch} className="w-full max-w-md mx-auto mb-6" role="search">
             <div className="relative">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 pointer-events-none" />
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
               <input
                 type="search"
                 placeholder="Buscar eventos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 text-base bg-white/10 rounded-2xl border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all duration-300"
+                className="w-full pl-12 pr-4 py-3.5 text-base bg-white/10 rounded-2xl border border-white/20 text-white placeholder:text-white/70 focus:outline-none focus:border-white/50 transition-all duration-300"
                 aria-label="Buscar eventos"
               />
             </div>
@@ -746,11 +747,11 @@ export default function Header() {
 
           <div className="w-full max-w-md mx-auto">
             <div className="flex items-center justify-between mb-4">
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">Explorar</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/70">Explorar</p>
               <Link
                 href="/"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-xs font-medium text-white/60 hover:text-white transition-colors"
+                className="text-xs font-medium text-white/80 hover:text-white transition-colors"
               >
                 Inicio
               </Link>
@@ -758,7 +759,7 @@ export default function Header() {
 
             {explorarGrupos.map((grupo, gi) => (
               <section key={grupo.titulo} className="mb-5">
-                <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+                <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
                   {grupo.titulo}
                 </p>
                 <ul className="grid grid-cols-2 gap-2">
@@ -795,7 +796,7 @@ export default function Header() {
                           </span>
                           <span className="min-w-0">
                             <span className="block text-[13px] font-medium leading-tight truncate">{item.label}</span>
-                            <span className="block text-[10px] text-white/45 leading-tight mt-0.5 truncate">{item.hint}</span>
+                            <span className="block text-[10px] text-white/70 leading-tight mt-0.5 truncate">{item.hint}</span>
                           </span>
                         </Link>
                       </li>
@@ -806,7 +807,7 @@ export default function Header() {
             ))}
 
             <section className="mb-6 pt-2 border-t border-white/10">
-              <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">Útiles</p>
+              <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">Útiles</p>
               <ul className="grid grid-cols-2 gap-2">
                 {explorarUtilidades.map((item, ii) => {
                   const Icon = item.icon;
@@ -835,7 +836,7 @@ export default function Header() {
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[13px] font-medium leading-tight truncate">{item.label}</span>
-                          <span className="block text-[10px] text-white/45 leading-tight mt-0.5 truncate">{item.hint}</span>
+                          <span className="block text-[10px] text-white/70 leading-tight mt-0.5 truncate">{item.hint}</span>
                         </span>
                       </Link>
                     </li>
@@ -879,7 +880,7 @@ export default function Header() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-center gap-3 w-full text-center py-3 text-sm text-white/45 hover:text-white/70 rounded-xl transition-all duration-300"
+                    className="flex items-center justify-center gap-3 w-full text-center py-3 text-sm text-white/70 hover:text-white rounded-xl transition-all duration-300"
                   >
                     <PlayStoreIcon className="w-4 h-4" />
                     App Android

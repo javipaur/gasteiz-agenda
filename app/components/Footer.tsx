@@ -7,7 +7,7 @@ import { LogoMark } from "./LogoMark";
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 512 512" fill="currentColor">
+    <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 512 512" fill="currentColor">
       <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
     </svg>
   );
@@ -58,7 +58,7 @@ export default function Footer() {
                 Gasteiz<span className="text-brand-red">Click</span>
               </span>
             </div>
-            <p className="text-sm text-white/60 leading-relaxed max-w-sm mb-8">
+            <p className="text-sm text-white/75 leading-relaxed max-w-sm mb-8">
               La agenda cultural de Vitoria-Gasteiz: conciertos, teatro, cine,
               deporte y planes familiares, actualizados a diario.
             </p>
@@ -71,7 +71,7 @@ export default function Footer() {
               >
                 <PlayStoreIcon className="w-5 h-5 shrink-0" />
                 <span className="flex flex-col leading-tight">
-                  <span className="text-[10px] text-white/50 uppercase tracking-[0.1em]">Disponible en</span>
+                  <span className="text-[10px] text-white/70 uppercase tracking-[0.1em]">Disponible en</span>
                   <span className="font-semibold">Google Play</span>
                 </span>
               </a>
@@ -96,18 +96,18 @@ export default function Footer() {
             <ul className="flex flex-col gap-2.5 text-sm">
               {exploreLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                  <Link href={link.href} className="text-white/75 hover:text-white transition-colors duration-300">
                     {link.label}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link href={agendaUrl} className="text-white/60 hover:text-white transition-colors duration-300">
+                <Link href={agendaUrl} className="text-white/75 hover:text-white transition-colors duration-300">
                   Agenda mensual
                 </Link>
               </li>
               <li>
-                <Link href="/favoritos" className="text-white/60 hover:text-white transition-colors duration-300">
+                <Link href="/favoritos" className="text-white/75 hover:text-white transition-colors duration-300">
                   Mis favoritos
                 </Link>
               </li>
@@ -121,7 +121,7 @@ export default function Footer() {
             <ul className="flex flex-col gap-2.5 text-sm">
               {categoryLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                  <Link href={link.href} className="text-white/75 hover:text-white transition-colors duration-300">
                     {link.label}
                   </Link>
                 </li>
@@ -137,13 +137,13 @@ export default function Footer() {
               {aboutLinks.map((link) =>
                 link.href.startsWith("mailto:") ? (
                   <li key={link.href}>
-                    <a href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                    <a href={link.href} className="text-white/75 hover:text-white transition-colors duration-300">
                       {link.label}
                     </a>
                   </li>
                 ) : (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-white/60 hover:text-white transition-colors duration-300">
+                    <Link href={link.href} className="text-white/75 hover:text-white transition-colors duration-300">
                       {link.label}
                     </Link>
                   </li>
@@ -154,7 +154,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-white/40">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-white/70">
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
               <p>
                 &copy; {now.getFullYear()} Gasteiz Click · Hecho en Vitoria-Gasteiz
@@ -162,19 +162,19 @@ export default function Footer() {
               <ThemeToggle />
             </div>
             <div className="flex items-center gap-5">
-              <Link href="/sobre" className="hover:text-white/70 transition-colors duration-300">
+              <Link href="/sobre" className="hover:text-white transition-colors duration-300">
                 Sobre
               </Link>
-              <Link href="/privacidad" className="hover:text-white/70 transition-colors duration-300">
+              <Link href="/privacidad" className="hover:text-white transition-colors duration-300">
                 Privacidad
               </Link>
-              <Link href="/aviso-legal" className="hover:text-white/70 transition-colors duration-300">
+              <Link href="/aviso-legal" className="hover:text-white transition-colors duration-300">
                 Aviso legal
               </Link>
-              <a href="/feed.xml" className="hover:text-white/70 transition-colors duration-300">
+              <a href="/feed.xml" className="hover:text-white transition-colors duration-300">
                 RSS
               </a>
-              <a href="mailto:javipaur@gmail.com" className="hover:text-white/70 transition-colors duration-300">
+              <a href="mailto:javipaur@gmail.com" className="hover:text-white transition-colors duration-300">
                 Contacto
               </a>
             </div>

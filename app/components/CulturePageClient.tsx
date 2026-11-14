@@ -11,6 +11,7 @@ import { CULTURE_SOURCE_PILLS, CULTURE_SOURCE_LABELS } from "@/lib/cultura-sourc
 import { isTicketSource } from "@/lib/tickets";
 import { sourceGroup } from "@/lib/source-data";
 import FavoriteButton from "./FavoriteButton";
+import EmptyState from "./EmptyState";
 
 type Evento = {
   id: string;
@@ -218,18 +219,17 @@ export default function CulturePageClient({
       </InViewWrapper>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="font-mono text-sm text-fg-muted mb-2">
-            {q
-              ? `No hay resultados para "${q}"`
-              : `No hay ${filter === "all" ? "eventos" : `eventos de ${filter}`} disponibles`}
-          </p>
-          {q && (
-            <p className="text-xs text-fg-subtle">
-              Prueba con otros términos o explora las categorías
-            </p>
-          )}
-        </div>
+        <EmptyState
+          icon={
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="M16 16l4 4" />
+            </svg>
+          }
+          title={q ? `No hay resultados para "${q}"` : `No hay ${filter === "all" ? "eventos" : `eventos de ${filter}`} disponibles`}
+          hint={q ? "Prueba con otros términos o explora las categorías." : "Cambia el filtro o vuelve más tarde: la agenda se actualiza con nuevas actividades."}
+          action={q ? { href: "/culture", label: "Ver toda la agenda cultural" } : filter !== "all" ? { href: "/culture", label: "Ver todos los eventos" } : undefined}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {visible.map((evento, index) => {
