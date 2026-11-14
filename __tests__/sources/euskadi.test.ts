@@ -124,22 +124,18 @@ describe("scrapeEuskadi", () => {
     expect(e.description).not.toContain("<");
   });
 
-  it("returns an empty array when the API returns an error, and says so", async () => {
+  it("propaga el fallo HTTP para no marcar la fuente como sana y vacía", async () => {
     mockFetchWith([
       { match: /api\.euskadi\.eus/, content: "", status: 500 },
     ]);
     const errorSpy = espiaErrores();
 
-    const events = await scrapeEuskadi();
-    expect(events).toEqual([]);
-    /*
-     * La lista vacía no es el contrato: el contrato es "lista vacía **y que se
-     * diga**". Sin esta línea el test pasa igual con el scraper roto, y era
-     * justo lo que pasaba — era la única fuente del registro sin un solo log.
-     */
+    // Una respuesta no OK no es "no hay eventos": si se devolviera [] como promesa
+    // cumplida, aggregate la contaría como fuente sana y el ledger marcaría ausentes
+    // todos sus eventos en esa importación. El fallo debe propagarse.
+    await expect(scrapeEuskadi()).rejects.toThrow(/euskadi/i);
     expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/euskadi/i));
   });
-
   it("returns an empty array when the response has no items", async () => {
     mockFetchWith([
       { match: /api\.euskadi\.eus/, content: JSON.stringify({ items: [] }) },

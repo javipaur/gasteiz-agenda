@@ -72,23 +72,16 @@ export async function fetchEuskadiPage(page: number): Promise<{
     signal: AbortSignal.timeout(20000),
   });
   /*
-   * Antes esto era `if (!res.ok) return { items: [], totalItems: 0 };` sin decir
-   * nada, y era la única fuente del registro sin una sola línea de log en ningún
-   * camino de fallo.
+   * Un fallo HTTP no es "no hay eventos": es "no se pudo leer la fuente".
    *
-   * Con eso, un 500 de Euskadi llegaba a `lib/agenda.ts` como una promesa
-   * **cumplida** con lista vacía, así que contaba como `sourcesOk` y
-   * `/api/v1/salud` contestaba `37/37, completa: true` mientras la fuente no
-   * aportaba nada. No es que la degradación fuera difícil de ver: es que no había
-   * nada que ver.
-   *
-   * Se dice con `console.error` y no propagando, porque el contrato de esta fuente
-   * es devolver lista y no tirar —igual que `jimmyjazz.ts:112`—. Lo que no es
-   * aceptable es que no lo diga nadie.
+   * Antes esto devolvía `{ items: [], totalItems: 0 }` y la promesa se cumplía,
+   * así que `lib/agenda.ts` la contaba como fuente sana y el ledger trataba todos
+   * sus eventos como ausentes en esa importación. Para tener ausencias controladas,
+   * una respuesta no OK debe dejar la fuente como fallida (rechazada), no como
+   * vacía y sana.
    */
   if (!res.ok) {
-    console.error(`[euskadi] ${res.status} ${res.statusText} en la página ${page}`);
-    return { items: [], totalItems: 0 };
+    throw new Error(`[euskadi] ${res.status} ${res.statusText} en la página ${page}`);
   }
   const data = await res.json();
   return {
@@ -194,7 +187,9 @@ export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
 
     return eventos;
   } catch (error) {
+    // Propaga para que `aggregate` marque la fuente como fallida y el ledger no
+    // convierta una caída en ausencias falsas de todos sus eventos.
     console.error(`[euskadi] ${error instanceof Error ? error.message : String(error)}`);
-    return [];
+    throw error;
   }
 }

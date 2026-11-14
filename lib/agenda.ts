@@ -6,6 +6,7 @@ import { desescaparHtml } from "./html-entities";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
 import { registrarImportacionSegura } from "./event-ledger";
 import { logger } from "./axiom/server";
+import { getArchivedEventoBySlug, getRecoveredAgendaEvents } from "./archived-events";
 
 /**
  * Lo que se ve cuando nadie dice dónde es el evento. Vive en una constante
@@ -597,7 +598,23 @@ async function fetchAllAgenda(): Promise<AgendaCacheada> {
  * Subir a `v2` es más barato que guardar un `typeof` y una rama por cada lectura.
  */
 async function getAgendaCacheada(): Promise<AgendaCacheada> {
-  return getCachedOrFetch<AgendaCacheada>("agenda-all-v2", 5 * 60 * 1000, fetchAllAgenda);
+  const cacheada = await getCachedOrFetch<AgendaCacheada>(
+    "agenda-all-v2",
+    5 * 60 * 1000,
+    fetchAllAgenda
+  );
+
+  // Eventos recuperados/contrastados fuera de la ingesta automática (URLs
+  // indexadas caídas, programas añadidos a mano). Se integran sin duplicar por
+  // slug para que aparezcan en listados y detalle mientras no los sirva una fuente.
+  const existentes = new Set(cacheada.eventos.map((ev) => ev.slug));
+  const extras = getRecoveredAgendaEvents().filter((ev) => !existentes.has(ev.slug));
+  if (extras.length === 0) return cacheada;
+
+  const eventos = [...cacheada.eventos, ...extras].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  return { ...cacheada, eventos };
 }
 
 export async function getAgendaEventos(options?: {
@@ -693,7 +710,20 @@ export async function getEventoBySlug(
 ): Promise<{ evento: AgendaEvento; related: AgendaEvento[] } | null> {
   const eventos = await getAgendaEventos({ includePast: true });
   const evento = findBySlug(eventos, slug);
-  if (!evento) return null;
+  if (!evento) {
+    // Fallback de recuperación: eventos archivados a mano para URLs indexadas/
+    // compartidas cuyo origen dejó de servirlos. Evita el 404 ciego y conserva la
+    // información contrastada mientras no exista retención/estado estructural.
+    const archivado = getArchivedEventoBySlug(slug);
+    if (!archivado) return null;
+
+    const related: AgendaEvento[] = [];
+    for (const ev of eventos) {
+      if (related.length >= 6) break;
+      if (new Date(ev.date) >= new Date()) related.push(ev);
+    }
+    return { evento: archivado, related };
+  }
 
   const related: AgendaEvento[] = eventos.filter(
     (ev) =>
