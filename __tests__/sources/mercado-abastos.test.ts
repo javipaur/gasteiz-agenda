@@ -82,19 +82,19 @@ describe("scrapeMercadoAbastos", () => {
     expect([...dates].sort()).toEqual(dates);
   });
 
-  it("returns an empty array when the API responds with an error", async () => {
+  it("propaga el fallo cuando la API responde con error y no hay caché", async () => {
     mockFetchWith([{ match: ENDPOINT, content: "", status: 500 }]);
 
-    await expect(scrapeMercadoAbastos()).resolves.toEqual([]);
+    await expect(scrapeMercadoAbastos()).rejects.toThrow(/HTTP 500/);
   });
 
-  it("returns an empty array when the response is not valid JSON", async () => {
+  it("propaga el fallo cuando la respuesta no es JSON válido y no hay caché", async () => {
     mockFetchWith([{ match: ENDPOINT, content: "<html>no json here</html>" }]);
 
-    await expect(scrapeMercadoAbastos()).resolves.toEqual([]);
+    await expect(scrapeMercadoAbastos()).rejects.toThrow();
   });
 
-  it("survives a payload with no events key", async () => {
+  it("propaga el fallo cuando la respuesta no trae lista de eventos y no hay caché", async () => {
     mockFetchWith([
       {
         match: ENDPOINT,
@@ -103,7 +103,7 @@ describe("scrapeMercadoAbastos", () => {
       },
     ]);
 
-    await expect(scrapeMercadoAbastos()).resolves.toEqual([]);
+    await expect(scrapeMercadoAbastos()).rejects.toThrow(/respuesta inesperada/);
   });
 
   it("drops events with no title or no parsable date", async () => {

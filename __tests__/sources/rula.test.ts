@@ -108,13 +108,12 @@ describe("scrapeRula", () => {
     }
   });
 
-  it("returns an empty array when the API returns an error", async () => {
+  it("propaga el fallo cuando la API devuelve error", async () => {
     mockFetchWith([
       { match: /lagenterula\.com/, content: "", status: 500 },
     ]);
 
-    const events = await scrapeRula();
-    expect(events).toEqual([]);
+    await expect(scrapeRula()).rejects.toThrow(/MEC API returned 500/);
   });
 
   it("filters out past events", async () => {
