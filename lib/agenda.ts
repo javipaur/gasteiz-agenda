@@ -522,7 +522,9 @@ export async function aggregateConMeta(
       slug: ev.slug,
       link: ev.link,
     })),
-    fuentesSanas
+    fuentesSanas,
+    Date.now(),
+    ordered.length
   );
 
   const byKey = new Map<string, AgendaEvento>();

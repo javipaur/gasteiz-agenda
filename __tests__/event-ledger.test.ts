@@ -98,7 +98,14 @@ describe("registrarImportacion", () => {
       1_000
     );
 
-    expect(r).toEqual({ importacion: 1, vistos: 2, ausentes: 0, nuevos: 2 });
+    expect(r).toEqual({
+      importacion: 1,
+      vistos: 2,
+      ausentes: 0,
+      nuevos: 2,
+      fuentesSanas: 1,
+      fuentesFallidas: 0,
+    });
     const filas = ledger.leerLedger();
     expect(filas).toHaveLength(2);
     for (const fila of filas) {
@@ -312,6 +319,13 @@ describe("registrarImportacionSegura", () => {
 
   it("en el camino feliz devuelve el mismo resultado que la versión cruda", () => {
     const r = ledger.registrarImportacionSegura([ev("municipal", "Uno")], ["municipal"], 1_000);
-    expect(r).toEqual({ importacion: 1, vistos: 1, ausentes: 0, nuevos: 1 });
+    expect(r).toEqual({
+      importacion: 1,
+      vistos: 1,
+      ausentes: 0,
+      nuevos: 1,
+      fuentesSanas: 1,
+      fuentesFallidas: 0,
+    });
   });
 });

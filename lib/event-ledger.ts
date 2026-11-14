@@ -37,7 +37,7 @@ const DB_PATH = path.join(DB_DIR, "event-ledger.db");
  */
 const BUSY_TIMEOUT_MS = 5_000;
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 /**
  * Ausencias consecutivas en importaciones sanas necesarias para confirmar
@@ -100,6 +100,22 @@ const MIGRASIONES: readonly { version: number; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS eventos_vistos_estado ON eventos_vistos (estado);
     `,
   },
+  {
+    version: 4,
+    sql: `
+      CREATE TABLE IF NOT EXISTS importaciones (
+        n INTEGER PRIMARY KEY,
+        ts INTEGER NOT NULL,
+        fuentes_total INTEGER NOT NULL,
+        fuentes_sanas INTEGER NOT NULL,
+        fuentes_fallidas INTEGER NOT NULL,
+        eventos_vistos INTEGER NOT NULL,
+        eventos_nuevos INTEGER NOT NULL,
+        ausencias INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS importaciones_ts ON importaciones (ts);
+    `,
+  },
 ];
 
 export type EstadoEventoVisto =
@@ -125,6 +141,17 @@ export type FilaLedger = {
   last_seen_run: number | null;
 };
 
+export type FilaImportacion = {
+  n: number;
+  ts: number;
+  fuentes_total: number;
+  fuentes_sanas: number;
+  fuentes_fallidas: number;
+  eventos_vistos: number;
+  eventos_nuevos: number;
+  ausencias: number;
+};
+
 /** Lo mínimo que el agregador tiene que dar de cada evento para anotarlo. */
 export type EventoVisto = {
   source: string;
@@ -143,6 +170,10 @@ export type ResultadoImportacion = {
   ausentes: number;
   /** Cuántas filas se dieron de alta por primera vez. */
   nuevos: number;
+  /** Fuentes que respondieron (lectura válida, aunque vacía). */
+  fuentesSanas: number;
+  /** Fuentes que fallaron o quedaron incompletas y no cuentan como sanas. */
+  fuentesFallidas: number;
 };
 
 const CLAVE_IMPORTACION = "importacion";
@@ -259,7 +290,8 @@ function contarFilas(conexion: DatabaseSync): number {
 export function registrarImportacion(
   vistos: readonly EventoVisto[],
   fuentesSanas: readonly string[],
-  ahora: number = Date.now()
+  ahora: number = Date.now(),
+  fuentesIntentadas: number = fuentesSanas.length
 ): ResultadoImportacion {
   const conexion = getDb();
 
@@ -335,6 +367,24 @@ export function registrarImportacion(
       ausentes = Number(resultado.changes ?? 0);
     }
 
+    const fuentesFallidas = Math.max(0, fuentesIntentadas - fuentesSanas.length);
+    conexion
+      .prepare(
+        `INSERT INTO importaciones
+          (n, ts, fuentes_total, fuentes_sanas, fuentes_fallidas, eventos_vistos, eventos_nuevos, ausencias)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        importacion,
+        ahora,
+        fuentesIntentadas,
+        fuentesSanas.length,
+        fuentesFallidas,
+        unicos.size,
+        nuevos,
+        ausentes
+      );
+
     conexion
       .prepare(
         "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
@@ -343,7 +393,14 @@ export function registrarImportacion(
 
     conexion.exec("COMMIT");
 
-    return { importacion, vistos: unicos.size, ausentes, nuevos };
+    return {
+      importacion,
+      vistos: unicos.size,
+      ausentes,
+      nuevos,
+      fuentesSanas: fuentesSanas.length,
+      fuentesFallidas,
+    };
   } catch (err) {
     try {
       conexion.exec("ROLLBACK");
@@ -404,14 +461,28 @@ export function desanotarEvento(id: string): number {
 export function registrarImportacionSegura(
   vistos: readonly EventoVisto[],
   fuentesSanas: readonly string[],
-  ahora: number = Date.now()
+  ahora: number = Date.now(),
+  fuentesIntentadas: number = fuentesSanas.length
 ): ResultadoImportacion | null {
   try {
-    return registrarImportacion(vistos, fuentesSanas, ahora);
+    return registrarImportacion(vistos, fuentesSanas, ahora, fuentesIntentadas);
   } catch (error) {
     logger.warn("event_ledger_failed", {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
+  }
+}
+
+/** Historial de importaciones (más recientes primero). */
+export function leerImportaciones(limit = 20): FilaImportacion[] {
+  try {
+    return getDb()
+      .prepare(
+        "SELECT n, ts, fuentes_total, fuentes_sanas, fuentes_fallidas, eventos_vistos, eventos_nuevos, ausencias FROM importaciones ORDER BY n DESC LIMIT ?"
+      )
+      .all(limit) as unknown as FilaImportacion[];
+  } catch {
+    return [];
   }
 }
