@@ -144,7 +144,8 @@ async function pedirVentana(
   profundidad: number,
   calendariosID: number,
   permitirVacio = false,
-  ctx?: SourceRunContext
+  ctx?: SourceRunContext,
+  degradaciones?: string[]
 ): Promise<any[]> {
   const url = `${MUNICIPAL_BASE}?accion=buscar&idioma=es&calendariosID=${calendariosID}&fd=${fd}&fh=${fh}&deCM=false&moEx=false${filterStr}`;
   // El timeout no es decoración: se lo trae `scrapeFiestasBlanca`, que pedía el
@@ -249,13 +250,13 @@ async function pedirVentana(
   if (eventos.length < FILAS_SOSPECHOSAS) return eventos;
 
   // Hoja indivisible que sigue sospechosa: posible truncación sin más subdivisión.
-  // En modo estricto no se trata como lectura sana completa.
+  // En modo estricto no se trata como lectura sana completa, pero se conservan los
+  // datos y la partición de otras ventanas: se registra la degradación y se devuelve
+  // esta hoja para no perder el resto del rango ya consultado.
   if (profundidad >= 2 || dias < GRANO_MINIMO_DIAS) {
-    if (ctx?.strict) {
-      throw new DegradedSourceReadError(
-        `municipal-${calendariosID}`,
-        `ventana posiblemente truncada e indivisible (${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())}, ${eventos.length} filas)`,
-        eventos
+    if (ctx?.strict && degradaciones) {
+      degradaciones.push(
+        `ventana posiblemente truncada e indivisible (${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())}, ${eventos.length} filas)`
       );
     }
     return eventos;
@@ -265,7 +266,7 @@ async function pedirVentana(
     const trozos: any[] = [];
     for (const [desde, hasta] of ventanasDeMes(fd, fh)) {
       trozos.push(
-        ...(await pedirVentana(desde, hasta, filterStr, 1, calendariosID, permitirVacio, ctx))
+        ...(await pedirVentana(desde, hasta, filterStr, 1, calendariosID, permitirVacio, ctx, degradaciones))
       );
     }
     return trozos;
@@ -284,8 +285,8 @@ async function pedirVentana(
 
   const mitad = Math.floor(fd + (fh - fd) / 2);
   const [primera, segunda] = await Promise.all([
-    pedirVentana(fd, mitad, filterStr, 2, calendariosID, permitirVacio, ctx),
-    pedirVentana(mitad, fh, filterStr, 2, calendariosID, permitirVacio, ctx),
+    pedirVentana(fd, mitad, filterStr, 2, calendariosID, permitirVacio, ctx, degradaciones),
+    pedirVentana(mitad, fh, filterStr, 2, calendariosID, permitirVacio, ctx, degradaciones),
   ]);
   return [...primera, ...segunda];
 }
@@ -425,7 +426,27 @@ export async function fetchMunicipalCalendar(
   if (options?.dest) filterParts.push(`"dest":${JSON.stringify(options.dest)}`);
   const filterStr = filterParts.length > 0 ? `&f={${filterParts.join(",")}}` : "";
 
-  return pedirVentana(fd, fh, filterStr, 0, calendariosID, options?.permitirVacio, ctx);
+  const degradaciones: string[] = [];
+  const eventos = await pedirVentana(
+    fd,
+    fh,
+    filterStr,
+    0,
+    calendariosID,
+    options?.permitirVacio,
+    ctx,
+    degradaciones
+  );
+
+  if (ctx?.strict && degradaciones.length > 0) {
+    throw new DegradedSourceReadError(
+      `municipal-${calendariosID}`,
+      degradaciones.join("; "),
+      eventos
+    );
+  }
+
+  return eventos;
 }
 
 export async function scrapeMunicipalCalendar(
