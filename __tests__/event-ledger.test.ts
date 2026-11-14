@@ -193,6 +193,53 @@ describe("las ausencias", () => {
     expect(ledger.leerLedger()[0].fallos).toBe(2);
   });
 
+  it("confirma ausencia tras ejecuciones sanas consecutivas y la reaparición la reactiva", () => {
+    ledger.registrarImportacion([ev("municipal", "Uno")], ["municipal"], 1_000);
+
+    ledger.registrarImportacion([], ["municipal"], 2_000);
+    let fila = ledger.leerLedger()[0];
+    expect(fila.estado).toBe("ausencia_no_confirmada");
+    expect(fila.missing_runs).toBe(1);
+
+    ledger.registrarImportacion([], ["municipal"], 3_000);
+    fila = ledger.leerLedger()[0];
+    expect(fila.estado).toBe("ausencia_no_confirmada");
+    expect(fila.missing_runs).toBe(2);
+
+    ledger.registrarImportacion([], ["municipal"], 4_000);
+    fila = ledger.leerLedger()[0];
+    expect(fila.estado).toBe("ausencia_confirmada");
+    expect(fila.missing_runs).toBe(3);
+    expect(fila.fallos).toBe(3);
+
+    ledger.registrarImportacion([ev("municipal", "Uno")], ["municipal"], 5_000);
+    fila = ledger.leerLedger()[0];
+    expect(fila.estado).toBe("activo");
+    expect(fila.missing_runs).toBe(0);
+    expect(fila.fallos).toBe(0);
+  });
+
+  it("cambio de enlace/slug con misma identidad actualiza la fila sin duplicar", () => {
+    ledger.registrarImportacion(
+      [{ source: "municipal", title: "Uno", date: FECHA, slug: "uno-viejo", link: "https://example.com/viejo" }],
+      ["municipal"],
+      1_000
+    );
+
+    ledger.registrarImportacion(
+      [{ source: "municipal", title: "Uno", date: FECHA, slug: "uno-nuevo", link: "https://example.com/nuevo" }],
+      ["municipal"],
+      2_000
+    );
+
+    const filas = ledger.leerLedger();
+    expect(filas).toHaveLength(1);
+    expect(filas[0].tracking_id).toBe(ledger.trackingId("municipal", FECHA, "Uno"));
+    expect(filas[0].slug).toBe("uno-nuevo");
+    expect(filas[0].link).toBe("https://example.com/nuevo");
+    expect(filas[0].estado).toBe("activo");
+  });
+
   it("sin fuentes sanas no se cuenta ninguna ausencia", () => {
     ledger.registrarImportacion(
       [ev("municipal", "Uno"), ev("euskadi", "Dos")],
