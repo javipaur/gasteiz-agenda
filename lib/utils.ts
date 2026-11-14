@@ -35,11 +35,18 @@ export function formatSpanishDate(dateStr: string) {
   };
 }
 
+/**
+ * Fecha civil `YYYY-MM-DD` en la zona horaria de Vitoria-Gasteiz.
+ *
+ * **Siempre Europe/Madrid, y no la zona local del proceso.** Este proyecto sirve una
+ * agenda de Vitoria-Gasteiz: "hoy" es el día en Madrid, no el día del contenedor.
+ * Con `getFullYear/getMonth/getDate` (zona local del runtime), un proceso en UTC
+ * calcula el día anterior durante la franja tras medianoche en Madrid (p. ej.
+ * 00:30 Madrid = 23:30 UTC del día anterior), y el paquete/promoción del sábado se
+ * generaba como si fuera viernes. `en-CA` produce `YYYY-MM-DD`.
+ */
 export function localDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return d.toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
 }
 
 /**

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAgendaEventos } from "@/lib/agenda";
 import { recomendados } from "@/lib/recomendados";
-import { MAX_DIAPOSITIVAS, paqueteDePromo } from "@/lib/promo";
+import { MAX_DIAPOSITIVAS, paqueteDePromo, ventanaDelDia } from "@/lib/promo";
 import { localDateStr } from "@/lib/utils";
 
 export const runtime = "nodejs";
-export const revalidate = 1800;
+// "Hoy" cambia a medianoche (Europe/Madrid) y la respuesta por defecto depende de
+// la fecha actual: no se cachea estáticamente para no servir el paquete del día
+// anterior en los primeros minutos tras medianoche.
+export const dynamic = "force-dynamic";
 
 /**
  * El paquete del día. Ya no lo construye: lo llama.
@@ -30,8 +33,27 @@ export const revalidate = 1800;
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
   const fecha = q.get("fecha") ?? localDateStr(new Date());
-  const desde = q.get("desde") ?? fecha;
-  const hasta = q.get("hasta") ?? desde;
+  const desdeExplicito = q.get("desde");
+  const hastaExplicito = q.get("hasta");
+  let desde = desdeExplicito ?? fecha;
+  let hasta = hastaExplicito ?? fecha;
+  // Sin ventana explícita se usa la ventana natural del día (p. ej. sábado =
+  // fin de semana, como ventanaDelDia). Así el paquete coincide con las
+  // imágenes /api/promo/[fecha]/..., que derivan su ventana con
+  // ventanaDelDia(fecha): antes, en sábado, el JSON podía describir solo el
+  // sábado mientras la portada renderizaba sábado+domingo. Con desde/hasta
+  // explícitos se respeta la ventana pedida.
+  if (!desdeExplicito && !hastaExplicito) {
+    try {
+      const ventana = ventanaDelDia(fecha);
+      if (ventana) {
+        desde = ventana.desde;
+        hasta = ventana.hasta;
+      }
+    } catch {
+      // Fecha inválida: se mantiene el día suelto como fallback.
+    }
+  }
   const limite = Math.min(Number(q.get("limite")) || MAX_DIAPOSITIVAS, MAX_DIAPOSITIVAS);
 
   const eventos = await getAgendaEventos();
