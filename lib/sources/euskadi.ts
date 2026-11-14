@@ -2,7 +2,32 @@ import * as cheerio from "cheerio";
 
 const EUSKADI_BASE = "https://api.euskadi.eus/culture/events/v1.0/events/upcoming";
 const ELEMENTS = 100;
-const MAX_PAGES = 5;
+
+/**
+ * Techo de seguridad, y no el número de páginas que se piden.
+ *
+ * Cuántas páginas hay lo dice la propia API en `totalItems`, y hasta ahora se
+ * ignoraba: `MAX_PAGES = 5` pedía cinco y callaba. Medido el 14 de noviembre de
+ * 2026, `totalItems` era **490**, así que el corte no llegaba a morder por 10
+ * eventos —pero el día que la fuente pasara de 500, del 501 en adelante
+ * desaparecía de la agenda sin un error, sin un log y con la salud en 37/37.
+ * El mismo modo de fallo que este repo lleva corrigiendo desde el principio.
+ *
+ * El techo sigue existiendo, porque una respuesta con `totalItems` absurdo no
+ * puede traducirse en mil peticiones: se pide hasta aquí y lo que quede se dice
+ * en voz alta.
+ */
+const MAX_PAGINAS_SEGURIDAD = 100;
+
+/**
+ * Cuántas páginas se piden a la vez.
+ *
+ * Antes eran todas en un `Promise.all`, y con el techo en cinco no importaba.
+ * Con el techo en cien, un `Promise.all` sobre cien fetches abre cien conexiones
+ * a la vez y convierte una fuente lenta en un pico. En lotes de cuatro el pico
+ * está acotado y el total sigue siendo una fracción del de una petición en serie.
+ */
+const PAGINAS_EN_PARALELO = 4;
 
 export type EuskadiEvent = {
   id: string;
@@ -41,9 +66,9 @@ export async function fetchEuskadiPage(page: number): Promise<{
   const res = await fetch(url, {
     next: { revalidate: 3600 },
     // `revalidate` cachea la respuesta cuando llega; no dice nada de cuánto se
-    // espera a que llegue. Sin plazo, una de las cinco páginas que pagina este
-    // scraper basta para que `Promise.allSettled` en `lib/agenda.ts` no vuelva
-    // nunca y la agenda entera se quede esperando.
+    // espera a que llegue. Sin plazo, una de las páginas que pagina este scraper
+    // —hoy las que diga `totalItems`— basta para que `Promise.allSettled` en
+    // `lib/agenda.ts` no vuelva nunca y la agenda entera se quede esperando.
     signal: AbortSignal.timeout(20000),
   });
   /*
@@ -98,23 +123,50 @@ function mapEvento(e: any): EuskadiEvent {
   };
 }
 
+/**
+ * Pide un conjunto de páginas en lotes, no todas a la vez.
+ *
+ * El orden de los resultados importa poco —después se deduplica por `id`—, pero
+ * se conserva el de las páginas para que el log y el conteo sean legibles.
+ */
+async function fetchPaginas(
+  paginas: number[]
+): Promise<{ items: any[]; totalItems: number }[]> {
+  const resultados: { items: any[]; totalItems: number }[] = [];
+  for (let i = 0; i < paginas.length; i += PAGINAS_EN_PARALELO) {
+    const lote = paginas.slice(i, i + PAGINAS_EN_PARALELO);
+    resultados.push(...(await Promise.all(lote.map(fetchEuskadiPage))));
+  }
+  return resultados;
+}
+
 export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
   try {
     const first = await fetchEuskadiPage(1);
     if (first.items.length === 0) return [];
 
-    const totalPages = Math.min(
-      MAX_PAGES,
-      Math.max(1, Math.ceil(first.totalItems / ELEMENTS))
-    );
+    // Cuántas páginas hay lo dice la API, no una constante. `declaradas` es lo
+    // que promete `totalItems`; `totalPages` es lo que se pide de verdad, que
+    // solo se queda corto si se alcanza el techo de seguridad.
+    const declaradas = Math.max(1, Math.ceil(first.totalItems / ELEMENTS));
+    const totalPages = Math.min(MAX_PAGINAS_SEGURIDAD, declaradas);
 
-    const pages = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) => fetchEuskadiPage(i + 2))
+    if (declaradas > MAX_PAGINAS_SEGURIDAD) {
+      console.warn(
+        `[euskadi] ${first.totalItems} eventos declarados: se piden ${totalPages} de ${declaradas} páginas. ` +
+          `Lo que quede fuera no entra en la agenda.`
+      );
+    }
+
+    const resto = await fetchPaginas(
+      Array.from({ length: totalPages - 1 }, (_, i) => i + 2)
     );
 
     const seen = new Set<string>();
     const eventos: EuskadiEvent[] = [];
-    for (const page of [first, ...pages]) {
+    let recibidos = 0;
+    for (const page of [first, ...resto]) {
+      recibidos += page.items.length;
       for (const e of page.items) {
         const map = mapEvento(e);
         if (seen.has(map.id)) continue;
@@ -122,6 +174,24 @@ export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
         eventos.push(map);
       }
     }
+
+    /*
+     * La otra mitad del silencio: que la API diga una cosa y sirva otra.
+     *
+     * Si se piden todas las páginas declaradas y aun así llegan menos ítems que
+     * `totalItems`, algo se ha quedado por el camino —una página que devuelve
+     * menos de lo que promete, un `totalItems` que cuenta otra cosa—. No es un
+     * error: la agenda se sirve igual con lo que ha llegado. Pero no se calla.
+     *
+     * Con la API real no salta: medido el 14 de noviembre de 2026, `totalItems`
+     * era 490 y las páginas 1 a 5 sirven 100+100+100+100+90 = 490.
+     */
+    if (recibidos < first.totalItems) {
+      console.warn(
+        `[euskadi] declaraba ${first.totalItems} eventos y ha servido ${recibidos} en ${totalPages} páginas`
+      );
+    }
+
     return eventos;
   } catch (error) {
     console.error(`[euskadi] ${error instanceof Error ? error.message : String(error)}`);

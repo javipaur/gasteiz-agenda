@@ -81,23 +81,30 @@ const usarReloj = jest;
  *
  * El caso de `null` **no se pierde**: `scripts/casting.ts` y el propio `main` lo tratan
  * como respuesta correcta, y la tabla de los siete días está en `ventana-del-dia.test.ts`.
+ *
+ * **Devuelve la ventana entera, y no solo su `desde`.** Antes eran dos llamadas a
+ * `fechaDePrueba()` —una por cada extremo— y las dos devolvían `desde`, así que
+ * `VENTANA.hasta` era `desde` otra vez. El sábado la ventana es el finde entero
+ * (`desde: SÁBADO, hasta: DOMINGO`), así que el test pedía `hasta=sábado` mientras el
+ * script pedía el domingo de verdad y fallaba **solo los sábados**. Un extremo que se
+ * calcula dos veces desde la misma función no puede distinguirlos: los dos salen de una.
  */
-function fechaDePrueba(): string {
+function ventanaDePrueba(): { desde: string; hasta: string } {
   const hoy = localDateStr(new Date());
   const directa = ventanaDelDia(hoy);
-  if (directa) return directa.desde;
+  if (directa) return { desde: directa.desde, hasta: directa.hasta };
 
   // Martes: el jueves es el siguiente día que publica.
   for (let salto = 1; salto <= 7; salto += 1) {
     const dia = new Date(`${hoy}T12:00:00`);
     dia.setDate(dia.getDate() + salto);
     const siguiente = ventanaDelDia(localDateStr(dia));
-    if (siguiente) return siguiente.desde;
+    if (siguiente) return { desde: siguiente.desde, hasta: siguiente.hasta };
   }
   throw new Error("ventanaDelDia no devolvió ninguna ventana en siete días");
 }
 
-const VENTANA = { desde: fechaDePrueba(), hasta: fechaDePrueba() };
+const VENTANA = ventanaDePrueba();
 
 function evento(i: number) {
   return {

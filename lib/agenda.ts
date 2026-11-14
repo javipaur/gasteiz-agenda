@@ -4,6 +4,7 @@ import { tituloCancelado } from "./cancelaciones";
 import { normalizeCategory } from "./categories";
 import { desescaparHtml } from "./html-entities";
 import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-registry";
+import { registrarImportacionSegura } from "./event-ledger";
 import { logger } from "./axiom/server";
 
 /**
@@ -475,6 +476,15 @@ export async function aggregateConMeta(
 
   const collected: AgendaEvento[] = [];
   const sourcesFallidas: { id: string; error: string }[] = [];
+  /**
+   * Las fuentes que **respondieron** en esta importación, aunque respondieran
+   * con lista vacía. Es la mitad que `Promise.allSettled` sí distingue y la que
+   * el registro de eventos necesita: una ausencia solo es un dato si la fuente
+   * estaba sana, porque una caída no dice si el evento desapareció o si nadie
+   * pudo preguntar. Se llena en el mismo recorrido que `collected` para que las
+   * dos listas hablen de la misma importación.
+   */
+  const fuentesSanas: string[] = [];
   settled.forEach((result, i) => {
     const entry = ordered[i];
     if (result.status === "rejected") {
@@ -484,11 +494,34 @@ export async function aggregateConMeta(
       sourcesFallidas.push({ id: entry.id, error });
       return;
     }
+    fuentesSanas.push(entry.id);
     for (const raw of result.value) {
       const ev = normalizeRaw(raw, entry);
       if (ev) collected.push(ev);
     }
   });
+
+  /**
+   * El registro de eventos vistos, en **shadow mode**: anota y no decide nada de
+   * lo que se sirve. Va sobre `collected`, la lista **antes del dedupe**, porque
+   * el ganador del dedupe puede cambiar de una importación a otra —dos fuentes
+   * publican el mismo plan y la prioridad decide— y registrar solo al ganador
+   * convertiría ese cambio en una ausencia falsa del perdedor.
+   *
+   * `registrarImportacionSegura` no lanza: si el volumen no está montado, avisa
+   * por el log y devuelve `null`. La agenda no puede caerse porque la vigilancia
+   * falle.
+   */
+  registrarImportacionSegura(
+    collected.map((ev) => ({
+      source: ev.source,
+      title: ev.title,
+      date: ev.date,
+      slug: ev.slug,
+      link: ev.link,
+    })),
+    fuentesSanas
+  );
 
   const byKey = new Map<string, AgendaEvento>();
 

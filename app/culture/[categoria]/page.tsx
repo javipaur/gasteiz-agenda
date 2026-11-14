@@ -44,6 +44,18 @@ export async function generateStaticParams() {
   return CULTURA_CATEGORIAS.map((c) => ({ categoria: c.slug }));
 }
 
+/*
+ * Las categorías válidas son un conjunto cerrado y conocido de antemano
+ * (`CULTURA_CATEGORIAS`), así que una que no esté en la lista no es "una página
+ * que se pinta vacía": no existe. `dynamicParams = false` la resuelve en el
+ * enrutador, antes de renderizar, y eso importa por un motivo que no se ve:
+ * `notFound()` dentro del `page` cae bajo un `loading.tsx` ancestro, y ahí Next
+ * ya ha comprometido el `200` con el esqueleto en el stream, así que no puede
+ * cambiar el status y solo inyecta un `<meta name="robots" content="noindex">`.
+ * Un soft-404: 200 para el buscador, página rota para quien la abre.
+ */
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {

@@ -2,6 +2,44 @@ import { espiaErrores, loadFixture, mockFetchWith } from "../helpers";
 import { scrapeEuskadi } from "@/lib/sources/euskadi";
 import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
 
+/**
+ * Las fixtures de esta suite son **la página 1 duplicada**: declaran
+ * `totalItems: 311` y sirven 20 ítems por página, así que el aviso de «declaraba
+ * 311 y ha servido 80» sale en cada caso y es del fixture, no del scraper.
+ *
+ * Se silencia aquí y no en `helpers.ts` para no tapar los avisos de las otras 27
+ * fuentes, y se recupera con la espía en los tests que sí miden el aviso.
+ */
+let avisos: jest.SpyInstance;
+
+beforeEach(() => {
+  avisos = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+});
+
+/** Las URLs que el scraper pidió de verdad, para contar páginas. */
+function urlsPedidas(fetchMock: jest.SpyInstance): string[] {
+  return fetchMock.mock.calls.map((c) => String(c[0]));
+}
+
+/**
+ * Una página de la API con `porPagina` ítems como máximo y una identidad única
+ * por página, para que la deduplicación por `id` no disfrace el recuento.
+ */
+function paginaFalsa(totalItems: number, page: number, porPagina: number): string {
+  const inicio = (page - 1) * porPagina;
+  const cuantos = Math.max(0, Math.min(porPagina, totalItems - inicio));
+  return JSON.stringify({
+    totalItems,
+    items: Array.from({ length: cuantos }, (_, i) => ({
+      id: `euskadi-${page}-${i}`,
+      nameEs: `Evento ${page}-${i}`,
+      startDate: "2027-01-15T00:00:00Z",
+      placeEs: "Vitoria-Gasteiz",
+      typeEs: "Concierto",
+    })),
+  });
+}
+
 describe("scrapeEuskadi", () => {
   it("parses the Euskadi API JSON response", async () => {
     const json = loadFixture("euskadi-response.json");
@@ -109,5 +147,57 @@ describe("scrapeEuskadi", () => {
 
     const events = await scrapeEuskadi();
     expect(events).toEqual([]);
+  });
+
+  /*
+   * Las dos mitades del arreglo de paginación, y por qué cada una mira lo que
+   * mira.
+   *
+   * El bug no era «se pierden eventos»: era que **cuántas páginas hay lo decía
+   * una constante** (`MAX_PAGES = 5`) mientras la API lo decía en `totalItems`.
+   * El día que la fuente pasara de 500 eventos, del 501 en adelante desaparecía
+   * de la agenda sin un error y con la salud en 37/37.
+   *
+   * Por eso el primer test no comprueba un recuento de eventos «suficiente»:
+   * comprueba que se piden **las páginas que la API declara**, contando las
+   * peticiones. Un `events.length === 700` a secas pasaría igual si el scraper
+   * pidiera una sola página con 700 ítems dentro, que no es lo que hace.
+   */
+  it("pide tantas páginas como declara totalItems, no un número fijo", async () => {
+    const TOTAL = 700; // 7 páginas de 100
+    const fetchMock = mockFetchWith([
+      {
+        match: /api\.euskadi\.eus/,
+        content: (url) =>
+          paginaFalsa(TOTAL, Number(new URL(url).searchParams.get("_page")) || 1, 100),
+      },
+    ]);
+
+    const events = await scrapeEuskadi();
+
+    // Siete páginas y no cinco: el techo viejo dejaba fuera 200 eventos.
+    expect(urlsPedidas(fetchMock)).toHaveLength(7);
+    expect(events).toHaveLength(TOTAL);
+  });
+
+  it("un totalItems absurdo se corta en el techo de seguridad y lo dice", async () => {
+    const TOTAL = 20000; // 200 páginas declaradas; el techo son 100
+    const fetchMock = mockFetchWith([
+      {
+        match: /api\.euskadi\.eus/,
+        content: (url) =>
+          paginaFalsa(TOTAL, Number(new URL(url).searchParams.get("_page")) || 1, 100),
+      },
+    ]);
+
+    await scrapeEuskadi();
+
+    // El techo existe para que un `totalItems` disparatado no se traduzca en
+    // mil peticiones. Se piden 100, ni una más.
+    expect(urlsPedidas(fetchMock)).toHaveLength(100);
+
+    // Y lo que se queda fuera **se dice**, que es lo que convierte el corte en
+    // algo visible y no en la desaparición silenciosa que este fichero persigue.
+    expect(avisos).toHaveBeenCalledWith(expect.stringMatching(/20000 eventos declarados/));
   });
 });
