@@ -110,7 +110,19 @@ export default async function EventoDetallePage({ params }: PageProps) {
   const eventLd = eventToJsonLd(evento);
   if (!eventLd) notFound();
   const fecha = eventDisplayDate(evento);
-  const esRecuperado = Boolean(getArchivedEventoBySlug(evento.slug));
+  const archivado = getArchivedEventoBySlug(evento.slug);
+  const estadoConocido = evento.recoveredState ?? archivado?.recoveredState;
+  const esRecuperado = estadoConocido === "recuperado";
+  const esRetiradoConocido = estadoConocido === "retirado";
+  const esAusenciaNoConfirmada = estadoConocido === "archivado" && !archivado;
+  const notaEstado =
+    evento.provenance ??
+    archivado?.provenance ??
+    (esRetiradoConocido
+      ? "Estado conocido: este evento no aparece actualmente en su fuente de origen."
+      : esAusenciaNoConfirmada
+        ? "Estado conocido: ausencia detectada en la última importación sana; pendiente de confirmación."
+        : undefined);
   const lugar = evento.location === "Vitoria-Gasteiz"
     ? "Vitoria-Gasteiz"
     : `${evento.location}, Vitoria-Gasteiz`;
@@ -201,6 +213,28 @@ export default async function EventoDetallePage({ params }: PageProps) {
               Información recuperada y contrastada desde fuentes oficiales porque la ficha
               automática no estaba disponible. Revisa el enlace de la fuente para el
               detalle y posibles cambios de última hora.
+            </div>
+          )}
+
+          {esRetiradoConocido && (
+            <div className="mb-6 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
+              <p className="font-medium text-fg mb-1">Estado conocido: retirado o no disponible</p>
+              <p>
+                Este evento ya no aparece en la fuente de origen tras comprobaciones sanas.
+                Se muestra la última información conocida; no se inventan datos adicionales.
+              </p>
+              {notaEstado && <p className="mt-2 text-xs text-fg-subtle">{notaEstado}</p>}
+            </div>
+          )}
+
+          {esAusenciaNoConfirmada && !esRetiradoConocido && (
+            <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-fg-muted">
+              <p className="font-medium text-fg mb-1">Estado conocido: pendiente de confirmación</p>
+              <p>
+                Este evento no se ha encontrado en la última importación sana de su fuente.
+                Se muestra la última información conocida mientras se confirma si ha sido retirado o modificado.
+              </p>
+              {notaEstado && <p className="mt-2 text-xs text-fg-subtle">{notaEstado}</p>}
             </div>
           )}
 

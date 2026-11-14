@@ -60,6 +60,11 @@ export type AgendaEvento = {
    * tarjeta ya enseña `date` y un campo que siempre está lleno no informa de nada.
    */
   dias?: string[];
+
+  /** Estado conocido para URLs recuperadas/archivadas/retiradas con información contrastada. */
+  recoveredState?: "recuperado" | "archivado" | "retirado";
+  /** Procedencia o nota breve del estado conocido. */
+  provenance?: string;
 };
 
 /**
@@ -727,27 +732,31 @@ export async function getEventoBySlug(
 
     // 2) Estado conocido en ledger: si el evento fue visto antes y ahora está
     // ausente confirmado/no confirmado en importaciones sanas, servimos la última
-    // información conocida en vez de 404 ciego.
+    // información conocida en vez de 404 ciego (página informativa con estado conocido).
     try {
       const conocido = leerEstadoPorSlug(slug);
       if (conocido && conocido.estado !== "activo") {
         const fechaIso = conocido.fecha
           ? new Date(`${conocido.fecha}T12:00:00.000Z`).toISOString()
           : new Date().toISOString();
+        const confirmado = conocido.estado === "ausencia_confirmada";
         const ledgerEvento: AgendaEvento = {
           id: conocido.slug,
           slug: conocido.slug,
-          title: conocido.title,
+          title: conocido.title || "Evento con estado conocido",
           date: fechaIso,
           location: "Vitoria-Gasteiz",
           link: conocido.link || "",
           category: "Otros",
-          source: conocido.source,
+          source: conocido.source || "agenda",
           kind: "agenda",
-          description:
-            conocido.estado === "ausencia_confirmada"
-              ? "Este evento ya no aparece en la fuente de origen tras varias comprobaciones. Se muestra la última información conocida."
-              : "Este evento no se ha encontrado en la última importación de su fuente. Se muestra la última información conocida mientras se confirma su estado.",
+          description: confirmado
+            ? "Este evento ya no aparece en la fuente de origen tras varias comprobaciones sanas. Se muestra la última información conocida y su estado actual; no hay confirmación de que siga vigente."
+            : "Este evento no se ha encontrado en la última importación sana de su fuente. Se muestra la última información conocida mientras se confirma su estado.",
+          recoveredState: confirmado ? "retirado" : "archivado",
+          provenance: confirmado
+            ? "Estado confirmado por ausencias repetidas en importaciones sanas del registro."
+            : "Ausencia detectada en importación sana; pendiente de confirmación.",
         };
         const related: AgendaEvento[] = [];
         for (const ev of eventos) {
@@ -759,7 +768,6 @@ export async function getEventoBySlug(
     } catch {
       // El ledger no puede tumbar la resolución de detalle.
     }
-
     return null;
   }
 
