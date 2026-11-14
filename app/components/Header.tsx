@@ -5,10 +5,29 @@ import Image from "next/image";
 import { propsImagen } from "@/lib/image-proxy";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Heart } from "lucide-react";
+import {
+  Heart,
+  Sparkles,
+  CalendarDays,
+  CalendarRange,
+  Music,
+  Drama,
+  Frame,
+  Clapperboard,
+  Baby,
+  PartyPopper,
+  Compass,
+  UtensilsCrossed,
+  Trophy,
+  Bus,
+  Pill,
+  LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
+import { CATEGORY_COLORS } from "@/lib/categories";
 import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
 import { ejecutarAtajo, useAtajoBusqueda } from "@/lib/search-shortcut";
 import ShortcutHint from "./ShortcutHint";
@@ -24,11 +43,6 @@ type SearchHit = {
 
 const navItems = [
   { name: "Inicio", href: "/" },
-  // Va el primero porque `/hoy` es la respuesta a la pregunta que más gente se hace al
-  // abrir la agenda, y el resto son secciones por tema. Está en `navItems` y no en
-  // `GRUPOS_CATEGORIAS` porque no es una categoría: el desplegable agrupa por género y
-  // "Recomendados" no es un género. Es lo que hace que la página exista para alguien
-  // que no llega por el post de Instagram.
   { name: "Recomendados", href: "/hoy" },
   { name: "La Blanca", href: "/fiestas-blanca", accent: true },
   { name: "Conciertos", href: "/conciertos" },
@@ -41,52 +55,67 @@ const navItems = [
 ];
 
 /** Id estable del panel, para que el botón pueda apuntarlo con `aria-controls`. */
-const CATEGORIAS_PANEL_ID = "categorias-panel";
+const EXPLORAR_PANEL_ID = "explorar-panel";
 
-/**
- * Los enlaces del desplegable, agrupados. Salen de una constante y no de cuatro
- * listas escritas dentro del JSX porque, al dejar de ser un `role="menu"`, cada
- * grupo tiene que ser una `<ul>` con su `<li>` y su etiqueta: montarlo a mano cuatro
- * veces era la forma más fácil de que una se quedara sin lista.
- */
-const GRUPOS_CATEGORIAS: { titulo: string; enlaces: { label: string; href: string }[] }[] = [
-  {
-    titulo: "Música",
-    enlaces: [
-      { label: "Conciertos", href: "/conciertos" },
-      { label: "Jimmy Jazz", href: "/conciertos" },
-      { label: "VAM Cultura", href: "/conciertos" },
-    ],
-  },
-  {
-    titulo: "Cultura",
-    enlaces: [
-      { label: "Teatro", href: "/culture/teatro" },
-      { label: "Exposiciones", href: "/culture/exposiciones" },
-      { label: "Agenda cultural", href: "/culture/agenda" },
-    ],
-  },
-  {
-    titulo: "Ocio",
-    enlaces: [
-      { label: "Cartelera", href: "/movies" },
-      { label: "Planes familiares", href: "/kids" },
-      { label: "Fiestas La Blanca", href: "/fiestas-blanca" },
-      { label: "Turismo", href: "/turismo" },
-      { label: "Gastronomía", href: "/gastronomia" },
-      { label: "Bus y tranvía", href: "/bus" },
-      { label: "Farmacias", href: "/farmacias" },
-    ],
-  },
-  {
-    titulo: "Activo",
-    enlaces: [
-      { label: "Deporte", href: "/deporte" },
-      { label: "Senderismo", href: "/deporte" },
-      { label: "Carreras", href: "/deporte" },
-    ],
-  },
-];
+type ExplorarItem = {
+  label: string;
+  href: string;
+  hint: string;
+  icon: LucideIcon;
+  /** Clave en `CATEGORY_COLORS` o color directo para el acento visual. */
+  colorKey?: string;
+  color?: string;
+};
+
+type ExplorarGrupo = {
+  titulo: string;
+  items: ExplorarItem[];
+};
+
+function getExplorarGrupos(agendaMensualHref: string): ExplorarGrupo[] {
+  return [
+    {
+      titulo: "Agenda",
+      items: [
+        { label: "Recomendados", href: "/hoy", hint: "Lo mejor de hoy", icon: Sparkles, colorKey: "Otros" },
+        { label: "Agenda mensual", href: agendaMensualHref, hint: "Todo el mes", icon: CalendarRange, color: "var(--blue)" },
+        { label: "Agenda cultural", href: "/culture/agenda", hint: "Cultura y planes", icon: CalendarDays, colorKey: "Conferencias" },
+      ],
+    },
+    {
+      titulo: "Cultura y ocio",
+      items: [
+        { label: "Conciertos", href: "/conciertos", hint: "Música en vivo", icon: Music, colorKey: "Música" },
+        { label: "Teatro", href: "/culture/teatro", hint: "Escena y funciones", icon: Drama, colorKey: "Teatro" },
+        { label: "Exposiciones", href: "/culture/exposiciones", hint: "Muestras y arte", icon: Frame, colorKey: "Exposiciones" },
+        { label: "Cine", href: "/movies", hint: "Cartelera", icon: Clapperboard, colorKey: "Cine" },
+        { label: "Infantil", href: "/kids", hint: "Planes en familia", icon: Baby, colorKey: "Infantil" },
+        { label: "Fiestas", href: "/fiestas-blanca", hint: "La Blanca y más", icon: PartyPopper, colorKey: "Fiestas" },
+        { label: "Turismo", href: "/turismo", hint: "Qué ver", icon: Compass, colorKey: "Visitas" },
+        { label: "Gastronomía", href: "/gastronomia", hint: "Pintxos y sitios", icon: UtensilsCrossed, colorKey: "Gastronomía" },
+      ],
+    },
+    {
+      titulo: "Activo",
+      items: [
+        { label: "Deporte", href: "/deporte", hint: "Eventos y carreras", icon: Trophy, colorKey: "Deporte" },
+      ],
+    },
+  ];
+}
+
+function getExplorarUtilidades(): ExplorarItem[] {
+  return [
+    { label: "Bus y tranvía", href: "/bus", hint: "Paradas y tiempos", icon: Bus, color: "var(--teal)" },
+    { label: "Farmacias", href: "/farmacias", hint: "Guardias y horarios", icon: Pill, color: "var(--lime)" },
+  ];
+}
+
+function colorDeItem(item: ExplorarItem): string {
+  if (item.color) return item.color;
+  if (item.colorKey) return CATEGORY_COLORS[item.colorKey] || "var(--accent)";
+  return "var(--accent)";
+}
 
 function getVisibleNavItems() {
   return isBlancaSeason()
@@ -146,9 +175,13 @@ export default function Header() {
   const visibleNavItems = getVisibleNavItems();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
-  const categoriesRef = useRef<HTMLDivElement>(null);
-  const categoriasBotonRef = useRef<HTMLButtonElement>(null);
-  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const explorarRef = useRef<HTMLDivElement>(null);
+  const explorarBotonRef = useRef<HTMLButtonElement>(null);
+  const [explorarOpen, setExplorarOpen] = useState(false);
+  const now = new Date();
+  const agendaMensualHref = `/agenda/${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const explorarGrupos = getExplorarGrupos(agendaMensualHref);
+  const explorarUtilidades = getExplorarUtilidades();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -279,20 +312,16 @@ export default function Header() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (categoriesRef.current && !categoriesRef.current.contains(e.target as Node)) {
-        setCategoriesOpen(false);
+      if (explorarRef.current && !explorarRef.current.contains(e.target as Node)) {
+        setExplorarOpen(false);
       }
     }
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      setCategoriesOpen(false);
-      // Escape con el foco dentro del panel desmontaba el panel y el foco caía a
-      // `document.body`, así que el siguiente Tab reiniciaba desde el principio
-      // del documento. El disclosure se cierra, pero quien lo cierra sigue siendo
-      // el botón: el foco vuelve a él, que es donde se puede volver a abrir.
-      categoriasBotonRef.current?.focus();
+      setExplorarOpen(false);
+      explorarBotonRef.current?.focus();
     }
-    if (categoriesOpen) {
+    if (explorarOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", onKey);
       return () => {
@@ -300,7 +329,7 @@ export default function Header() {
         document.removeEventListener("keydown", onKey);
       };
     }
-  }, [categoriesOpen]);
+  }, [explorarOpen]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -363,22 +392,23 @@ export default function Header() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-0.5 mx-2" aria-label="Navegación principal">
-              <div ref={categoriesRef} className="relative">
+              <div ref={explorarRef} className="relative">
                 <button
-                  ref={categoriasBotonRef}
-                  onClick={() => setCategoriesOpen((v) => !v)}
-                  aria-expanded={categoriesOpen}
-                  aria-controls={CATEGORIAS_PANEL_ID}
+                  ref={explorarBotonRef}
+                  onClick={() => setExplorarOpen((v) => !v)}
+                  aria-expanded={explorarOpen}
+                  aria-controls={EXPLORAR_PANEL_ID}
                   aria-haspopup="true"
                   className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer inline-flex items-center gap-1.5 ${
-                    categoriesOpen
+                    explorarOpen
                       ? "bg-fg text-bg font-medium"
                       : "text-fg-muted hover:text-fg hover:bg-bg-muted"
                   }`}
                 >
-                  Categorías
+                  <LayoutGrid size={14} strokeWidth={1.75} aria-hidden="true" />
+                  Explorar
                   <svg
-                    className={`w-3 h-3 transition-transform duration-300 ${categoriesOpen ? "rotate-180" : ""}`}
+                    className={`w-3 h-3 transition-transform duration-300 ${explorarOpen ? "rotate-180" : ""}`}
                     viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                     aria-hidden="true"
                   >
@@ -386,44 +416,95 @@ export default function Header() {
                   </svg>
                 </button>
 
-                {categoriesOpen && (
+                {explorarOpen && (
                   <div
-                    id={CATEGORIAS_PANEL_ID}
-                    className="absolute left-0 top-full mt-2 w-[420px] rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn"
+                    id={EXPLORAR_PANEL_ID}
+                    className="absolute left-0 top-full mt-2 w-[min(640px,calc(100vw-2rem))] rounded-2xl border border-border bg-bg-elevated shadow-xl overflow-hidden z-[var(--z-dropdown)] animate-scaleIn"
                   >
-                    {/*
-                      Sin `role="menu"` ni `role="menuitem"`, a propósito. El patrón
-                      ARIA de menú exige teclado de menú —flechas, Home/End y
-                      `tabIndex`— y aquí no lo hay: con los roles puestos, el lector
-                      entra en modo navegación de menú, Tab deja de recorrer los
-                      enlaces y las flechas no mueven nada. Es una lista de enlaces
-                      de navegación, y declarándola como lista cada enlace sale
-                      alcanzable con Tab y se anuncia como enlace.
-                    */}
-                    <div className="grid grid-cols-2 gap-y-1 p-2">
-                      {GRUPOS_CATEGORIAS.map((grupo) => (
-                        <div key={grupo.titulo}>
+                    <div className="p-3 md:p-4 max-h-[70vh] overflow-y-auto">
+                      {explorarGrupos.map((grupo) => (
+                        <section key={grupo.titulo} className="mb-4 last:mb-0">
                           <p
-                            id={`${CATEGORIAS_PANEL_ID}-${grupo.titulo.toLowerCase()}`}
-                            className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"
+                            id={`${EXPLORAR_PANEL_ID}-${grupo.titulo.toLowerCase().replace(/\s+/g, "-")}`}
+                            className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"
                           >
                             {grupo.titulo}
                           </p>
-                          <ul aria-labelledby={`${CATEGORIAS_PANEL_ID}-${grupo.titulo.toLowerCase()}`}>
-                            {grupo.enlaces.map((l) => (
-                              <li key={l.label}>
+                          <ul
+                            className="grid grid-cols-2 gap-2"
+                            aria-labelledby={`${EXPLORAR_PANEL_ID}-${grupo.titulo.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            {grupo.items.map((item) => {
+                              const Icon = item.icon;
+                              const color = colorDeItem(item);
+                              return (
+                                <li key={item.href + item.label}>
+                                  <Link
+                                    href={item.href}
+                                    onClick={() => setExplorarOpen(false)}
+                                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-surface/50 hover:bg-bg-muted hover:border-border px-3 py-2.5 transition-all duration-200"
+                                  >
+                                    <span
+                                      className="grid size-9 shrink-0 place-items-center rounded-lg text-white shadow-sm"
+                                      style={{ backgroundColor: color }}
+                                      aria-hidden="true"
+                                    >
+                                      <Icon size={16} strokeWidth={1.75} />
+                                    </span>
+                                    <span className="min-w-0">
+                                      <span className="block text-sm font-medium text-fg leading-tight group-hover:text-accent transition-colors">
+                                        {item.label}
+                                      </span>
+                                      <span className="block text-[11px] text-fg-subtle leading-tight mt-0.5">
+                                        {item.hint}
+                                      </span>
+                                    </span>
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </section>
+                      ))}
+                      <section className="mt-3 pt-3 border-t border-border">
+                        <p
+                          id={`${EXPLORAR_PANEL_ID}-utiles`}
+                          className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-subtle"
+                        >
+                          Útiles
+                        </p>
+                        <ul className="grid grid-cols-2 gap-2" aria-labelledby={`${EXPLORAR_PANEL_ID}-utiles`}>
+                          {explorarUtilidades.map((item) => {
+                            const Icon = item.icon;
+                            const color = colorDeItem(item);
+                            return (
+                              <li key={item.href}>
                                 <Link
-                                  href={l.href}
-                                  onClick={() => setCategoriesOpen(false)}
-                                  className="block px-3 py-1.5 text-sm text-fg-muted hover:text-accent hover:bg-bg-muted rounded-lg transition-colors duration-200"
+                                  href={item.href}
+                                  onClick={() => setExplorarOpen(false)}
+                                  className="group flex items-center gap-3 rounded-xl border border-dashed border-border bg-bg-muted/40 hover:bg-bg-muted hover:border-border-hover px-3 py-2.5 transition-all duration-200"
                                 >
-                                  {l.label}
+                                  <span
+                                    className="grid size-9 shrink-0 place-items-center rounded-lg text-white shadow-sm"
+                                    style={{ backgroundColor: color }}
+                                    aria-hidden="true"
+                                  >
+                                    <Icon size={16} strokeWidth={1.75} />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-medium text-fg leading-tight group-hover:text-accent transition-colors">
+                                      {item.label}
+                                    </span>
+                                    <span className="block text-[11px] text-fg-subtle leading-tight mt-0.5">
+                                      {item.hint}
+                                    </span>
+                                  </span>
                                 </Link>
                               </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
+                            );
+                          })}
+                        </ul>
+                      </section>
                     </div>
                   </div>
                 )}
@@ -645,11 +726,11 @@ export default function Header() {
         onClick={() => setIsMenuOpen(false)}
       >
         <nav
-          className="flex flex-col items-center justify-center h-full px-6"
+          className="flex flex-col items-stretch h-full px-5 sm:px-6 py-20 overflow-y-auto"
           aria-label="Navegación móvil"
           onClick={(e) => e.stopPropagation()}
         >
-          <form onSubmit={handleSearch} className="w-full max-w-sm mb-10" role="search">
+          <form onSubmit={handleSearch} className="w-full max-w-md mx-auto mb-6" role="search">
             <div className="relative">
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 pointer-events-none" />
               <input
@@ -663,97 +744,150 @@ export default function Header() {
             </div>
           </form>
 
-          <ul className="flex flex-col items-stretch gap-1.5 w-full max-w-sm">
-            {visibleNavItems.map((item, i) => {
-              const isActive = pathname === item.href;
-              return (
-                <li
-                  key={item.href}
-                  style={{
-                    transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${i * 0.07}s`,
-                    opacity: isMenuOpen ? 1 : 0,
-                    transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
-                  }}
-                >
-                  <Link
-                    href={item.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`block w-full text-center py-3.5 text-xl font-display rounded-xl transition-all duration-300 ${
-                      isActive
-                        ? "text-accent bg-white/10 font-bold"
-                        : "text-white/70 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              );
-            })}
-            <li
-              className="mt-3"
-              style={{
-                transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${visibleNavItems.length * 0.07}s`,
-                opacity: isMenuOpen ? 1 : 0,
-                transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
-              }}
-            >
+          <div className="w-full max-w-md mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50">Explorar</p>
               <Link
-                href="/favoritos"
+                href="/"
                 onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-center gap-3 w-full text-center py-3.5 text-xl font-display text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300"
+                className="text-xs font-medium text-white/60 hover:text-white transition-colors"
               >
-                <Heart size={20} strokeWidth={1.5} />
-                Favoritos
-                {count > 0 && (
-                  <span className="bg-accent text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
-                    {count}
-                  </span>
-                )}
+                Inicio
               </Link>
-            </li>
-            {!isStandalone && (
-              <li
-                className="mt-1"
-                style={{
-                  transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(visibleNavItems.length + 1) * 0.07}s`,
-                  opacity: isMenuOpen ? 1 : 0,
-                  transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
-                }}
-              >
-                {/* Va a una página y no a un evento: en iOS no hay `beforeinstallprompt`
-                    que pulsar, así que el destino es lo que puede explicar los pasos. */}
+            </div>
+
+            {explorarGrupos.map((grupo, gi) => (
+              <section key={grupo.titulo} className="mb-5">
+                <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+                  {grupo.titulo}
+                </p>
+                <ul className="grid grid-cols-2 gap-2">
+                  {grupo.items.map((item, ii) => {
+                    const Icon = item.icon;
+                    const color = colorDeItem(item);
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    const delay = 0.03 + (gi * 4 + ii) * 0.03;
+                    return (
+                      <li
+                        key={item.href + item.label}
+                        style={{
+                          transition: `all 0.5s cubic-bezier(0.32,0.72,0,1) ${delay}s`,
+                          opacity: isMenuOpen ? 1 : 0,
+                          transform: isMenuOpen ? "translateY(0)" : "translateY(16px)",
+                        }}
+                      >
+                        <Link
+                          href={item.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          aria-current={pathname === item.href ? "page" : undefined}
+                          className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 min-h-[52px] transition-all duration-200 ${
+                            isActive
+                              ? "bg-white/15 border-white/30 text-white"
+                              : "bg-white/[0.06] border-white/10 text-white/85 hover:bg-white/10 hover:border-white/20"
+                          }`}
+                        >
+                          <span
+                            className="grid size-8 shrink-0 place-items-center rounded-lg text-white"
+                            style={{ backgroundColor: color }}
+                            aria-hidden="true"
+                          >
+                            <Icon size={15} strokeWidth={1.75} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-medium leading-tight truncate">{item.label}</span>
+                            <span className="block text-[10px] text-white/45 leading-tight mt-0.5 truncate">{item.hint}</span>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+
+            <section className="mb-6 pt-2 border-t border-white/10">
+              <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">Útiles</p>
+              <ul className="grid grid-cols-2 gap-2">
+                {explorarUtilidades.map((item, ii) => {
+                  const Icon = item.icon;
+                  const color = colorDeItem(item);
+                  const delay = 0.03 + (explorarGrupos.length * 4 + ii) * 0.03;
+                  return (
+                    <li
+                      key={item.href}
+                      style={{
+                        transition: `all 0.5s cubic-bezier(0.32,0.72,0,1) ${delay}s`,
+                        opacity: isMenuOpen ? 1 : 0,
+                        transform: isMenuOpen ? "translateY(0)" : "translateY(16px)",
+                      }}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl border border-dashed border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2.5 min-h-[52px] transition-all duration-200 text-white/85"
+                      >
+                        <span
+                          className="grid size-8 shrink-0 place-items-center rounded-lg text-white"
+                          style={{ backgroundColor: color }}
+                          aria-hidden="true"
+                        >
+                          <Icon size={15} strokeWidth={1.75} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[13px] font-medium leading-tight truncate">{item.label}</span>
+                          <span className="block text-[10px] text-white/45 leading-tight mt-0.5 truncate">{item.hint}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <ul className="flex flex-col gap-2 pb-6">
+              <li>
                 <Link
-                  href="/instalar"
+                  href="/favoritos"
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-center gap-3 w-full text-center py-3 min-h-[44px] text-lg text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300"
+                  className="flex items-center justify-center gap-3 w-full text-center py-3.5 text-lg font-display text-white/80 hover:text-white bg-white/[0.06] hover:bg-white/10 rounded-xl border border-white/10 transition-all duration-300"
                 >
-                  <DownloadIcon className="w-4 h-4" />
-                  Instalar la app
+                  <Heart size={18} strokeWidth={1.5} />
+                  Favoritos
+                  {count > 0 && (
+                    <span className="bg-accent text-white text-xs font-bold min-w-6 h-6 px-1.5 rounded-full flex items-center justify-center">
+                      {count}
+                    </span>
+                  )}
                 </Link>
               </li>
-            )}
-            {!isStandalone && (
-              <li
-                style={{
-                  transition: `all 0.6s cubic-bezier(0.32,0.72,0,1) ${(visibleNavItems.length + 2) * 0.07}s`,
-                  opacity: isMenuOpen ? 1 : 0,
-                  transform: isMenuOpen ? 'translateY(0)' : 'translateY(24px)',
-                }}
-              >
-                <a
-                  href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-center gap-3 w-full text-center py-3 text-sm text-white/40 hover:text-white/60 rounded-xl transition-all duration-300"
-                >
-                  <PlayStoreIcon className="w-4 h-4" />
-                  App Android
-                </a>
-              </li>
-            )}
-          </ul>
+              {!isStandalone && (
+                <li>
+                  <Link
+                    href="/instalar"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-center gap-3 w-full text-center py-3 min-h-[44px] text-base text-white/65 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300"
+                  >
+                    <DownloadIcon className="w-4 h-4" />
+                    Instalar la app
+                  </Link>
+                </li>
+              )}
+              {!isStandalone && (
+                <li>
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-center gap-3 w-full text-center py-3 text-sm text-white/45 hover:text-white/70 rounded-xl transition-all duration-300"
+                  >
+                    <PlayStoreIcon className="w-4 h-4" />
+                    App Android
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
         </nav>
       </div>
     </>
