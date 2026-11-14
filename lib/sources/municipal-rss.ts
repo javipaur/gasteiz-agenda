@@ -47,6 +47,7 @@ function parseRss(xml: string, category: string): MunicipalEvent[] {
 export async function scrapeMunicipalRss(): Promise<MunicipalEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
   const all: MunicipalEvent[] = [];
+  let okFeeds = 0;
 
   for (const [category, url] of Object.entries(RSS_URLS)) {
     try {
@@ -56,17 +57,22 @@ export async function scrapeMunicipalRss(): Promise<MunicipalEvent[]> {
         signal: AbortSignal.timeout(20000),
       });
       if (!res.ok) {
-        console.error(`Municipal RSS (${category}) returned ${res.status}`);
-        continue;
+        throw new Error(`Municipal RSS (${category}) returned ${res.status}`);
       }
       const xml = await res.text();
       const events = parseRss(xml, category);
       for (const e of events) {
         if (e.date >= today) all.push(e);
       }
+      okFeeds += 1;
     } catch (err) {
       console.error(`Municipal RSS (${category}) error:`, err);
+      // Continuar con el resto de feeds; si ninguno funciona, fallar abajo.
     }
+  }
+
+  if (okFeeds === 0) {
+    throw new Error("Municipal RSS: no se pudo leer ningún feed");
   }
 
   return all;

@@ -1,4 +1,4 @@
-import { scrapePartidosCMS } from "@/lib/sources/clubCms";
+﻿import { scrapePartidosCMS } from "@/lib/sources/clubCms";
 import { espiaErrores, mockFetchWith } from "../helpers";
 
 const CMS_ORIGIN = "https://cms.deportivoalaves.com";
@@ -52,14 +52,9 @@ describe("scrapePartidosCMS", () => {
     expect(primero.fuente).toBe("cms");
   });
 
-  it("returns [] when the CMS fetch fails, and says so", async () => {
+  it("propaga el fallo cuando el CMS falla para ambos clubes", async () => {
     mockFetchWith([{ match: /cms\.deportivoalaves\.com/, content: "", status: 500 }]);
-    const errorSpy = espiaErrores();
-
-    await expect(scrapePartidosCMS()).resolves.toEqual([]);
-    // `lib/partidos.ts` se queda solo con los valores cumplidos, así que un CMS
-    // muerto y un CMS sin partidos acababan siendo la misma lista.
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/clubcms/i));
+    await expect(scrapePartidosCMS()).rejects.toThrow(/clubCms/i);
   });
 
   it("keeps the date and sets hora null when gameTime is missing or 'null'", async () => {

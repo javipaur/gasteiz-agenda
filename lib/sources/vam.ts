@@ -239,8 +239,7 @@ async function fetchAllVamEvents(): Promise<any[]> {
    * que es lo que faltaba.
    */
   if (!res.ok) {
-    console.error(`[vam] ${res.status} ${res.statusText} en la API de eventos`);
-    return [];
+    throw new Error(`[vam] ${res.status} ${res.statusText} en la API de eventos`);
   }
   const data = await res.json();
   return data.events ?? data.data ?? [];

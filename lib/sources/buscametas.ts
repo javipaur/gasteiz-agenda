@@ -47,7 +47,11 @@ export async function scrapeBuscametasCalendario(): Promise<BuscametasEvento[]> 
     { headers: data.getHeaders(), timeout: 20000 }
   );
 
-  return transformarEventos((response.data as { eventos: any[] }).eventos);
+  const eventos = (response.data as { eventos?: unknown })?.eventos;
+  if (!Array.isArray(eventos)) {
+    throw new Error("buscametas calendario: respuesta sin lista de eventos");
+  }
+  return transformarEventos(eventos as any[]);
 }
 
 /**

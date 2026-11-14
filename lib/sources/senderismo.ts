@@ -74,12 +74,11 @@ export async function scrapeSenderismo(): Promise<Actividad[]> {
   if (!resp.ok) {
     if (cache) {
       console.error(
-        `[senderismo] ${resp.status} ${resp.statusText}: se sirve la caché de hace ${Math.round((Date.now() - lastFetch) / 60000)} min, que puede no ser la agenda vigente`
+        `[senderismo] ${resp.status} ${resp.statusText}: se sirve la caché de hace ${Math.round((Date.now() - lastFetch) / 60000)} min`
       );
       return cache;
     }
-    console.error(`[senderismo] ${resp.status} ${resp.statusText} y no hay caché: la agenda sale vacía`);
-    return [];
+    throw new Error(`[senderismo] ${resp.status} ${resp.statusText} y no hay caché`);
   }
 
   const html = await resp.text();

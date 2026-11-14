@@ -7,6 +7,7 @@ import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-regist
 import { registrarImportacionSegura } from "./event-ledger";
 import { logger } from "./axiom/server";
 import { getArchivedEventoBySlug, getRecoveredAgendaEvents } from "./archived-events";
+import { leerEstadoPorSlug } from "./event-ledger";
 
 /**
  * Lo que se ve cuando nadie dice dónde es el evento. Vive en una constante
@@ -711,18 +712,53 @@ export async function getEventoBySlug(
   const eventos = await getAgendaEventos({ includePast: true });
   const evento = findBySlug(eventos, slug);
   if (!evento) {
-    // Fallback de recuperación: eventos archivados a mano para URLs indexadas/
-    // compartidas cuyo origen dejó de servirlos. Evita el 404 ciego y conserva la
-    // información contrastada mientras no exista retención/estado estructural.
+    // 1) Recuperado/archivado manual (URL indexada conocida o programa añadido).
     const archivado = getArchivedEventoBySlug(slug);
-    if (!archivado) return null;
-
-    const related: AgendaEvento[] = [];
-    for (const ev of eventos) {
-      if (related.length >= 6) break;
-      if (new Date(ev.date) >= new Date()) related.push(ev);
+    if (archivado) {
+      const related: AgendaEvento[] = [];
+      for (const ev of eventos) {
+        if (related.length >= 6) break;
+        if (new Date(ev.date) >= new Date()) related.push(ev);
+      }
+      return { evento: archivado, related };
     }
-    return { evento: archivado, related };
+
+    // 2) Estado conocido en ledger: si el evento fue visto antes y ahora está
+    // ausente confirmado/no confirmado en importaciones sanas, servimos la última
+    // información conocida en vez de 404 ciego.
+    try {
+      const conocido = leerEstadoPorSlug(slug);
+      if (conocido && conocido.estado !== "activo") {
+        const fechaIso = conocido.fecha
+          ? new Date(`${conocido.fecha}T12:00:00.000Z`).toISOString()
+          : new Date().toISOString();
+        const ledgerEvento: AgendaEvento = {
+          id: conocido.slug,
+          slug: conocido.slug,
+          title: conocido.title,
+          date: fechaIso,
+          location: "Vitoria-Gasteiz",
+          link: conocido.link || "",
+          category: "Otros",
+          source: conocido.source,
+          kind: "agenda",
+          description:
+            conocido.estado === "ausencia_confirmada"
+              ? "Este evento ya no aparece en la fuente de origen tras varias comprobaciones. Se muestra la última información conocida."
+              : "Este evento no se ha encontrado en la última importación de su fuente. Se muestra la última información conocida mientras se confirma su estado.",
+        };
+        const related: AgendaEvento[] = [];
+        for (const ev of eventos) {
+          if (related.length >= 6) break;
+          if (new Date(ev.date) >= new Date()) related.push(ev);
+        }
+        return { evento: ledgerEvento, related };
+      }
+    } catch {
+      // El ledger no puede tumbar la resolución de detalle.
+    }
+
+    return null;
   }
 
   const related: AgendaEvento[] = eventos.filter(

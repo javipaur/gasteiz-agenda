@@ -77,16 +77,16 @@ describe("scrapeKoraExperiencias", () => {
     }
   });
 
-  it("returns an empty array when the request fails", async () => {
+  it("propaga el fallo cuando la petición falla y no hay caché", async () => {
     mockFetchWith([{ match: LISTING, content: "", status: 500 }]);
 
-    await expect(scrapeKoraExperiencias()).resolves.toEqual([]);
+    await expect(scrapeKoraExperiencias()).rejects.toThrow(/500/);
   });
 
-  it("is resilient to a page without cards", async () => {
+  it("propaga el fallo cuando no hay tarjetas y no hay caché", async () => {
     mockFetchWith([{ match: /.*/, content: "<html><body>nada</body></html>" }]);
 
-    await expect(scrapeKoraExperiencias()).resolves.toEqual([]);
+    await expect(scrapeKoraExperiencias()).rejects.toThrow(/no se encontraron tarjetas/);
   });
 
   it("caches the result and re-fetches after invalidate", async () => {

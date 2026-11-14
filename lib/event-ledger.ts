@@ -37,7 +37,7 @@ const DB_PATH = path.join(DB_DIR, "event-ledger.db");
  */
 const BUSY_TIMEOUT_MS = 5_000;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
  * Ausencias consecutivas en importaciones sanas necesarias para confirmar
@@ -91,6 +91,13 @@ const MIGRASIONES: readonly { version: number; sql: string }[] = [
         END,
         first_seen_run = visto_en,
         last_seen_run = CASE WHEN fallos <= 0 THEN visto_en ELSE NULL END;
+    `,
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE INDEX IF NOT EXISTS eventos_vistos_slug ON eventos_vistos (slug);
+      CREATE INDEX IF NOT EXISTS eventos_vistos_estado ON eventos_vistos (estado);
     `,
   },
 ];
@@ -356,6 +363,19 @@ export function leerLedger(): FilaLedger[] {
   return getDb()
     .prepare("SELECT * FROM eventos_vistos")
     .all() as unknown as FilaLedger[];
+}
+
+/** Último estado conocido por slug público (si existe en el registro). */
+export function leerEstadoPorSlug(slug: string): FilaLedger | undefined {
+  try {
+    return getDb()
+      .prepare(
+        "SELECT * FROM eventos_vistos WHERE slug = ? ORDER BY ultima_vez DESC, visto_en DESC LIMIT 1"
+      )
+      .get(slug) as FilaLedger | undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

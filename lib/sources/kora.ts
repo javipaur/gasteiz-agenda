@@ -67,8 +67,11 @@ export async function scrapeKoraExperiencias(): Promise<KoraExperiencia[]> {
       headers: { "User-Agent": USER_AGENT, "Accept-Language": "es-ES,es;q=0.9" },
     });
     if (!resp.ok) {
-      console.error(`[kora] HTTP ${resp.status}, se devuelve la cache`);
-      return cache || [];
+      if (cache) {
+        console.error(`[kora] HTTP ${resp.status}, se devuelve la cache`);
+        return cache;
+      }
+      throw new Error(`[kora] HTTP ${resp.status}`);
     }
 
     const $ = cheerio.load(await resp.text());
@@ -100,8 +103,11 @@ export async function scrapeKoraExperiencias(): Promise<KoraExperiencia[]> {
     });
 
     if (experiencias.length === 0) {
-      console.warn("[kora] no se encontraron tarjetas, se conserva la cache");
-      return cache || [];
+      if (cache) {
+        console.warn("[kora] no se encontraron tarjetas, se conserva la cache");
+        return cache;
+      }
+      throw new Error("[kora] no se encontraron tarjetas");
     }
 
     cache = experiencias;
@@ -109,6 +115,7 @@ export async function scrapeKoraExperiencias(): Promise<KoraExperiencia[]> {
     return experiencias;
   } catch (error) {
     console.error("[kora] fallo el scrape", error);
-    return cache || [];
+    if (cache) return cache;
+    throw error;
   }
 }

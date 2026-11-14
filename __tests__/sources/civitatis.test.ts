@@ -81,16 +81,16 @@ describe("scrapeCivitatisTours", () => {
     }
   });
 
-  it("returns an empty array when the request fails", async () => {
+  it("propaga el fallo cuando la petición falla y no hay caché", async () => {
     mockFetchWith([{ match: LISTING, content: "", status: 503 }]);
 
-    await expect(scrapeCivitatisTours()).resolves.toEqual([]);
+    await expect(scrapeCivitatisTours()).rejects.toThrow(/503/);
   });
 
-  it("is resilient to a listing without cards", async () => {
+  it("propaga el fallo cuando no hay tarjetas y no hay caché", async () => {
     mockFetchWith([{ match: /.*/, content: "<html><body>nada aqui</body></html>" }]);
 
-    await expect(scrapeCivitatisTours()).resolves.toEqual([]);
+    await expect(scrapeCivitatisTours()).rejects.toThrow(/no se encontraron tarjetas/);
   });
 
   it("caches the result and re-fetches after invalidate", async () => {

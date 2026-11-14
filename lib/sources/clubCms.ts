@@ -135,29 +135,20 @@ function gamesUrl(cfg: ClubCfg, opts: { seasonId?: number; sort?: string }): str
 }
 
 async function fetchGamesItems(url: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT },
-      next: { revalidate: 120 },
-      signal: AbortSignal.timeout(20000),
-    });
-    /*
-   * Antes: `if (!res.ok) return [];` y un `catch` sin variable, sin una sola
-   * línea de log. Como `lib/partidos.ts` lee con `Promise.allSettled` y se queda
-   * solo con los valores cumplidos, un CMS muerto y un CMS que no lista partidos
-   * acababan siendo la misma lista.
-   */
-    if (!res.ok) {
-      console.error(`[clubCms] ${res.status} ${res.statusText} en la API de partidos`);
-      return [];
-    }
-    const body = await res.json().catch(() => null);
-    const list = (body as { data?: unknown })?.data;
-    return Array.isArray(list) ? list : [];
-  } catch (error) {
-    console.error(`[clubCms] ${error instanceof Error ? error.message : String(error)}`);
-    return [];
+  const res = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+    next: { revalidate: 120 },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) {
+    throw new Error(`[clubCms] ${res.status} ${res.statusText} en la API de partidos`);
   }
+  const body = await res.json();
+  const list = (body as { data?: unknown })?.data;
+  if (!Array.isArray(list)) {
+    throw new Error("[clubCms] respuesta sin lista de partidos");
+  }
+  return list;
 }
 
 async function detectSeasonId(cfg: ClubCfg): Promise<number> {
@@ -226,7 +217,16 @@ export async function scrapePartidosCMS(): Promise<Partido[]> {
     scrapeClub(CLUB_CONFIG.alaves),
   ]);
   const out: Partido[] = [];
+  const errores: string[] = [];
   if (baskonia.status === "fulfilled") out.push(...baskonia.value);
+  else errores.push(String(baskonia.reason));
   if (alaves.status === "fulfilled") out.push(...alaves.value);
+  else errores.push(String(alaves.reason));
+  if (out.length === 0 && errores.length > 0) {
+    throw new Error(`[clubCms] no se pudo leer ningún club: ${errores.join(" | ")}`);
+  }
+  if (errores.length > 0) {
+    console.error(`[clubCms] lectura parcial: ${errores.join(" | ")}`);
+  }
   return out;
 }

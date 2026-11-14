@@ -74,8 +74,11 @@ export async function scrapeCivitatisTours(): Promise<CivitatisTour[]> {
       headers: { "User-Agent": USER_AGENT, "Accept-Language": "es-ES,es;q=0.9" },
     });
     if (!resp.ok) {
-      console.error(`[civitatis] HTTP ${resp.status}, se devuelve la cache`);
-      return cache || [];
+      if (cache) {
+        console.error(`[civitatis] HTTP ${resp.status}, se devuelve la cache`);
+        return cache;
+      }
+      throw new Error(`[civitatis] HTTP ${resp.status}`);
     }
 
     const $ = cheerio.load(await resp.text());
@@ -112,8 +115,11 @@ export async function scrapeCivitatisTours(): Promise<CivitatisTour[]> {
     });
 
     if (tours.length === 0) {
-      console.warn("[civitatis] no se encontraron tarjetas, se conserva la cache");
-      return cache || [];
+      if (cache) {
+        console.warn("[civitatis] no se encontraron tarjetas, se conserva la cache");
+        return cache;
+      }
+      throw new Error("[civitatis] no se encontraron tarjetas");
     }
 
     cache = tours;
@@ -121,6 +127,7 @@ export async function scrapeCivitatisTours(): Promise<CivitatisTour[]> {
     return tours;
   } catch (error) {
     console.error("[civitatis] fallo el scrape", error);
-    return cache || [];
+    if (cache) return cache;
+    throw error;
   }
 }

@@ -1,4 +1,4 @@
-import { espiaErrores, loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
+﻿import { espiaErrores, loadFixture, mockFetchWith, EMPTY_HTML } from "../helpers";
 import { scrapeVamEvents, scrapeVamConciertos } from "@/lib/sources/vam";
 
 describe("scrapeVamEvents", () => {
@@ -41,17 +41,14 @@ describe("scrapeVamEvents", () => {
     }
   });
 
-  it("returns an empty array when the API returns an error, and says so", async () => {
+  it("propaga el fallo cuando la API devuelve error", async () => {
     mockFetchWith([
       { match: /app\.vamcultura\.es/, content: "", status: 500 },
     ]);
     const errorSpy = espiaErrores();
 
-    const events = await scrapeVamEvents();
-    expect(events).toEqual([]);
-    // Esto alimenta `vam` y `vam-conciertos`, así que el silencio quitaba dos
-    // fuentes del agregado de golpe y la salud seguía diciendo que estaban bien.
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/vam/i));
+    await expect(scrapeVamEvents()).rejects.toThrow(/vam/i);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it("includes events whose city is spelled 'Vitoria'", async () => {
@@ -61,7 +58,7 @@ describe("scrapeVamEvents", () => {
           id: "1",
           title: "Magufada",
           city: "Vitoria",
-          category: "Concierto / Música",
+          category: "Concierto / MÃºsica",
           date_start: "2026-09-25T21:00:00+02:00",
           image_url: "",
           source_url: "#",
@@ -70,7 +67,7 @@ describe("scrapeVamEvents", () => {
           id: "2",
           title: "No vitoriano",
           city: "Bilbao",
-          category: "Concierto / Música",
+          category: "Concierto / MÃºsica",
           date_start: "2026-09-25T21:00:00+02:00",
           image_url: "",
           source_url: "#",
@@ -87,14 +84,14 @@ describe("scrapeVamEvents", () => {
   });
 
   it("no inventa una fecha cuando el evento no la trae", async () => {
-    // Antes caía en `new Date()`, o sea el día del scrape. Un evento así salía hoy
-    // en la agenda y se evaporaba en la siguiente pasada de la caché de 5 minutos,
-    // con un día que además se colaba en el slug. La norma del repo es "una fuente
-    // sin fecha no entra en el registro" —la misma que sacó a Civitatis y Kora— y
-    // `helldorado.ts:115` la aplica con el mismo patrón desde hace tiempo.
+    // Antes caÃ­a en `new Date()`, o sea el dÃ­a del scrape. Un evento asÃ­ salÃ­a hoy
+    // en la agenda y se evaporaba en la siguiente pasada de la cachÃ© de 5 minutos,
+    // con un dÃ­a que ademÃ¡s se colaba en el slug. La norma del repo es "una fuente
+    // sin fecha no entra en el registro" â€”la misma que sacÃ³ a Civitatis y Koraâ€” y
+    // `helldorado.ts:115` la aplica con el mismo patrÃ³n desde hace tiempo.
     //
-    // El filtro está en el scraper y no solo en `normalizeRaw` porque aquí el orden
-    // se calcula con `new Date(a.date)` y una fecha vacía da `NaN`, que no ordena.
+    // El filtro estÃ¡ en el scraper y no solo en `normalizeRaw` porque aquÃ­ el orden
+    // se calcula con `new Date(a.date)` y una fecha vacÃ­a da `NaN`, que no ordena.
     const json = JSON.stringify({
       events: [
         {
@@ -124,14 +121,14 @@ describe("scrapeVamEvents", () => {
   });
 
   it("mapea el precio que publica VAM y no inventa uno donde no lo hay", async () => {
-    // VAM publica `price_raw` en 125 de los 200 eventos del catálogo y
+    // VAM publica `price_raw` en 125 de los 200 eventos del catÃ¡logo y
     // `is_free` en 71, y el scraper se los deja fuera. "Precio no disponible" es
     // la fuente diciendo que no lo sabe, no un precio: si se pasa tal cual, la
     // tarjeta pinta un precio que no existe, que es peor que no pintar ninguno.
     const json = JSON.stringify({
       events: [
         { id: "1", title: "Con precio", city: "Vitoria", category: "Teatro",
-          date_start: "2026-09-25T21:00:00+02:00", price_raw: "12 / 18 €", image_url: "", source_url: "#" },
+          date_start: "2026-09-25T21:00:00+02:00", price_raw: "12 / 18 â‚¬", image_url: "", source_url: "#" },
         { id: "2", title: "Gratis", city: "Vitoria", category: "Charla / Coloquio",
           date_start: "2026-09-26T19:00:00+02:00", price_raw: "Gratis", image_url: "", source_url: "#" },
         { id: "3", title: "Desconocido", city: "Vitoria", category: "Teatro",
@@ -145,7 +142,7 @@ describe("scrapeVamEvents", () => {
 
     const events = await scrapeVamEvents();
     const porTitulo = Object.fromEntries(events.map((e) => [e.title, e.price]));
-    expect(porTitulo["Con precio"]).toBe("12 / 18 €");
+    expect(porTitulo["Con precio"]).toBe("12 / 18 â‚¬");
     expect(porTitulo["Gratis"]).toBe("Gratis");
     expect(porTitulo["Desconocido"]).toBeUndefined();
     expect(porTitulo["Sin campo"]).toBeUndefined();
@@ -159,7 +156,7 @@ describe("scrapeVamEvents", () => {
             id: "1",
             title: "Magufada",
             city: "Vitoria",
-            category: "Concierto / Música",
+            category: "Concierto / MÃºsica",
             date_start: "2026-09-25T21:00:00+02:00",
             image_url: "",
             source_url: "#",
@@ -175,9 +172,9 @@ describe("scrapeVamEvents", () => {
           },
           {
             id: "3",
-            title: "Concierto bilbaíno",
+            title: "Concierto bilbaÃ­no",
             city: "Bilbao",
-            category: "Concierto / Música",
+            category: "Concierto / MÃºsica",
             date_start: "2026-09-25T21:00:00+02:00",
             image_url: "",
             source_url: "#",
