@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getEventoBySlug } from "@/lib/agenda";
+import { getArchivedEventoBySlug } from "@/lib/archived-events";
 import { propsImagen } from "@/lib/image-proxy";
 import {
   JsonLd,
@@ -109,6 +110,7 @@ export default async function EventoDetallePage({ params }: PageProps) {
   const eventLd = eventToJsonLd(evento);
   if (!eventLd) notFound();
   const fecha = eventDisplayDate(evento);
+  const esRecuperado = Boolean(getArchivedEventoBySlug(evento.slug));
   const lugar = evento.location === "Vitoria-Gasteiz"
     ? "Vitoria-Gasteiz"
     : `${evento.location}, Vitoria-Gasteiz`;
@@ -193,6 +195,14 @@ export default async function EventoDetallePage({ params }: PageProps) {
           <h1 className="font-display text-3xl md:text-4xl font-semibold text-fg leading-tight tracking-[-0.02em] mb-5">
             {evento.title}
           </h1>
+
+          {esRecuperado && (
+            <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-fg-muted">
+              Información recuperada y contrastada desde fuentes oficiales porque la ficha
+              automática no estaba disponible. Revisa el enlace de la fuente para el
+              detalle y posibles cambios de última hora.
+            </div>
+          )}
 
           {(ratingStr || evento.price) && (
             <div className="flex flex-wrap items-center gap-3 mb-6">
