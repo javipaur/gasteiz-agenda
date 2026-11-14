@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getEventoBySlug } from "@/lib/agenda";
-import { getArchivedEventoBySlug } from "@/lib/archived-events";
+import { getArchivedEventoBySlug, GAZTE_FILM_FEST_2026_FESTIVAL_SLUG } from "@/lib/archived-events";
 import { propsImagen } from "@/lib/image-proxy";
 import {
   JsonLd,
@@ -254,6 +254,20 @@ export default async function EventoDetallePage({ params }: PageProps) {
             </div>
           )}
 
+          {evento.slug === GAZTE_FILM_FEST_2026_FESTIVAL_SLUG && (
+            <div className="mb-8 rounded-xl border border-accent/20 bg-accent-soft/40 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-fg-muted">
+                Consulta todas las sesiones organizadas por día dentro de Gasteiz Click.
+              </p>
+              <Link
+                href="/gazte-film-fest-2026"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline underline-offset-4"
+              >
+                Ver programa por días
+              </Link>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2.5 mb-8 text-sm text-fg-muted">
             <p className="flex items-center gap-2.5">
               <CalendarIcon />
@@ -308,36 +322,53 @@ export default async function EventoDetallePage({ params }: PageProps) {
             </div>
           )}
 
-          {evento.link && (
+          {(evento.link || (evento.officialUrl && evento.officialUrl !== evento.link)) && (
             <div className="rounded-2xl border border-border bg-surface p-5 md:p-6 mb-10">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span aria-hidden="true" className="inline-block h-4 w-[3px] rounded-full bg-accent-subtle" />
-                    <span className="font-display italic text-fg-subtle text-sm">Información y entradas</span>
+                    <span className="font-display italic text-fg-subtle text-sm">
+                      {evento.link ? "Información y entradas" : "Web oficial"}
+                    </span>
                   </div>
                   <p className="font-display text-xl font-semibold text-fg">
                     {evento.price || "Acceso al evento"}
                   </p>
                 </div>
-                <a
-                  href={evento.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300 active:scale-[0.98]"
-                >
-                  {isTicketSource(evento.source) ? (
-                    <>
-                      Comprar entradas
-                      <TicketIcon className="w-4 h-4" />
-                    </>
-                  ) : (
-                    <>
-                      Más información y entradas
+                <div className="flex flex-wrap items-center gap-3">
+                  {evento.officialUrl && evento.officialUrl !== evento.link && (
+                    <a
+                      href={evento.officialUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border bg-bg text-fg font-semibold hover:border-accent/40 hover:text-accent transition-colors duration-300 active:scale-[0.98]"
+                    >
+                      Web oficial
                       <ExternalIcon />
-                    </>
+                    </a>
                   )}
-                </a>
+                  {evento.link && (
+                    <a
+                      href={evento.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-white font-semibold hover:bg-accent-hover transition-colors duration-300 active:scale-[0.98]"
+                    >
+                      {isTicketSource(evento.source) ? (
+                        <>
+                          Comprar entradas
+                          <TicketIcon className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          Más información y entradas
+                          <ExternalIcon />
+                        </>
+                      )}
+                    </a>
+                  )}
+                </div>
               </div>
               {evento.source && (
                 <p className="mt-4 pt-4 border-t border-border font-mono text-xs text-fg-subtle uppercase tracking-[0.15em]">

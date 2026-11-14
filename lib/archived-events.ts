@@ -78,6 +78,7 @@ export const ARCHIVED_EVENTS: readonly RecoveredAgendaEvento[] = [
     time: "11:00",
     location: "Vitoria-Gasteiz",
     link: "https://www.kulturklik.euskadi.eus/evento/2026/11/19/gazte-film-fest-2026-festival-de-cine-infantil/webkklik00-detalle/es/",
+    officialUrl: "https://www.gaztefilmfest.com/",
     image:
       "https://www.kulturklik.euskadi.eus/evento/2026/11/19/gazte-film-fest-2026-festival-de-cine-infantil/webkklik00-detalle/es/images/3.jpg",
     description:
@@ -116,4 +117,18 @@ export function getArchivedEventoBySlug(
 
 export function isRecoveredSlug(slug: string): boolean {
   return bySlug.has(slug);
+}
+
+export const GAZTE_FILM_FEST_2026_FESTIVAL_SLUG =
+  "gazte-film-fest-2026-festival-de-cine-infantil-2026-11-19-ije7tx";
+
+export function getGazteFilmFest2026Programa(): {
+  festival: RecoveredAgendaEvento;
+  sesiones: readonly RecoveredAgendaEvento[];
+} {
+  const festival = bySlug.get(GAZTE_FILM_FEST_2026_FESTIVAL_SLUG);
+  if (!festival) {
+    throw new Error("Gazte Film Fest 2026 no encontrado en eventos recuperados");
+  }
+  return { festival, sesiones: GAZTE_FILM_FEST_2026_SESIONES };
 }
