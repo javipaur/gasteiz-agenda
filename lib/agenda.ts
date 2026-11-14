@@ -9,6 +9,8 @@ import { logger } from "./axiom/server";
 import { getArchivedEventoBySlug, getRecoveredAgendaEvents } from "./archived-events";
 import { leerEstadoPorSlug, leerEstadoPorTrackingId, resolverAliasSlug } from "./event-ledger";
 import { isDegradedSourceReadError } from "./source-degraded";
+import { fetchOgImage } from "./og-image";
+import { imagenServible } from "./image-hosts";
 
 /**
  * Lo que se ve cuando nadie dice dónde es el evento. Vive en una constante
@@ -47,6 +49,8 @@ export type AgendaEvento = {
   cancelled?: boolean;
   price?: string;
   rating?: number;
+  /** Web oficial del evento/organizador, cuando es distinta de la ficha/enlace principal. */
+  officialUrl?: string;
   /**
    * Cuántos ids de fuente contaban este evento antes del dedupe.
    *
@@ -169,6 +173,10 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
     cancelled: raw.cancelled || tituloCancelado(title) || undefined,
     price: typeof raw.price === "string" ? raw.price : undefined,
     rating: typeof raw.rating === "number" ? raw.rating : undefined,
+    officialUrl:
+      typeof raw.officialUrl === "string" && /^https?:\/\//.test(raw.officialUrl)
+        ? raw.officialUrl
+        : undefined,
   };
 }
 
@@ -340,6 +348,46 @@ function unaEsFuncionExtraYLaOtraNo(a: AgendaEvento, b: AgendaEvento): boolean {
   return extra(a) !== extra(b);
 }
 
+/**
+ * Intenta completar la imagen de los eventos que no traen ninguna, usando la
+ * página a la que enlazan (og:image / twitter:image / primera imagen útil).
+ *
+ * Es el último recurso común: si la fuente no trae imagen, la imagen más
+ * relacionada con el evento suele estar en su propia ficha. Solo se asigna si
+ * la URL resultante es servible por la lista blanca de `image-hosts`; si el
+ * host no está permitido, no se muestra (y habría que añadirlo explícitamente).
+ *
+ * No corre en build ni en tests por defecto para no lanzar peticiones externas
+ * ni ralentizar suites que ya ejercitan el agregado; en tests se puede forzar
+ * con `AGENDA_ENRICH_IMAGES_FORCE=1`. Va en lotes para no abrir demasiadas
+ * conexiones a la vez. Un fallo de enriquecimiento no puede tumbar el agregado.
+ */
+async function enriquecerImagenesFaltantes(eventos: AgendaEvento[]): Promise<void> {
+  if (process.env.NEXT_BUILD) return;
+  if (process.env.JEST_WORKER_ID && process.env.AGENDA_ENRICH_IMAGES_FORCE !== "1") return;
+
+  const missing = eventos.filter(
+    (e) => !e.image && !!e.link && /^https?:\/\//.test(e.link)
+  );
+  if (missing.length === 0) return;
+
+  const CONCURRENCY = 5;
+  for (let i = 0; i < missing.length; i += CONCURRENCY) {
+    const chunk = missing.slice(i, i + CONCURRENCY);
+    await Promise.allSettled(
+      chunk.map(async (e) => {
+        const ogImage = await fetchOgImage(e.link);
+        // Solo se guarda si la imagen se puede pintar con la lista blanca actual;
+        // si el host no está permitido, mejor dejar el fallback que guardar una URL
+        // que la UI tendría que descartar.
+        if (ogImage && imagenServible(ogImage)) {
+          e.image = ogImage;
+        }
+      })
+    );
+  }
+}
+
 /** Si el evento dura varios días, no solo el día en que empieza. */
 function esMultidia(evento: AgendaEvento): boolean {
   if (!evento.dateEnd) return false;
@@ -389,6 +437,7 @@ function heredarDelPerdedor(ganador: AgendaEvento, perdedor: AgendaEvento): void
   // hora y otra sin ella: quedarse con la del perdedor es lo que evita que el
   // plan que sobrevive pierda el único dato que decía cuándo es.
   if (!ganador.time && perdedor.time) ganador.time = perdedor.time;
+  if (!ganador.officialUrl && perdedor.officialUrl) ganador.officialUrl = perdedor.officialUrl;
 }
 
 /**
@@ -606,6 +655,8 @@ export async function aggregateConMeta(
   const eventos = fundidos
     .filter((ev) => !ev.cancelled)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  await enriquecerImagenesFaltantes(eventos);
 
   return {
     eventos,

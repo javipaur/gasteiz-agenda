@@ -52,6 +52,8 @@ export type RawLike = {
   cancelled?: boolean;
   price?: string;
   rating?: number;
+  /** Web oficial del evento/organizador, cuando es distinta de la ficha/enlace principal. */
+  officialUrl?: string;
 };
 
 export type SourceEntry = {
