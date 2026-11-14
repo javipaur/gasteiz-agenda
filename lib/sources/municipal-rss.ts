@@ -60,6 +60,9 @@ export async function scrapeMunicipalRss(): Promise<MunicipalEvent[]> {
         throw new Error(`Municipal RSS (${category}) returned ${res.status}`);
       }
       const xml = await res.text();
+      if (!xml.trim()) {
+        throw new Error(`Municipal RSS (${category}): respuesta vacía`);
+      }
       const events = parseRss(xml, category);
       for (const e of events) {
         if (e.date >= today) all.push(e);

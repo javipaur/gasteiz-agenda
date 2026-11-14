@@ -84,10 +84,23 @@ export async function fetchEuskadiPage(page: number): Promise<{
     throw new Error(`[euskadi] ${res.status} ${res.statusText} en la página ${page}`);
   }
   const data = await res.json();
-  return {
-    items: Array.isArray(data?.items) ? data.items : [],
-    totalItems: Number(data?.totalItems) || 0,
-  };
+  const items = Array.isArray(data?.items) ? data.items : null;
+  if (!items) {
+    throw new Error(
+      `[euskadi] respuesta inesperada en la página ${page}: falta la lista de items`
+    );
+  }
+  const totalItemsNum = Number(data?.totalItems);
+  const totalItems = Number.isFinite(totalItemsNum) && totalItemsNum >= 0
+    ? totalItemsNum
+    : items.length;
+  // Una página intermedia vacía con más páginas declaradas indica lectura incompleta.
+  if (items.length === 0 && page > 1 && totalItems > (page - 1) * ELEMENTS) {
+    throw new Error(
+      `[euskadi] la página ${page} llegó vacía pero totalItems=${totalItems} indica más datos`
+    );
+  }
+  return { items, totalItems };
 }
 
 function mapEvento(e: any): EuskadiEvent {
