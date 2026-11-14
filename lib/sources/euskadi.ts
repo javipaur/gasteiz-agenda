@@ -136,7 +136,14 @@ async function fetchPaginas(
 export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
   try {
     const first = await fetchEuskadiPage(1);
-    if (first.items.length === 0) return [];
+    if (first.items.length === 0) {
+      if (first.totalItems > 0) {
+        throw new Error(
+          `[euskadi] la API declara ${first.totalItems} eventos pero la página 1 llegó vacía`
+        );
+      }
+      return [];
+    }
 
     // Cuántas páginas hay lo dice la API, no una constante. `declaradas` es lo
     // que promete `totalItems`; `totalPages` es lo que se pide de verdad, que
