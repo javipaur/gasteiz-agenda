@@ -37,15 +37,19 @@ const DB_PATH = path.join(DB_DIR, "event-ledger.db");
  */
 const BUSY_TIMEOUT_MS = 5_000;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 /**
- * Migraciones en orden. Solo hay un paso, pero la lista existe desde el
- * principio por lo mismo que en `lib/metricas-store.ts`: `CREATE TABLE IF NOT
- * EXISTS` no hace nada sobre una base que ya existe, así que la siguiente
- * columna nueva se encontraría con una tabla a la que le falta, y el fallo
- * saldría en la primera escritura del día, en runtime, y solo en las
- * instalaciones que ya tuvieran datos.
+ * Ausencias consecutivas en importaciones sanas necesarias para confirmar
+ * que un evento ha dejado de estar disponible en origen. Menos de esto es
+ * ausencia no confirmada (caída puntual, cambio temporal, orden de importación).
+ */
+export const AUSENCIAS_PARA_CONFIRMAR = 3;
+
+/**
+ * Migraciones en orden. Cada paso debe ser aplicable sobre una base existente
+ * sin perder datos; por eso la evolución de esquema va aquí y no en
+ * CREATE TABLE IF NOT EXISTS.
  */
 const MIGRASIONES: readonly { version: number; sql: string }[] = [
   {
@@ -71,7 +75,30 @@ const MIGRASIONES: readonly { version: number; sql: string }[] = [
       );
     `,
   },
+  {
+    version: 2,
+    sql: `
+      ALTER TABLE eventos_vistos ADD COLUMN estado TEXT NOT NULL DEFAULT 'activo';
+      ALTER TABLE eventos_vistos ADD COLUMN missing_runs INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE eventos_vistos ADD COLUMN first_seen_run INTEGER;
+      ALTER TABLE eventos_vistos ADD COLUMN last_seen_run INTEGER;
+      UPDATE eventos_vistos SET
+        missing_runs = fallos,
+        estado = CASE
+          WHEN fallos <= 0 THEN 'activo'
+          WHEN fallos < ${AUSENCIAS_PARA_CONFIRMAR} THEN 'ausencia_no_confirmada'
+          ELSE 'ausencia_confirmada'
+        END,
+        first_seen_run = visto_en,
+        last_seen_run = CASE WHEN fallos <= 0 THEN visto_en ELSE NULL END;
+    `,
+  },
 ];
+
+export type EstadoEventoVisto =
+  | "activo"
+  | "ausencia_no_confirmada"
+  | "ausencia_confirmada";
 
 /** Una fila del registro, tal cual está en la tabla. */
 export type FilaLedger = {
@@ -85,6 +112,10 @@ export type FilaLedger = {
   ultima_vez: number;
   fallos: number;
   visto_en: number;
+  estado: EstadoEventoVisto;
+  missing_runs: number;
+  first_seen_run: number | null;
+  last_seen_run: number | null;
 };
 
 /** Lo mínimo que el agregador tiene que dar de cada evento para anotarlo. */
@@ -238,8 +269,8 @@ export function registrarImportacion(
 
     const upsert = conexion.prepare(
       `INSERT INTO eventos_vistos
-         (tracking_id, source, slug, title, fecha, link, primera_vez, ultima_vez, fallos, visto_en)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+         (tracking_id, source, slug, title, fecha, link, primera_vez, ultima_vez, fallos, visto_en, estado, missing_runs, first_seen_run, last_seen_run)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'activo', 0, ?, ?)
        ON CONFLICT(tracking_id) DO UPDATE SET
          source = excluded.source,
          slug = excluded.slug,
@@ -248,7 +279,11 @@ export function registrarImportacion(
          link = excluded.link,
          ultima_vez = excluded.ultima_vez,
          fallos = 0,
-         visto_en = excluded.visto_en`
+         visto_en = excluded.visto_en,
+         estado = 'activo',
+         missing_runs = 0,
+         first_seen_run = COALESCE(eventos_vistos.first_seen_run, excluded.first_seen_run),
+         last_seen_run = excluded.last_seen_run`
     );
 
     for (const [id, ev] of unicos) {
@@ -261,6 +296,8 @@ export function registrarImportacion(
         ev.link,
         ahora,
         ahora,
+        importacion,
+        importacion,
         importacion
       );
     }
@@ -278,10 +315,16 @@ export function registrarImportacion(
       const resultado = conexion
         .prepare(
           `UPDATE eventos_vistos
-             SET fallos = fallos + 1
+             SET
+               fallos = fallos + 1,
+               missing_runs = missing_runs + 1,
+               estado = CASE
+                 WHEN (missing_runs + 1) >= ? THEN 'ausencia_confirmada'
+                 ELSE 'ausencia_no_confirmada'
+               END
            WHERE visto_en <> ? AND source IN (${marcas})`
         )
-        .run(importacion, ...fuentesSanas);
+        .run(AUSENCIAS_PARA_CONFIRMAR, importacion, ...fuentesSanas);
       ausentes = Number(resultado.changes ?? 0);
     }
 
