@@ -1,4 +1,5 @@
 import { localDateKey } from "../slug";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 const MUNICIPAL_BASE = "https://www.vitoria-gasteiz.org/wb021/was/CalendarioServlet";
 
@@ -142,7 +143,8 @@ async function pedirVentana(
   filterStr: string,
   profundidad: number,
   calendariosID: number,
-  permitirVacio = false
+  permitirVacio = false,
+  ctx?: SourceRunContext
 ): Promise<any[]> {
   const url = `${MUNICIPAL_BASE}?accion=buscar&idioma=es&calendariosID=${calendariosID}&fd=${fd}&fh=${fh}&deCM=false&moEx=false${filterStr}`;
   // El timeout no es decoración: se lo trae `scrapeFiestasBlanca`, que pedía el
@@ -246,25 +248,24 @@ async function pedirVentana(
 
   if (eventos.length < FILAS_SOSPECHOSAS) return eventos;
 
-  if (profundidad >= 2 || dias < GRANO_MINIMO_DIAS) return eventos;
-
-  // El tope son dos particiones —meses y medios meses— y el grano mínimo es medio mes,
-  // que es donde para la segunda. Por debajo de medio mes no hay subdivisión que
-  // valga: se devuelve lo que vino aunque siga truncado, porque partir más solo
-  // multiplica peticiones contra un servlet que ya devolvió 45 filas.
-  //
-  // Y este corte es silencioso, a diferencia del `console.warn` de más abajo: el aviso
-  // salta cuando el segundo nivel **se dispara**, no cuando se entrega una hoja ya
-  // troceada. Es decir, que una mitad de mes que también venga llena se trunca sin decir
-  // nada es parte del contrato y no un descuido; lo que el aviso cubre es el mes entero
-  // que estaba lleno y por eso se troceó.
-  if (profundidad >= 2 || dias < GRANO_MINIMO_DIAS) return eventos;
+  // Hoja indivisible que sigue sospechosa: posible truncación sin más subdivisión.
+  // En modo estricto no se trata como lectura sana completa.
+  if (profundidad >= 2 || dias < GRANO_MINIMO_DIAS) {
+    if (ctx?.strict) {
+      throw new DegradedSourceReadError(
+        `municipal-${calendariosID}`,
+        `ventana posiblemente truncada e indivisible (${localDateKey(new Date(fd).toISOString())}..${localDateKey(new Date(fh).toISOString())}, ${eventos.length} filas)`,
+        eventos
+      );
+    }
+    return eventos;
+  }
 
   if (profundidad === 0) {
     const trozos: any[] = [];
     for (const [desde, hasta] of ventanasDeMes(fd, fh)) {
       trozos.push(
-        ...(await pedirVentana(desde, hasta, filterStr, 1, calendariosID, permitirVacio))
+        ...(await pedirVentana(desde, hasta, filterStr, 1, calendariosID, permitirVacio, ctx))
       );
     }
     return trozos;
@@ -283,8 +284,8 @@ async function pedirVentana(
 
   const mitad = Math.floor(fd + (fh - fd) / 2);
   const [primera, segunda] = await Promise.all([
-    pedirVentana(fd, mitad, filterStr, 2, calendariosID, permitirVacio),
-    pedirVentana(mitad, fh, filterStr, 2, calendariosID, permitirVacio),
+    pedirVentana(fd, mitad, filterStr, 2, calendariosID, permitirVacio, ctx),
+    pedirVentana(mitad, fh, filterStr, 2, calendariosID, permitirVacio, ctx),
   ]);
   return [...primera, ...segunda];
 }
@@ -403,7 +404,8 @@ export type MunicipalQuery = {
  * calendario no necesita que quien la llama le pase fechas.
  */
 export async function fetchMunicipalCalendar(
-  options?: MunicipalQuery
+  options?: MunicipalQuery,
+  ctx?: SourceRunContext
 ): Promise<any[]> {
   const hoy = new Date();
   const inicio = new Date(hoy);
@@ -423,12 +425,13 @@ export async function fetchMunicipalCalendar(
   if (options?.dest) filterParts.push(`"dest":${JSON.stringify(options.dest)}`);
   const filterStr = filterParts.length > 0 ? `&f={${filterParts.join(",")}}` : "";
 
-  return pedirVentana(fd, fh, filterStr, 0, calendariosID, options?.permitirVacio);
+  return pedirVentana(fd, fh, filterStr, 0, calendariosID, options?.permitirVacio, ctx);
 }
 
 export async function scrapeMunicipalCalendar(
-  options?: MunicipalQuery
+  options?: MunicipalQuery,
+  ctx?: SourceRunContext
 ): Promise<MunicipialEvento[]> {
-  const crudos = await fetchMunicipalCalendar(options);
+  const crudos = await fetchMunicipalCalendar(options, ctx);
   return crudos.map(normalizeEvento);
 }

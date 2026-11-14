@@ -70,12 +70,11 @@ describe("scrapeMusikaze", () => {
     await expect(scrapeMusikaze()).rejects.toThrow(/Musikaze/i);
   });
 
-  it("is resilient to HTML with no ticket items", async () => {
+  it("lanza si no hay tarjetas del formato esperado (posible cambio de estructura)", async () => {
     mockFetchWith([
       { match: /.*/, content: "<html><body><p>sin eventos</p></body></html>" },
     ]);
 
-    const events = await scrapeMusikaze();
-    expect(events).toEqual([]);
+    await expect(scrapeMusikaze()).rejects.toThrow(/no se encontraron tarjetas/i);
   });
 });

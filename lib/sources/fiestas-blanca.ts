@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 
 import { fetchMunicipalCalendar } from "./municipal";
 import { blancaEditionYear } from "../blanca";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 const CALENDARIO_ID = 513;
 
@@ -228,7 +229,9 @@ function matchCategory(
   return "";
 }
 
-export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
+export async function scrapeFiestasBlanca(
+  ctx?: SourceRunContext
+): Promise<FiestaBlanca[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TTL) return cache;
 
@@ -288,7 +291,12 @@ export async function scrapeFiestasBlanca(): Promise<FiestaBlanca[]> {
     return fiestas;
   } catch (error) {
     console.error("Error scraping Fiestas de la Blanca:", error);
-    if (cache) return cache;
+    if (cache) {
+      if (ctx?.strict) {
+        throw new DegradedSourceReadError("fiestas-blanca", error, cache);
+      }
+      return cache;
+    }
     throw error;
   }
 }

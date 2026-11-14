@@ -226,6 +226,8 @@ describe("ninguna vista escribe el id de la fuente a mano", () => {
         const rel = relative(ROOT, file).replace(/\\/g, "/");
         return !rel.startsWith("app/api/") && !rel.startsWith("lib/sources/");
       })
+      // Datos recuperados/archivados contrastados: su `source` es procedencia, no id de scraper.
+      .filter((file) => relative(ROOT, file).replace(/\\/g, "/") !== "lib/archived-events.ts")
       .filter((file) => !/(__tests__|e2e)[\\/]/.test(file))
       .map((file) => ({
         file: relative(ROOT, file).replace(/\\/g, "/"),

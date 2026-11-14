@@ -119,7 +119,7 @@ describe("plazo de las peticiones salientes", () => {
 
   it("jimmyjazz", async () => {
     const { plazos } = instrumentar([
-      { match: /jimmyjazzgasteiz\.com/, content: EMPTY_HTML },
+      { match: /jimmyjazzgasteiz\.com/, content: '<div class="mkp-ticket-item"><h3 class="mkp-ticket-data-title">X</h3><span class="mkp-ticket-date-monthday">15</span><span class="mkp-ticket-date-month">oct</span><span class="mkp-ticket-date-year">2030</span><span class="mkp-ticket-data-place">JJ</span></div>' },
     ]);
     await scrapeJimmyJazz().catch(() => undefined);
     expect(plazoDe(plazos, "jimmyjazzgasteiz.com")).toBe(PLAZO);
@@ -211,9 +211,7 @@ describe("tope de tamaño del cuerpo en jimmyjazz", () => {
 
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 
-    const events = await scrapeJimmyJazz();
-
-    expect(events).toEqual([]);
+    await expect(scrapeJimmyJazz()).rejects.toThrow(/body exceeds/i);
     // Y se dice por qué, que es lo que evita que esto vuelva a ser un `[]`
     // indistinguible de "no hay gigs".
     expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/jimmyjazz/i));

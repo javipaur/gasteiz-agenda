@@ -266,6 +266,27 @@ describe("las ausencias", () => {
     ledger.registrarImportacion([], ["municipal"], 2_000);
     expect(ledger.leerLedger()[0].fallos).toBe(0);
   });
+
+  it("guarda trazabilidad por fuente y ejecucion", () => {
+    const r = ledger.registrarImportacion(
+      [ev("municipal", "Uno"), ev("municipal", "Dos"), ev("euskadi", "Tres")],
+      ["municipal", "euskadi"],
+      1_000,
+      3,
+      [{ id: "rula", error: "MEC_TOKEN no esta definido" }]
+    );
+
+    expect(r.importacion).toBe(1);
+    const detalle = ledger.leerFuentesDeImportacion(1);
+    expect(detalle).toHaveLength(3);
+    expect(detalle).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: "rula", ok: 0, eventos_vistos: 0, error: "MEC_TOKEN no esta definido" }),
+        expect.objectContaining({ source: "euskadi", ok: 1, eventos_vistos: 1, error: null }),
+        expect.objectContaining({ source: "municipal", ok: 1, eventos_vistos: 2, error: null }),
+      ])
+    );
+  });
 });
 
 describe("desanotarEvento", () => {

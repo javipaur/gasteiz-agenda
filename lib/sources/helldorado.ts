@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 const API_BASE = "https://helldorado.net/wp-json/wp/v2/evento";
 
@@ -34,7 +35,9 @@ export interface HelldoradoEvent {
   description: string;
 }
 
-async function scrapeEventPage(url: string): Promise<{ date: string; image: string; description: string }> {
+type FichaHelldorado = { date: string; image: string; description: string; ok: boolean };
+
+async function scrapeEventPage(url: string): Promise<FichaHelldorado> {
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
@@ -46,7 +49,7 @@ async function scrapeEventPage(url: string): Promise<{ date: string; image: stri
     // aparece**, y sin esto la única señal sería una cartelera más corta.
     if (!res.ok) {
       console.warn(`[helldorado] la ficha ${url} respondio ${res.status}`);
-      return { date: "", image: "", description: "" };
+      return { date: "", image: "", description: "", ok: false };
     }
     const html = await res.text();
     const $ = cheerio.load(html);
@@ -55,6 +58,8 @@ async function scrapeEventPage(url: string): Promise<{ date: string; image: stri
     const date = parseSpanishDate(dateText) || "";
     if (!date) {
       console.warn(`[helldorado] la ficha ${url} no trae fecha legible: "${dateText}"`);
+      // Fecha no legible/cambio de estructura en detalle: no es lectura sana de esta ficha.
+      return { date: "", image: "", description: "", ok: false };
     }
 
     const img = $(".elementor-element-6a1c479 img").first().attr("src") || "";
@@ -62,14 +67,14 @@ async function scrapeEventPage(url: string): Promise<{ date: string; image: stri
 
     const desc = $(".elementor-element-6ee8671 .elementor-widget-text-editor").text().trim().slice(0, 200);
 
-    return { date, image, description: desc };
+    return { date, image, description: desc, ok: true };
   } catch (error) {
     console.warn(`[helldorado] fallo la ficha ${url}: ${error instanceof Error ? error.message : String(error)}`);
-    return { date: "", image: "", description: "" };
+    return { date: "", image: "", description: "", ok: false };
   }
 }
 
-export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
+export async function scrapeHelldorado(ctx?: SourceRunContext): Promise<HelldoradoEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
   const allEvents: { slug: string; title: string; link: string; postDate: string }[] = [];
 
@@ -113,39 +118,52 @@ export async function scrapeHelldorado(): Promise<HelldoradoEvent[]> {
 
   const scraped = await Promise.allSettled(
     toScrape.map(async (e) => {
-      const { date, image, description } = await scrapeEventPage(e.link);
+      const ficha = await scrapeEventPage(e.link);
       return {
-        title: e.title,
-        // **Sin fecha de reserva.** Antes era `date || e.postDate`, y `postDate` es
-        // el día en que se publicó el artículo en el WordPress, no el día del
-        // concierto: si la ficha de detalle fallaba, el evento salía en la agenda
-        // el día que se anunció. Eso incumple en silencio la norma que decidió
-        // este proyecto —"una fuente sin fecha no entra en el registro", la misma
-        // que sacó a Civitatis y Kora fuera del agregado—, y además metía el día
-        // equivocado en el slug, que entonces no casaba con la ficha de detalle.
-        //
-        // Sin reserva, un evento sin fecha se queda sin fecha y el filtro de abajo
-        // lo descarta: la lista es más corta, pero ninguno de los que están
-        // tiene un día inventado.
-        date,
-        image,
-        location: "Helldorado",
-        link: e.link,
-        description,
+        event: {
+          title: e.title,
+          // **Sin fecha de reserva.** Antes era `date || e.postDate`, y `postDate` es
+          // el día en que se publicó el artículo en el WordPress, no el día del
+          // concierto: si la ficha de detalle fallaba, el evento salía en la agenda
+          // el día que se anunció. Eso incumple en silencio la norma que decidió
+          // este proyecto —"una fuente sin fecha no entra en el registro", la misma
+          // que sacó a Civitatis y Kora fuera del agregado—, y además metía el día
+          // equivocado en el slug, que entonces no casaba con la ficha de detalle.
+          //
+          // Sin reserva, un evento sin fecha se queda sin fecha y el filtro de abajo
+          // lo descarta: la lista es más corta, pero ninguno de los que están
+          // tiene un día inventado.
+          date: ficha.date,
+          image: ficha.image,
+          location: "Helldorado",
+          link: e.link,
+          description: ficha.description,
+        },
+        ok: ficha.ok,
       };
     })
   );
 
-  const result = scraped
-    .filter((r): r is PromiseFulfilledResult<HelldoradoEvent> => r.status === "fulfilled")
-    .map((r) => r.value)
-    .filter((e) => e.title && e.date);
+  const fulfilled = scraped
+    .filter((r): r is PromiseFulfilledResult<{ event: HelldoradoEvent; ok: boolean }> => r.status === "fulfilled")
+    .map((r) => r.value);
+  const result = fulfilled.map((r) => r.event).filter((e) => e.title && e.date);
+  const fichasFallidas = fulfilled.filter((r) => !r.ok).length;
 
   // Si había fichas a revisar y no se obtuvo ninguna con fecha válida, probable
   // cambio/bloqueo en páginas de detalle: no se trata como lectura sana vacía.
   if (toScrape.length > 0 && result.length === 0) {
     throw new Error(
       "[helldorado] se encontraron entradas pero no se pudo extraer ninguna fecha de evento válida"
+    );
+  }
+
+  // Fichas no leídas/parseadas = lectura parcial: no confirmar ausencias de lo perdido.
+  if (ctx?.strict && fichasFallidas > 0) {
+    throw new DegradedSourceReadError(
+      "helldorado",
+      `${fichasFallidas} de ${toScrape.length} fichas no leídas o sin fecha válida`,
+      result
     );
   }
 

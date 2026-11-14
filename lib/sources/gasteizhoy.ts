@@ -113,7 +113,8 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
   const events: GasteizHoyEvent[] = [];
   const today = new Date().toISOString().slice(0, 10);
 
-  $(".mec-calendar-events-sec").each((_, dayEl) => {
+  const secciones = $(".mec-calendar-events-sec");
+  secciones.each((_, dayEl) => {
     const cell = $(dayEl).attr("data-mec-cell");
     if (!cell) return;
 
@@ -165,6 +166,12 @@ export async function scrapeGasteizHoy(): Promise<GasteizHoyEvent[]> {
         });
       });
   });
+
+  // Si el calendario cargó pero no se encontró ninguna sección del formato esperado,
+  // es más probable un cambio de estructura/bloqueo que ausencia real.
+  if (events.length === 0 && secciones.length === 0) {
+    throw new Error("gasteizhoy: no se encontraron secciones de calendario (posible cambio de estructura)");
+  }
 
   const missing = events.filter((e) => !e.image && e.link);
   if (missing.length && !process.env.NEXT_BUILD) {

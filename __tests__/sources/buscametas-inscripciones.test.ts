@@ -172,7 +172,7 @@ describe("scrapeBuscametasInscripciones", () => {
     }
   });
 
-  it("devuelve una lista vacia si la pagina no trae tarjetas", async () => {
+  it("lanza si la pagina no trae tarjetas del formato esperado", async () => {
     mockFetchWith([
       {
         match: /buscametas\.com\/inscripciones/,
@@ -180,7 +180,8 @@ describe("scrapeBuscametasInscripciones", () => {
       },
     ]);
 
-    const eventos = await scrapeBuscametasInscripciones();
-    expect(eventos).toEqual([]);
+    await expect(scrapeBuscametasInscripciones()).rejects.toThrow(
+      /no se encontraron tarjetas/i
+    );
   });
 });

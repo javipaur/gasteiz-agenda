@@ -17,6 +17,7 @@ const MEC_API = "https://www.lagenterula.com/wp-json/mec/v1.0/events";
  */
 
 export interface RulaEvent {
+  externalId?: string;
   title: string;
   date: string;
   image: string;
@@ -115,7 +116,16 @@ export async function scrapeRula(): Promise<RulaEvent[]> {
       const categoryName = Object.values(categories)[0]?.name || "";
       const category = categoryName || inferCategory(title, description, link);
 
-      return { title, date, image, location, link, description, category };
+      return {
+        externalId: e.ID != null ? String(e.ID) : undefined,
+        title,
+        date,
+        image,
+        location,
+        link,
+        description,
+        category,
+      };
     })
     .filter((e) => e.title);
 

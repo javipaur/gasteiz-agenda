@@ -39,7 +39,7 @@ export interface MusikazeEvent {
   description: string;
 }
 
-async function scrapePage(page: number): Promise<MusikazeEvent[]> {
+async function scrapePage(page: number): Promise<{ events: MusikazeEvent[]; items: number }> {
   const url = `${BASE_URL}?menu=36&pagina=conciertos&siteID=${SITE_ID}&filtrarEvtMskzLoc=VITORIA-GASTEIZ,ok&pag=${page}`;
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0" },
@@ -53,6 +53,7 @@ async function scrapePage(page: number): Promise<MusikazeEvent[]> {
   const html = await res.text();
   const $ = cheerio.load(html);
   const events: MusikazeEvent[] = [];
+  const items = $("article.mkp-ticket-item").length;
 
   $("article.mkp-ticket-item").each((_, el) => {
     const $el = $(el);
@@ -80,18 +81,28 @@ async function scrapePage(page: number): Promise<MusikazeEvent[]> {
     }
   });
 
-  return events;
+  return { events, items };
 }
 
 export async function scrapeMusikaze(): Promise<MusikazeEvent[]> {
   const page1 = await scrapePage(1);
-  const events = [...page1];
+  const all = [...page1.events];
 
-  if (page1.length >= 50) {
+  if (page1.events.length >= 50) {
     const page2 = await scrapePage(2);
-    events.push(...page2);
+    all.push(...page2.events);
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  return events.filter((e) => e.date >= today && e.title);
+  const filtered = all.filter((e) => e.date >= today && e.title);
+
+  // Si la primera página no tenía ninguna tarjeta del formato esperado, es más
+  // probable un cambio de estructura/bloqueo que ausencia real de eventos.
+  if (filtered.length === 0 && page1.items === 0) {
+    throw new Error("Musikaze: no se encontraron tarjetas de eventos (posible cambio de estructura)");
+  }
+
+  return filtered;
 }
+
+

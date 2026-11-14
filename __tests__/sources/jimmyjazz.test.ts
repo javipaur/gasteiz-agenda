@@ -24,21 +24,19 @@ describe("scrapeJimmyJazz", () => {
     }
   });
 
-  it("returns an empty array when the fetch fails", async () => {
+  it("propaga el fallo cuando la petición falla", async () => {
     mockFetchWith([
       { match: /jimmyjazzgasteiz\.com/, content: "", status: 500 },
     ]);
 
-    const events = await scrapeJimmyJazz();
-    expect(events).toEqual([]);
+    await expect(scrapeJimmyJazz()).rejects.toThrow(/jimmyjazz/i);
   });
 
-  it("is resilient to HTML with no ticket items", async () => {
+  it("lanza si no hay tarjetas del formato esperado (posible cambio de estructura)", async () => {
     mockFetchWith([
       { match: /.*/, content: "<html><body><p>sin eventos</p></body></html>" },
     ]);
 
-    const events = await scrapeJimmyJazz();
-    expect(events).toEqual([]);
+    await expect(scrapeJimmyJazz()).rejects.toThrow(/no se encontraron tarjetas/i);
   });
 });

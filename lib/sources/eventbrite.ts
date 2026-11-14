@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 
 export interface EventbriteEvent {
+  externalId?: string;
   title: string;
   date: string;
   image: string;
@@ -46,9 +47,11 @@ export async function scrapeEventbrite(): Promise<EventbriteEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
 
   // JSON-LD embebido por el lister de SEO de Eventbrite
+  let ldScripts = 0;
   $('script[type="application/ld+json"]').each((_, el) => {
     const raw = $(el).text().trim();
     if (!raw) return;
+    ldScripts++;
 
     const json = (() => {
       try {
@@ -75,17 +78,26 @@ export async function scrapeEventbrite(): Promise<EventbriteEvent[]> {
       const date = ev.startDate || "";
       if (!date || date.slice(0, 10) < today) continue;
 
+      const link = ev.url || CITY_URL;
       events.push({
+        externalId: link && link !== CITY_URL ? link : undefined,
         title: strip(ev.name || ""),
         date: date.slice(0, 10),
         image: ev.image || "",
         location: strip(ev.location?.name || locality),
-        link: ev.url || CITY_URL,
+        link,
         description: "",
         price: "",
       });
     }
   });
+
+  // Sin bloques JSON-LD parseables, probable cambio de estructura/bloqueo.
+  // (Cero eventos en Vitoria puede ser legítimo si los había en otras ciudades,
+  // pero sin LD no hay señal de lectura válida.)
+  if (events.length === 0 && ldScripts === 0) {
+    throw new Error("Eventbrite: no se encontró JSON-LD de eventos (posible cambio de estructura o bloqueo)");
+  }
 
   return events.filter((e) => e.title);
 }

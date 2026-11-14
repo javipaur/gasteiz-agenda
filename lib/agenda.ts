@@ -7,7 +7,8 @@ import { SOURCE_REGISTRY, type RawLike, type SourceEntry } from "./source-regist
 import { registrarImportacionSegura } from "./event-ledger";
 import { logger } from "./axiom/server";
 import { getArchivedEventoBySlug, getRecoveredAgendaEvents } from "./archived-events";
-import { leerEstadoPorSlug } from "./event-ledger";
+import { leerEstadoPorSlug, leerEstadoPorTrackingId, resolverAliasSlug } from "./event-ledger";
+import { isDegradedSourceReadError } from "./source-degraded";
 
 /**
  * Lo que se ve cuando nadie dice dónde es el evento. Vive en una constante
@@ -16,9 +17,21 @@ import { leerEstadoPorSlug } from "./event-ledger";
  */
 const SIN_LUGAR = "Vitoria-Gasteiz";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function externalIdEstable(raw: RawLike): string | undefined {
+  const candidato = (raw.externalId ?? raw.sourceId ?? raw.id ?? "").toString().trim();
+  if (!candidato) return undefined;
+  // Evitar IDs generados al vuelo (no estables entre ejecuciones/scrapes).
+  if (UUID_RE.test(candidato)) return undefined;
+  return candidato;
+}
+
 export type AgendaEvento = {
   id: string;
   slug: string;
+  /** ID externo estable de la fuente de origen, cuando la fuente lo expone (no inventado). */
+  externalId?: string;
   title: string;
   date: string;
   dateEnd?: string;
@@ -132,10 +145,12 @@ function normalizeRaw(raw: RawLike, entry: SourceEntry): AgendaEvento | null {
   // que sabe cuál es esa fecha es este.
   const slug = agendaSlug({ ...raw, date });
   const category = normalizeCategory(entry.category ?? raw.category);
+  const externalId = externalIdEstable(raw);
 
   return {
     id: slug,
     slug,
+    externalId,
     title,
     date,
     dateEnd: raw.dateEnd || undefined,
@@ -476,25 +491,42 @@ export async function aggregateConMeta(
       // las cubre el `agenda-all` de 5 min de abajo, y meterlas aquí sin que lo
       // pidan sería cambiarle el ritmo de frescura a 27 fuentes por el problema de
       // una.
-      if (!e.cacheTtlMs) return e.run();
-      return getCachedOrFetch(`source:${e.id}`, e.cacheTtlMs, e.run);
+      //
+      // `strict: true`: si la fuente solo puede resolverse con datos de respaldo
+      // (caché interna/stale), debe señalizarse como degradada para que el ledger
+      // no la cuente como lectura sana.
+      const runStrict = () => e.run({ strict: true });
+      if (!e.cacheTtlMs) return runStrict();
+      return getCachedOrFetch(`source:${e.id}`, e.cacheTtlMs, runStrict);
     })
   );
 
   const collected: AgendaEvento[] = [];
   const sourcesFallidas: { id: string; error: string }[] = [];
   /**
-   * Las fuentes que **respondieron** en esta importación, aunque respondieran
-   * con lista vacía. Es la mitad que `Promise.allSettled` sí distingue y la que
-   * el registro de eventos necesita: una ausencia solo es un dato si la fuente
-   * estaba sana, porque una caída no dice si el evento desapareció o si nadie
-   * pudo preguntar. Se llena en el mismo recorrido que `collected` para que las
-   * dos listas hablen de la misma importación.
+   * Las fuentes que **respondieron de forma sana** en esta importación.
+   * Una lectura degradada (datos servidos desde caché interna por fallo actual)
+   * no entra aquí: sirve resiliencia al usuario, pero no es confirmación válida
+   * para el ledger de ausencias.
    */
   const fuentesSanas: string[] = [];
+  /** Fuentes servidas desde respaldo/stale: sus eventos se muestran pero no se
+   *  registran como vistos sanos en el ledger. */
+  const fuentesDegradadas = new Set<string>();
   settled.forEach((result, i) => {
     const entry = ordered[i];
     if (result.status === "rejected") {
+      if (isDegradedSourceReadError(result.reason)) {
+        const error = `degradada: ${result.reason.message}`;
+        logger.warn("scraping_degraded", { source: entry.id, error });
+        sourcesFallidas.push({ id: entry.id, error });
+        fuentesDegradadas.add(entry.id);
+        for (const raw of result.reason.staleData as RawLike[]) {
+          const ev = normalizeRaw(raw, entry);
+          if (ev) collected.push(ev);
+        }
+        return;
+      }
       const error =
         result.reason instanceof Error ? result.reason.message : String(result.reason);
       logger.warn("scraping_failed", { source: entry.id, error });
@@ -520,16 +552,20 @@ export async function aggregateConMeta(
    * falle.
    */
   registrarImportacionSegura(
-    collected.map((ev) => ({
-      source: ev.source,
-      title: ev.title,
-      date: ev.date,
-      slug: ev.slug,
-      link: ev.link,
-    })),
+    collected
+      .filter((ev) => !fuentesDegradadas.has(ev.source))
+      .map((ev) => ({
+        source: ev.source,
+        title: ev.title,
+        date: ev.date,
+        slug: ev.slug,
+        link: ev.link,
+        externalId: ev.externalId,
+      })),
     fuentesSanas,
     Date.now(),
-    ordered.length
+    ordered.length,
+    sourcesFallidas
   );
 
   const byKey = new Map<string, AgendaEvento>();
@@ -717,7 +753,65 @@ export async function getEventoBySlug(
   slug: string
 ): Promise<{ evento: AgendaEvento; related: AgendaEvento[] } | null> {
   const eventos = await getAgendaEventos({ includePast: true });
-  const evento = findBySlug(eventos, slug);
+  let evento = findBySlug(eventos, slug);
+
+  // Alias persistente determinista (mismo tracking_id cambió de slug). Sin adivinar colisiones.
+  if (!evento) {
+    try {
+      const alias = resolverAliasSlug(slug);
+      if (alias) {
+        evento = findBySlug(eventos, alias.canonical);
+        if (!evento) {
+          const archivado = getArchivedEventoBySlug(alias.canonical) ?? getArchivedEventoBySlug(slug);
+          if (archivado) {
+            const related: AgendaEvento[] = [];
+            for (const ev of eventos) {
+              if (related.length >= 6) break;
+              if (new Date(ev.date) >= new Date()) related.push(ev);
+            }
+            return { evento: archivado, related };
+          }
+          const conocido = leerEstadoPorTrackingId(alias.tracking_id);
+          if (conocido && conocido.estado !== "activo") {
+            const fechaIso = conocido.fecha
+              ? new Date(`${conocido.fecha}T12:00:00.000Z`).toISOString()
+              : new Date().toISOString();
+            const confirmado = conocido.estado === "ausencia_confirmada";
+            const ultimaVez = conocido.ultima_vez
+              ? new Date(conocido.ultima_vez).toISOString().slice(0, 10)
+              : undefined;
+            const ledgerEvento: AgendaEvento = {
+              id: conocido.slug,
+              slug: conocido.slug,
+              title: conocido.title || "Evento con estado conocido",
+              date: fechaIso,
+              location: "Vitoria-Gasteiz",
+              link: conocido.link || "",
+              category: "Otros",
+              source: conocido.source || "agenda",
+              kind: "agenda",
+              description: confirmado
+                ? "Este evento ya no aparece en la fuente de origen tras varias comprobaciones sanas. Se muestra la última información conocida y su estado actual; no hay confirmación de que siga vigente."
+                : "Este evento no se ha encontrado en la última importación sana de su fuente. Se muestra la última información conocida mientras se confirma su estado.",
+              recoveredState: confirmado ? "retirado" : "archivado",
+              provenance: confirmado
+                ? `Estado confirmado por ausencias repetidas en importaciones sanas del registro${ultimaVez ? ` (visto por última vez: ${ultimaVez})` : ""}.`
+                : `Ausencia detectada en importación sana; pendiente de confirmación${ultimaVez ? ` (visto por última vez: ${ultimaVez})` : ""}.`,
+            };
+            const related: AgendaEvento[] = [];
+            for (const ev of eventos) {
+              if (related.length >= 6) break;
+              if (new Date(ev.date) >= new Date()) related.push(ev);
+            }
+            return { evento: ledgerEvento, related };
+          }
+        }
+      }
+    } catch {
+      // El ledger no puede tumbar la resolución de detalle.
+    }
+  }
+
   if (!evento) {
     // 1) Recuperado/archivado manual (URL indexada conocida o programa añadido).
     const archivado = getArchivedEventoBySlug(slug);
@@ -740,6 +834,9 @@ export async function getEventoBySlug(
           ? new Date(`${conocido.fecha}T12:00:00.000Z`).toISOString()
           : new Date().toISOString();
         const confirmado = conocido.estado === "ausencia_confirmada";
+        const ultimaVez = conocido.ultima_vez
+          ? new Date(conocido.ultima_vez).toISOString().slice(0, 10)
+          : undefined;
         const ledgerEvento: AgendaEvento = {
           id: conocido.slug,
           slug: conocido.slug,
@@ -755,8 +852,8 @@ export async function getEventoBySlug(
             : "Este evento no se ha encontrado en la última importación sana de su fuente. Se muestra la última información conocida mientras se confirma su estado.",
           recoveredState: confirmado ? "retirado" : "archivado",
           provenance: confirmado
-            ? "Estado confirmado por ausencias repetidas en importaciones sanas del registro."
-            : "Ausencia detectada en importación sana; pendiente de confirmación.",
+            ? `Estado confirmado por ausencias repetidas en importaciones sanas del registro${ultimaVez ? ` (visto por última vez: ${ultimaVez})` : ""}.`
+            : `Ausencia detectada en importación sana; pendiente de confirmación${ultimaVez ? ` (visto por última vez: ${ultimaVez})` : ""}.`,
         };
         const related: AgendaEvento[] = [];
         for (const ev of eventos) {

@@ -1,3 +1,5 @@
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
+
 const CITY_SLUG = "vitoria-gasteiz";
 const LANGUAGE = "en";
 const FEVER_BASE = "https://feverup.com";
@@ -135,7 +137,7 @@ async function fetchDetailPage(url: string): Promise<FeverEvent | null> {
   }
 }
 
-export async function scrapeFever(): Promise<FeverEvent[]> {
+export async function scrapeFever(ctx?: SourceRunContext): Promise<FeverEvent[]> {
   const res = await fetch(
     `https://feverup.com/${LANGUAGE}/${CITY_SLUG}`,
     {
@@ -215,6 +217,16 @@ export async function scrapeFever(): Promise<FeverEvent[]> {
   if (urls.size > 0 && allEvents.length === 0) {
     throw new Error(
       `[fever] la portada listó ${urls.size} enlaces pero no se pudo extraer ningún evento válido`
+    );
+  }
+
+  // Detalles caídos = lectura parcial: se sirve lo obtenido, pero en modo estricto
+  // no se confirma ausencia de lo no leído.
+  if (ctx?.strict && caidos.length > 0) {
+    throw new DegradedSourceReadError(
+      "fever",
+      `${caidos.length} de ${results.length} detalles no leídos`,
+      allEvents
     );
   }
 

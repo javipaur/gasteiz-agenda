@@ -43,17 +43,17 @@ import { SOURCE_DATA, type RawLike, type SourceEntry } from "./source-data";
  * aquí. Falla al cargar el módulo si alguna se queda sin `run`, que es mejor que
  * devolver una entrada muda y descubrirlo en la agenda.
  */
-const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
-  "municipal-agenda": () => scrapeMunicipalCalendar({ tipo: [6] }),
-  "municipal-teatro": () => scrapeMunicipalCalendar({ tipo: [13] }),
+const RUNNERS: Record<string, (ctx?: { strict?: boolean }) => Promise<RawLike[]>> = {
+  "municipal-agenda": (ctx) => scrapeMunicipalCalendar({ tipo: [6] }, ctx),
+  "municipal-teatro": (ctx) => scrapeMunicipalCalendar({ tipo: [13] }, ctx),
   // El 392 es la red de teatros de los centros cívicos, que no aparece en el `tipo:
   // [13]` de arriba. Medido contra el sitio el 4 de octubre de 2026: 46 eventos en
   // los doce meses siguientes, de los que 36 no salen en la página 1 del 196.
-  "municipal-teatros": () => scrapeMunicipalCalendar({ calendariosID: 392 }),
-  "municipal-conciertos": () => scrapeMunicipalCalendar({ tipo: [2] }),
-  "municipal-exposiciones": () => scrapeMunicipalCalendar({ tipo: [7] }),
-  "municipal-general": () => scrapeMunicipalCalendar(),
-  "municipal-deporte": () => scrapeMunicipalCalendar({ calendariosID: 168 }),
+  "municipal-teatros": (ctx) => scrapeMunicipalCalendar({ calendariosID: 392 }, ctx),
+  "municipal-conciertos": (ctx) => scrapeMunicipalCalendar({ tipo: [2] }, ctx),
+  "municipal-exposiciones": (ctx) => scrapeMunicipalCalendar({ tipo: [7] }, ctx),
+  "municipal-general": (ctx) => scrapeMunicipalCalendar({}, ctx),
+  "municipal-deporte": (ctx) => scrapeMunicipalCalendar({ calendariosID: 168 }, ctx),
   // Los seis `tipo` que nadie filtraba. El orden de estas seis y el de las de
   // arriba no importa entre ellas: cada una pide un `tipo` distinto y el sitio
   // asigna un solo tipo por evento, así que no compiten por nada. Lo que sí importa
@@ -61,33 +61,33 @@ const RUNNERS: Record<string, () => Promise<RawLike[]>> = {
   // `dest`, y de que `municipal-general` (priority 1) vaya detrás de todas.
   // Los números y lo que traen, medidos el 5 de octubre de 2026; el desglose está
   // en `lib/source-data.ts`.
-  "municipal-charlas": () => scrapeMunicipalCalendar({ tipo: [3] }),
-  "municipal-talleres": () => scrapeMunicipalCalendar({ tipo: [10] }),
-  "municipal-danza": () => scrapeMunicipalCalendar({ tipo: [4] }),
-  "municipal-cine": () => scrapeMunicipalCalendar({ tipo: [12] }),
-  "municipal-fiestas": () => scrapeMunicipalCalendar({ tipo: [9] }),
-  "municipal-concursos": () => scrapeMunicipalCalendar({ tipo: [1] }),
-  "municipal-mercados": () => scrapeMunicipalCalendar({ tipo: [14] }),
-  "municipal-presentaciones": () => scrapeMunicipalCalendar({ tipo: [11] }),
-  "municipal-infantil": () => scrapeMunicipalCalendar({ dest: ["infantil"] }),
-  "municipal-visitas": () => scrapeMunicipalCalendar({ tipo: [15] }),
-  "municipal-rss": () => scrapeMunicipalRss(),
+  "municipal-charlas": (ctx) => scrapeMunicipalCalendar({ tipo: [3] }, ctx),
+  "municipal-talleres": (ctx) => scrapeMunicipalCalendar({ tipo: [10] }, ctx),
+  "municipal-danza": (ctx) => scrapeMunicipalCalendar({ tipo: [4] }, ctx),
+  "municipal-cine": (ctx) => scrapeMunicipalCalendar({ tipo: [12] }, ctx),
+  "municipal-fiestas": (ctx) => scrapeMunicipalCalendar({ tipo: [9] }, ctx),
+  "municipal-concursos": (ctx) => scrapeMunicipalCalendar({ tipo: [1] }, ctx),
+  "municipal-mercados": (ctx) => scrapeMunicipalCalendar({ tipo: [14] }, ctx),
+  "municipal-presentaciones": (ctx) => scrapeMunicipalCalendar({ tipo: [11] }, ctx),
+  "municipal-infantil": (ctx) => scrapeMunicipalCalendar({ dest: ["infantil"] }, ctx),
+  "municipal-visitas": (ctx) => scrapeMunicipalCalendar({ tipo: [15] }, ctx),
+  "municipal-rss": (ctx) => scrapeMunicipalRss(ctx),
   vam: () => scrapeVamEvents(),
   "vam-conciertos": () => scrapeVamConciertos(),
-  euskadi: () => scrapeEuskadi(),
-  senderismo: () => scrapeSenderismo(),
-  "fiestas-blanca": () => scrapeFiestasBlanca(),
+  euskadi: (ctx) => scrapeEuskadi(ctx),
+  senderismo: (ctx) => scrapeSenderismo(ctx),
+  "fiestas-blanca": (ctx) => scrapeFiestasBlanca(ctx),
   jimmyjazz: () => scrapeJimmyJazz(),
-  helldorado: () => scrapeHelldorado(),
+  helldorado: (ctx) => scrapeHelldorado(ctx),
   musikaze: () => scrapeMusikaze(),
-  fever: () => scrapeFever(),
+  fever: (ctx) => scrapeFever(ctx),
   rula: () => scrapeRula(),
   gasteizhoy: () => scrapeGasteizHoy(),
   eventbrite: () => scrapeEventbrite(),
   entradium: () => scrapeEntradium(),
   vital: () => scrapeVital(),
   arkabia: () => scrapeArkabia(),
-  "mercado-abastos": () => scrapeMercadoAbastos(),
+  "mercado-abastos": (ctx) => scrapeMercadoAbastos(ctx),
   miniature: () => scrapeMiniature(),
   "buscametas-calendario": () => scrapeBuscametasCalendario(),
   "buscametas-inscripciones": () => scrapeBuscametasInscripciones(),

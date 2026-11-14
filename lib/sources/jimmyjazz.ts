@@ -81,13 +81,18 @@ export async function scrapeJimmyJazz(): Promise<any[]> {
       }
     );
 
+    if (!res.ok) {
+      throw new Error(`jimmyjazz returned ${res.status}`);
+    }
+
     const buffer = await leerConTope(res, MAX_HTML_BYTES);
     const html = buffer.toString("latin1");
     const $ = cheerio.load(html);
 
     const events: any[] = [];
 
-    $(".mkp-ticket-item").each((_, el) => {
+    const items = $(".mkp-ticket-item");
+    items.each((_, el) => {
       const title = $(el).find(".mkp-ticket-data-title").text().trim();
       const day = $(el).find(".mkp-ticket-date-monthday").text().trim();
       const month = $(el).find(".mkp-ticket-date-month").text().trim();
@@ -107,6 +112,12 @@ export async function scrapeJimmyJazz(): Promise<any[]> {
         link: ticketLink,
       });
     });
+
+    // Si la página cargó bien pero no hay ninguna tarjeta del formato esperado,
+    // es más probable un cambio de estructura que una cartelera vacía real.
+    if (events.length === 0 && items.length === 0) {
+      throw new Error("jimmyjazz: no se encontraron tarjetas de eventos (posible cambio de estructura)");
+    }
 
     return events;
   } catch (error) {

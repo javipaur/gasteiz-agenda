@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 const EUSKADI_BASE = "https://api.euskadi.eus/culture/events/v1.0/events/upcoming";
 const ELEMENTS = 100;
@@ -146,7 +147,7 @@ async function fetchPaginas(
   return resultados;
 }
 
-export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
+export async function scrapeEuskadi(ctx?: SourceRunContext): Promise<EuskadiEvent[]> {
   try {
     const first = await fetchEuskadiPage(1);
     if (first.items.length === 0) {
@@ -199,9 +200,22 @@ export async function scrapeEuskadi(): Promise<EuskadiEvent[]> {
      * Con la API real no salta: medido el 14 de noviembre de 2026, `totalItems`
      * era 490 y las páginas 1 a 5 sirven 100+100+100+100+90 = 490.
      */
-    if (recibidos < first.totalItems) {
+    const incompletoPorConteo = recibidos < first.totalItems;
+    if (incompletoPorConteo) {
       console.warn(
         `[euskadi] declaraba ${first.totalItems} eventos y ha servido ${recibidos} en ${totalPages} páginas`
+      );
+    }
+
+    // Lectura parcial/capada: servir lo obtenido, pero no contar como sana para el
+    // ledger en modo estricto (ausencias fuera de lo leído no son confirmables).
+    if (ctx?.strict && (declaradas > MAX_PAGINAS_SEGURIDAD || incompletoPorConteo)) {
+      throw new DegradedSourceReadError(
+        "euskadi",
+        declaradas > MAX_PAGINAS_SEGURIDAD
+          ? `paginación capada en ${totalPages}/${declaradas} páginas`
+          : `lectura incompleta ${recibidos}/${first.totalItems}`,
+        eventos
       );
     }
 

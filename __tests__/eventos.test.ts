@@ -135,6 +135,13 @@ jest.mock("@/lib/cache", () => ({
   ),
 }));
 
+// Eventos recuperados/archivados son datos contrastados del repo (no de scrapers mockeados).
+// Este test valida el comportamiento del wrapper sobre fuentes del agregado.
+jest.mock("@/lib/archived-events", () => ({
+  getRecoveredAgendaEvents: jest.fn(() => []),
+  getArchivedEventoBySlug: jest.fn(() => undefined),
+}));
+
 import { SOURCE_DATA } from "@/lib/source-data";
 import { getProximosEventos } from "@/lib/eventos";
 

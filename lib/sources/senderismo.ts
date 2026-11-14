@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 const BASE_URL = "https://www.cm-gazteiz.com";
 const URL = `${BASE_URL}/actividades/`;
@@ -42,7 +43,7 @@ function parseFechaISO(fecha?: string): string {
   }
 }
 
-export async function scrapeSenderismo(): Promise<Actividad[]> {
+export async function scrapeSenderismo(ctx?: SourceRunContext): Promise<Actividad[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TTL) {
     return cache;
@@ -50,37 +51,50 @@ export async function scrapeSenderismo(): Promise<Actividad[]> {
 
   const resp = await fetch(URL, {
     headers: { "User-Agent": "Mozilla/5.0" },
-    // El plazo no es decoración: `lib/agenda.ts:90` espera a las 28 fuentes con
+    // El plazo no es decoraci?n: `lib/agenda.ts:90` espera a las 28 fuentes con
     // `Promise.allSettled`, y eso solo vuelve cuando han vuelto todas. Un sitio que
-    // acepta la conexión y no contesta se la lleva por delante, y con ella la home,
+    // acepta la conexi?n y no contesta se la lleva por delante, y con ella la home,
     // `/agenda` y `/api/v1/events`.
     signal: AbortSignal.timeout(20000),
   });
   /*
-   * Aquí el log es lo **único** que queda, y por eso no es opcional.
+   * Aqu? el log es lo **?nico** que queda, y por eso no es opcional.
    *
-   * Cuando hay caché, este camino devuelve datos y el scraper parece haber
-   * funcionado: la agenda trae las salidas al aire de la última vez y nadie ve un
+   * Cuando hay cach?, este camino devuelve datos y el scraper parece haber
+   * funcionado: la agenda trae las salidas al aire de la ?ltima vez y nadie ve un
    * hueco. Cuando no la hay, devuelve `[]`, que es indistinguible de "esta semana
    * no hay ninguna salida".
    *
    * O sea que los dos fallos se ven igual desde fuera, y el primero de los dos es
-   * el que miente. Con `senderismo` siendo la fuente de 24 h y sin una sola línea de
-   * `console` en el fichero, una caída larga se lee como "no había nada que
-   * organizar" durante semanas. El aviso dice además si se sirvió caché vieja,
-   * porque son dos problemas distintos con dos alcances distintos: sin caché es
-   * una caída, y con caché es un dato caducado que hay que mirar.
+   * el que miente. Con `senderismo` siendo la fuente de 24 h y sin una sola l?nea de
+   * `console` en el fichero, una ca?da larga se lee como "no hab?a nada que
+   * organizar" durante semanas. El aviso dice adem?s si se sirvi? cach? vieja,
+   * porque son dos problemas distintos con dos alcances distintos: sin cach? es
+   * una ca?da, y con cach? es un dato caducado que hay que mirar.
+   *
+   * **En modo estricto (agregado/ledger) el fallback de cach? es degradado.** Se
+   * lanzan los datos de respaldo como `DegradedSourceReadError`: el agregador los
+   * sirve para no vaciar la secci?n, pero no cuenta la fuente como sana, porque
+   * nadie ha podido confirmar en esta importaci?n que los eventos sigan vigentes.
+   * En llamadas directas (rutas/p?ginas) se mantiene la resiliencia y se devuelve
+   * la cach? como antes.
    */
   if (!resp.ok) {
     if (cache) {
       console.error(
-        `[senderismo] ${resp.status} ${resp.statusText}: se sirve la caché de hace ${Math.round((Date.now() - lastFetch) / 60000)} min`
+        `[senderismo] ${resp.status} ${resp.statusText}: se sirve la cach? de hace ${Math.round((Date.now() - lastFetch) / 60000)} min`
       );
+      if (ctx?.strict) {
+        throw new DegradedSourceReadError(
+          "senderismo",
+          `${resp.status} ${resp.statusText}`,
+          cache
+        );
+      }
       return cache;
     }
-    throw new Error(`[senderismo] ${resp.status} ${resp.statusText} y no hay caché`);
+    throw new Error(`[senderismo] ${resp.status} ${resp.statusText} y no hay cach?`);
   }
-
   const html = await resp.text();
   const $ = cheerio.load(html);
 

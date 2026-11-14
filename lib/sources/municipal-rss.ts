@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 export interface MunicipalEvent {
   title: string;
@@ -44,10 +45,11 @@ function parseRss(xml: string, category: string): MunicipalEvent[] {
   return events;
 }
 
-export async function scrapeMunicipalRss(): Promise<MunicipalEvent[]> {
+export async function scrapeMunicipalRss(ctx?: SourceRunContext): Promise<MunicipalEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
   const all: MunicipalEvent[] = [];
   let okFeeds = 0;
+  const feedErrors: string[] = [];
 
   for (const [category, url] of Object.entries(RSS_URLS)) {
     try {
@@ -70,12 +72,21 @@ export async function scrapeMunicipalRss(): Promise<MunicipalEvent[]> {
       okFeeds += 1;
     } catch (err) {
       console.error(`Municipal RSS (${category}) error:`, err);
+      feedErrors.push(`${category}: ${err instanceof Error ? err.message : String(err)}`);
       // Continuar con el resto de feeds; si ninguno funciona, fallar abajo.
     }
   }
 
   if (okFeeds === 0) {
     throw new Error("Municipal RSS: no se pudo leer ningún feed");
+  }
+
+  if (ctx?.strict && feedErrors.length > 0) {
+    throw new DegradedSourceReadError(
+      "municipal-rss",
+      `feeds parciales: ${feedErrors.join("; ")}`,
+      all
+    );
   }
 
   return all;

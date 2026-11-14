@@ -15,6 +15,12 @@
  */
 
 export type RawLike = {
+  /** ID externo estable de la fuente, si existe (no inventado). */
+  externalId?: string;
+  /** Alias explícito de ID externo estable (algunas fuentes ya lo exponen así). */
+  sourceId?: string;
+  /** ID crudo del scraper/fuente; solo se usará como externo si es estable. */
+  id?: string;
   title?: string;
   date?: string;
   /**
@@ -53,8 +59,14 @@ export type SourceEntry = {
   /** Por defecto, igual a `id`. Solo se declara cuando agrupa varias entradas. */
   group?: string;
   label: string;
-  /** La aporta `lib/source-registry.ts` al componer; aquí no se rellena. */
-  run: () => Promise<RawLike[]>;
+  /**
+   * La aporta `lib/source-registry.ts` al componer; aquí no se rellena.
+   *
+   * Acepta un contexto opcional: en modo estricto (`strict: true`) una fuente
+   * que solo pueda servir datos de respaldo (caché interna/stale) debe fallar de
+   * forma identificable para que el agregador no la cuente como lectura sana.
+   */
+  run: (ctx?: { strict?: boolean }) => Promise<RawLike[]>;
   category?: string;
   kind?: string;
   tags?: readonly string[];

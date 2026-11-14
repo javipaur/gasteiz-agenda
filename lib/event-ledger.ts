@@ -37,7 +37,7 @@ const DB_PATH = path.join(DB_DIR, "event-ledger.db");
  */
 const BUSY_TIMEOUT_MS = 5_000;
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 7;
 
 /**
  * Ausencias consecutivas en importaciones sanas necesarias para confirmar
@@ -116,6 +116,45 @@ const MIGRASIONES: readonly { version: number; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS importaciones_ts ON importaciones (ts);
     `,
   },
+  {
+    version: 5,
+    sql: `
+      CREATE TABLE IF NOT EXISTS importacion_fuentes (
+        n INTEGER NOT NULL,
+        source TEXT NOT NULL,
+        ok INTEGER NOT NULL,
+        eventos_vistos INTEGER NOT NULL,
+        error TEXT,
+        PRIMARY KEY (n, source)
+      );
+      CREATE INDEX IF NOT EXISTS importacion_fuentes_source ON importacion_fuentes (source);
+    `,
+  },
+  {
+    version: 6,
+    sql: `
+      -- Historial de slugs/canónicos por identidad estable (tracking_id/source).
+      -- Permite redirecciones deterministas cuando el slug público cambia sin adivinar colisiones.
+      CREATE TABLE IF NOT EXISTS evento_aliases (
+        alias_slug TEXT NOT NULL,
+        tracking_id TEXT NOT NULL,
+        source TEXT NOT NULL,
+        canonical_slug TEXT NOT NULL,
+        primera_vez INTEGER NOT NULL,
+        ultima_vez INTEGER NOT NULL,
+        PRIMARY KEY (alias_slug, tracking_id)
+      );
+      CREATE INDEX IF NOT EXISTS evento_aliases_tracking ON evento_aliases (tracking_id);
+      CREATE INDEX IF NOT EXISTS evento_aliases_canonical ON evento_aliases (canonical_slug);
+    `,
+  },
+  {
+    version: 7,
+    sql: `
+      ALTER TABLE eventos_vistos ADD COLUMN external_id TEXT;
+      CREATE INDEX IF NOT EXISTS eventos_vistos_source_external ON eventos_vistos (source, external_id);
+    `,
+  },
 ];
 
 export type EstadoEventoVisto =
@@ -139,6 +178,7 @@ export type FilaLedger = {
   missing_runs: number;
   first_seen_run: number | null;
   last_seen_run: number | null;
+  external_id?: string | null;
 };
 
 export type FilaImportacion = {
@@ -159,6 +199,8 @@ export type EventoVisto = {
   date: string;
   slug: string;
   link: string;
+  /** ID externo estable de la fuente, si se conoce. */
+  externalId?: string;
 };
 
 export type ResultadoImportacion = {
@@ -174,6 +216,14 @@ export type ResultadoImportacion = {
   fuentesSanas: number;
   /** Fuentes que fallaron o quedaron incompletas y no cuentan como sanas. */
   fuentesFallidas: number;
+};
+
+export type FuenteImportacion = {
+  n: number;
+  source: string;
+  ok: number;
+  eventos_vistos: number;
+  error: string | null;
 };
 
 const CLAVE_IMPORTACION = "importacion";
@@ -291,7 +341,8 @@ export function registrarImportacion(
   vistos: readonly EventoVisto[],
   fuentesSanas: readonly string[],
   ahora: number = Date.now(),
-  fuentesIntentadas: number = fuentesSanas.length
+  fuentesIntentadas: number = fuentesSanas.length,
+  fuentesFallidasDetalle: readonly { id: string; error: string }[] = []
 ): ResultadoImportacion {
   const conexion = getDb();
 
@@ -306,10 +357,16 @@ export function registrarImportacion(
     const importacion = leerContador(conexion) + 1;
     const antes = contarFilas(conexion);
 
+    const selectSlug = conexion.prepare(
+      "SELECT slug FROM eventos_vistos WHERE tracking_id = ?"
+    );
+    const selectByExternal = conexion.prepare(
+      "SELECT tracking_id, slug FROM eventos_vistos WHERE source = ? AND external_id = ?"
+    );
     const upsert = conexion.prepare(
       `INSERT INTO eventos_vistos
-         (tracking_id, source, slug, title, fecha, link, primera_vez, ultima_vez, fallos, visto_en, estado, missing_runs, first_seen_run, last_seen_run)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'activo', 0, ?, ?)
+         (tracking_id, source, slug, title, fecha, link, primera_vez, ultima_vez, fallos, visto_en, estado, missing_runs, first_seen_run, last_seen_run, external_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'activo', 0, ?, ?, ?)
        ON CONFLICT(tracking_id) DO UPDATE SET
          source = excluded.source,
          slug = excluded.slug,
@@ -322,10 +379,40 @@ export function registrarImportacion(
          estado = 'activo',
          missing_runs = 0,
          first_seen_run = COALESCE(eventos_vistos.first_seen_run, excluded.first_seen_run),
-         last_seen_run = excluded.last_seen_run`
+         last_seen_run = excluded.last_seen_run,
+         external_id = COALESCE(excluded.external_id, eventos_vistos.external_id)`
+    );
+    const upsertAlias = conexion.prepare(
+      `INSERT INTO evento_aliases
+         (alias_slug, tracking_id, source, canonical_slug, primera_vez, ultima_vez)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(alias_slug, tracking_id) DO UPDATE SET
+         canonical_slug = excluded.canonical_slug,
+         source = excluded.source,
+         ultima_vez = excluded.ultima_vez`
     );
 
     for (const [id, ev] of unicos) {
+      const previo = selectSlug.get(id) as { slug?: string } | undefined;
+      const slugPrevio = previo?.slug;
+      if (slugPrevio && slugPrevio !== ev.slug) {
+        // Alias determinista: mismo tracking_id (misma identidad estable observada) cambió de slug.
+        upsertAlias.run(slugPrevio, id, ev.source, ev.slug, ahora, ahora);
+      }
+
+      // Alias por ID externo estable de la fuente (misma fuente + mismo external_id).
+      if (ev.externalId) {
+        const previosExt = selectByExternal.all(ev.source, ev.externalId) as {
+          tracking_id: string;
+          slug: string;
+        }[];
+        if (previosExt.length === 1) {
+          const prevExt = previosExt[0];
+          if (prevExt.slug && prevExt.slug !== ev.slug) {
+            upsertAlias.run(prevExt.slug, prevExt.tracking_id, ev.source, ev.slug, ahora, ahora);
+          }
+        }
+      }
       upsert.run(
         id,
         ev.source,
@@ -337,7 +424,8 @@ export function registrarImportacion(
         ahora,
         importacion,
         importacion,
-        importacion
+        importacion,
+        ev.externalId ?? null
       );
     }
 
@@ -384,6 +472,26 @@ export function registrarImportacion(
         nuevos,
         ausentes
       );
+
+    // Trazabilidad por fuente y ejecución: resultado de cada fuente conocida.
+    const eventosPorFuente = new Map<string, number>();
+    for (const ev of unicos.values()) {
+      eventosPorFuente.set(ev.source, (eventosPorFuente.get(ev.source) ?? 0) + 1);
+    }
+    const insertFuente = conexion.prepare(
+      `INSERT OR REPLACE INTO importacion_fuentes
+        (n, source, ok, eventos_vistos, error)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    const fallidasMap = new Map(fuentesFallidasDetalle.map((f) => [f.id, f.error]));
+    for (const source of fuentesSanas) {
+      insertFuente.run(importacion, source, 1, eventosPorFuente.get(source) ?? 0, null);
+    }
+    for (const [source, error] of fallidasMap) {
+      // Una fuente no puede ser sana y fallida a la vez en la misma ejecución.
+      if (fuentesSanas.includes(source)) continue;
+      insertFuente.run(importacion, source, 0, eventosPorFuente.get(source) ?? 0, error);
+    }
 
     conexion
       .prepare(
@@ -462,10 +570,11 @@ export function registrarImportacionSegura(
   vistos: readonly EventoVisto[],
   fuentesSanas: readonly string[],
   ahora: number = Date.now(),
-  fuentesIntentadas: number = fuentesSanas.length
+  fuentesIntentadas: number = fuentesSanas.length,
+  fuentesFallidasDetalle: readonly { id: string; error: string }[] = []
 ): ResultadoImportacion | null {
   try {
-    return registrarImportacion(vistos, fuentesSanas, ahora, fuentesIntentadas);
+    return registrarImportacion(vistos, fuentesSanas, ahora, fuentesIntentadas, fuentesFallidasDetalle);
   } catch (error) {
     logger.warn("event_ledger_failed", {
       error: error instanceof Error ? error.message : String(error),
@@ -484,5 +593,55 @@ export function leerImportaciones(limit = 20): FilaImportacion[] {
       .all(limit) as unknown as FilaImportacion[];
   } catch {
     return [];
+  }
+}
+
+/** Detalle por fuente de una importación (trazabilidad por fuente y ejecución). */
+export function leerFuentesDeImportacion(n: number): FuenteImportacion[] {
+  try {
+    return getDb()
+      .prepare(
+        "SELECT n, source, ok, eventos_vistos, error FROM importacion_fuentes WHERE n = ? ORDER BY ok ASC, source ASC"
+      )
+      .all(n) as unknown as FuenteImportacion[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Resuelve un slug alias a su canónico actual de forma determinista.
+ * Si el alias no existe o apunta a más de un destino (colisión), devuelve undefined.
+ */
+export function resolverAliasSlug(
+  aliasSlug: string
+): { canonical: string; tracking_id: string; source: string } | undefined {
+  try {
+    const filas = getDb()
+      .prepare(
+        `SELECT canonical_slug, tracking_id, source
+         FROM evento_aliases
+         WHERE alias_slug = ?
+         ORDER BY ultima_vez DESC`
+      )
+      .all(aliasSlug) as { canonical_slug: string; tracking_id: string; source: string }[];
+    if (filas.length === 0) return undefined;
+    const canonicos = new Set(filas.map((f) => f.canonical_slug));
+    if (canonicos.size !== 1) return undefined;
+    const f = filas[0];
+    return { canonical: f.canonical_slug, tracking_id: f.tracking_id, source: f.source };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Estado por tracking_id (para resolver alias a evento conocido). */
+export function leerEstadoPorTrackingId(trackingId: string): FilaLedger | undefined {
+  try {
+    return getDb()
+      .prepare("SELECT * FROM eventos_vistos WHERE tracking_id = ?")
+      .get(trackingId) as FilaLedger | undefined;
+  } catch {
+    return undefined;
   }
 }

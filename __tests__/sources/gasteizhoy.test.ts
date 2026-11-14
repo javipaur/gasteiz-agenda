@@ -130,10 +130,9 @@ describe("scrapeGasteizHoy", () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it("is resilient to malformed HTML", async () => {
+  it("lanza si no hay secciones de calendario del formato esperado", async () => {
     mockFetchWith([{ match: /.*/, content: "<html><div>no calendar here</div></html>" }]);
 
-    const events = await scrapeGasteizHoy();
-    expect(Array.isArray(events)).toBe(true);
+    await expect(scrapeGasteizHoy()).rejects.toThrow(/no se encontraron secciones/i);
   });
 });

@@ -1,4 +1,5 @@
 import type { RawLike } from "../source-data";
+import { DegradedSourceReadError, type SourceRunContext } from "../source-degraded";
 
 /**
  * Mercado de Abastos de Vitoria-Gasteiz, vía la API REST de WordPress.
@@ -119,7 +120,9 @@ function normalize(raw: TecEvent): EventoConFecha | null {
   };
 }
 
-export async function scrapeMercadoAbastos(): Promise<EventoConFecha[]> {
+export async function scrapeMercadoAbastos(
+  ctx?: SourceRunContext
+): Promise<EventoConFecha[]> {
   const now = Date.now();
   if (cache && now - lastFetch < CACHE_TTL) return cache;
 
@@ -127,6 +130,14 @@ export async function scrapeMercadoAbastos(): Promise<EventoConFecha[]> {
   // algún evento entra días antes de celebrarse. Sin `status` el endpoint
   // incluye borradores, así que se filtra por la respuesta ya publicada.
   const url = `${API_URL}?per_page=50&start_date=2020-01-01&end_date=2030-12-31`;
+
+  const devolverCacheDegradada = (cause: unknown): EventoConFecha[] => {
+    if (!cache) throw cause;
+    if (ctx?.strict) {
+      throw new DegradedSourceReadError("mercado-abastos", cause, cache);
+    }
+    return cache;
+  };
 
   try {
     const resp = await fetch(url, {
@@ -137,20 +148,16 @@ export async function scrapeMercadoAbastos(): Promise<EventoConFecha[]> {
       signal: AbortSignal.timeout(20000),
     });
     if (!resp.ok) {
-      if (cache) {
-        console.error(`[mercado-abastos] HTTP ${resp.status}, se devuelve la cache`);
-        return cache;
-      }
-      throw new Error(`[mercado-abastos] HTTP ${resp.status}`);
+      console.error(`[mercado-abastos] HTTP ${resp.status}, se devuelve la cache`);
+      return devolverCacheDegradada(new Error(`[mercado-abastos] HTTP ${resp.status}`));
     }
 
     const payload = (await resp.json()) as { events?: TecEvent[] };
     if (!payload || !Array.isArray(payload.events)) {
-      if (cache) {
-        console.warn("[mercado-abastos] respuesta inesperada, se conserva la cache");
-        return cache;
-      }
-      throw new Error("[mercado-abastos] respuesta inesperada de la API");
+      console.warn("[mercado-abastos] respuesta inesperada, se conserva la cache");
+      return devolverCacheDegradada(
+        new Error("[mercado-abastos] respuesta inesperada de la API")
+      );
     }
     const normalized = payload.events
       .map(normalize)
@@ -161,8 +168,9 @@ export async function scrapeMercadoAbastos(): Promise<EventoConFecha[]> {
     lastFetch = now;
     return normalized;
   } catch (error) {
+    // `DegradedSourceReadError` de modo estricto no debe re-envolverse.
+    if (error instanceof DegradedSourceReadError) throw error;
     console.error("[mercado-abastos] fallo el scrape", error);
-    if (cache) return cache;
-    throw error;
+    return devolverCacheDegradada(error);
   }
 }
