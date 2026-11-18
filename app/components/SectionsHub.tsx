@@ -16,7 +16,13 @@ import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
 import SectionHead from "./SectionHead";
 import { getPeliculas } from "@/lib/cines";
 import { getQueVer } from "@/lib/turismo";
-import { getSitios, getRutasPintxos } from "@/lib/gastronomia";
+import {
+  getSitios,
+  getRutasPintxos,
+  getEnsaladillaCampeonato,
+  estadoEnsaladilla,
+  totalBaresEnsaladilla,
+} from "@/lib/gastronomia";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
 import { propsImagen } from "@/lib/image-proxy";
@@ -51,9 +57,18 @@ async function getCounts() {
       countEventsInWindow(INFANTIL_SET),
       countEventsInWindow(CULTURA_SET),
       countEventsInWindow(DEPORTE_SET),
-      Promise.all([getQueVer(), getSitios(), getRutasPintxos()]),
+      Promise.all([
+        getQueVer(),
+        getSitios(),
+        getRutasPintxos(),
+        getEnsaladillaCampeonato(),
+      ]),
       scrapeFiestasBlanca(),
     ]);
+
+  const ensaladilla =
+    curated.status === "fulfilled" ? curated.value[3] : null;
+  const ensaladillaEstado = ensaladilla ? estadoEnsaladilla(ensaladilla) : null;
 
   return {
     conciertos: conciertos.status === "fulfilled" ? conciertos.value : 0,
@@ -68,6 +83,9 @@ async function getCounts() {
       curated.status === "fulfilled"
         ? curated.value[1].find((s) => s.imagen)?.imagen
         : undefined,
+    ensaladillaActiva: ensaladillaEstado === "en-marcha" && ensaladilla
+      ? { bares: totalBaresEnsaladilla(ensaladilla), zonas: ensaladilla.zonas.length }
+      : null,
     fiestas: fiestas.status === "fulfilled" ? fiestas.value.length : 0,
   };
 }
@@ -163,15 +181,18 @@ export default async function SectionsHub() {
     {
       label: "Gastronomía",
       href: "/gastronomia",
-      desc: "Pintxos y sitios",
+      desc: counts.ensaladillaActiva
+        ? `Campeonato de la ensaladilla · ${counts.ensaladillaActiva.bares} bares`
+        : "Pintxos y sitios",
       tint: "bg-amber/10 border-amber/20",
       wash: "radial-gradient(420px 160px at 90% -20%, var(--amber-wash), transparent 60%)",
       icon: Utensils,
       count: counts.gastronomia,
       unit: " sitios",
       imagen: counts.gastronomiaImagen,
-      meta:
-        counts.gastronomiaRutas > 0
+      meta: counts.ensaladillaActiva
+        ? `En marcha · ${counts.ensaladillaActiva.zonas} zonas`
+        : counts.gastronomiaRutas > 0
           ? `${counts.gastronomia} sitios · ${counts.gastronomiaRutas} rutas`
           : undefined,
     },

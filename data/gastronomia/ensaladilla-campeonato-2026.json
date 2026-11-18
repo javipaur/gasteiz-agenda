@@ -1,0 +1,97 @@
+{
+  "slug": "ensaladilla-campeonato-2026",
+  "nombre": "I Campeonato de la Ensaladilla",
+  "edicion": 2026,
+  "fechas": {
+    "inicio": "2026-11-19",
+    "fin": "2026-11-29"
+  },
+  "final": {
+    "fecha": "2026-11-30",
+    "lugar": "Escuela de Hostelería Egibide Mendizorrotza"
+  },
+  "organiza": ["SEA-Hostelería", "Gasteiz On"],
+  "descripcion": "Ruta por 40 bares de Vitoria-Gasteiz para probar distintas versiones de ensaladilla durante el I Campeonato de la Ensaladilla. Un jurado elegirá 6 finalistas y la final se celebra el 30 de noviembre.",
+  "precio": "Precio libre (no especificado por bar)",
+  "fuente": {
+    "nombre": "Gasteiz Hoy",
+    "url": "https://www.gasteizhoy.com/ensaladilla-ruta-campeonato-se-busca-mejor-vitoria/"
+  },
+  "zonas": [
+    {
+      "nombre": "Casco Viejo",
+      "bares": [
+        { "nombre": "Toloño Plaza", "propuesta": "La trainera" },
+        { "nombre": "Toloño", "propuesta": "A mi manera" },
+        { "nombre": "Barrón", "propuesta": "Ensaladilla de merluza y txangurro" },
+        { "nombre": "Cómeme", "propuesta": "Ensaladilla cómeme" },
+        { "nombre": "Bode Taberna", "propuesta": "Ensaladilla de gambón" },
+        { "nombre": "Erkiaga", "propuesta": "Ensaladilla de txangurro" },
+        { "nombre": "Tabanko", "propuesta": "La ensaladilla de Clau" }
+      ]
+    },
+    {
+      "nombre": "Centro",
+      "bares": [
+        { "nombre": "Zabala", "propuesta": "Ensaladilla rusa Zabala" },
+        { "nombre": "El Txoko Taberna", "propuesta": "Ensaladilla rusa a la mexicana" },
+        { "nombre": "Klandestino", "propuesta": "Ensaladilla klandestina de anguila" },
+        { "nombre": "Diskreto", "propuesta": "Ensaladilla diskreta" },
+        { "nombre": "Asador don pollo Vitoria", "propuesta": "Ensaladilla don pollo" },
+        { "nombre": "Berri! Restaurant", "propuesta": "Ensaladilla berri" },
+        { "nombre": "Sutan Cook", "propuesta": "Ensaladilla de txangurro" },
+        { "nombre": "Waska", "propuesta": "La rusa del Waska" },
+        { "nombre": "Belardi nº5", "propuesta": "La quinta esencia-belardi nº5" },
+        { "nombre": "Sagartoki", "propuesta": "Ensaladilla Sagartoki" },
+        { "nombre": "El Parlamento", "propuesta": "Ensaladilla El Parlamento" }
+      ]
+    },
+    {
+      "nombre": "Sancho el Sabio-Avenida",
+      "bares": [
+        { "nombre": "Silken Ciudad de Vitoria", "propuesta": "Ensaladilla SKA" },
+        { "nombre": "Andere", "propuesta": "Raíces de huerta y marea" },
+        { "nombre": "Gastroba Kanaia", "propuesta": "Ensaladilla vasca" },
+        { "nombre": "El Poteo de Sancho", "propuesta": "La ensaladilla de Iune" },
+        { "nombre": "Kotarro", "propuesta": "Ensaladilla de pulpo" },
+        { "nombre": "Café E'Jazz", "propuesta": "La rusa del Jazz" },
+        { "nombre": "Kanijo", "propuesta": "K'Ensaladilla..." },
+        { "nombre": "Gastrobar Chapoó", "propuesta": "Ensaladilla de bogavante" },
+        { "nombre": "Ajuria", "propuesta": "Palomita" },
+        { "nombre": "Izartza", "propuesta": "Ensaladilla rusa con mejillón en escabeche" },
+        { "nombre": "La Meta", "propuesta": "Ensaladilla La Meta" },
+        { "nombre": "Point", "propuesta": "Nuestra ensaladilla" }
+      ]
+    },
+    {
+      "nombre": "Sur: Mendizorrotza-Armentia",
+      "bares": [
+        { "nombre": "VittoriaBar", "propuesta": "Ensaladilla Vittoria" },
+        { "nombre": "Jardines de Uleta", "propuesta": "Ensaladilla casera Uleta" },
+        { "nombre": "Kirika", "propuesta": "Ensaladilla Kirika" }
+      ]
+    },
+    {
+      "nombre": "Norte: Coronación-Lakua",
+      "bares": [
+        { "nombre": "Bolera Pagazuri", "propuesta": "Ensaladilla Pagazuri" },
+        { "nombre": "Txikito", "propuesta": "Ensaladilla estilo Txikito" }
+      ]
+    },
+    {
+      "nombre": "Este: Salburua-Santa Lucía",
+      "bares": [
+        { "nombre": "Iceberg Berria", "propuesta": "La joya de Álava" },
+        { "nombre": "Taberna Pura Vida", "propuesta": "Ensala-vida" }
+      ]
+    },
+    {
+      "nombre": "Oeste: Zabalgana-Jundiz-Zuazo",
+      "bares": [
+        { "nombre": "Raíz", "propuesta": "Ensaladilla Raíz" },
+        { "nombre": "Jundiz", "propuesta": "Ensaladilla Villarraso" },
+        { "nombre": "Camping Ibaia", "propuesta": "Capricho de la casa" }
+      ]
+    }
+  ]
+}
