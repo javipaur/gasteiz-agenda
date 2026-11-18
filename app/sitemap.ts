@@ -35,11 +35,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/gazte-film-fest-2026`,
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
       url: `${BASE_URL}/deporte`,
       changeFrequency: "daily",
       priority: 0.8,
@@ -65,6 +60,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${BASE_URL}/bus`,
+      changeFrequency: "hourly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/farmacias`,
+      changeFrequency: "hourly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/suscribete`,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${BASE_URL}/gazte-film-fest-2026`,
+      changeFrequency: "monthly",
+      priority: 0.3,
+    },
+    {
       url: `${BASE_URL}/sobre`,
       changeFrequency: "monthly",
       priority: 0.4,
@@ -83,7 +98,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryRoutes: MetadataRoute.Sitemap = [
     "teatro",
-    "conciertos",
     "exposiciones",
     "agenda",
   ].map((cat) => ({

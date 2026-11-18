@@ -3,8 +3,8 @@
  */
 
 /**
- * `Header`: el desplegable de Categorías deja de fingir que es un menú, Escape
- * devuelve el foco, y el cartel del atajo dice la tecla que existe en la plataforma.
+ * `Header`: el desplegable Explorar no declara patrón de menú sin teclado de menú,
+ * Escape devuelve el foco, y el cartel del atajo dice la tecla que existe en la plataforma.
  */
 import { escenario } from "../helpers-a11y";
 
@@ -24,14 +24,14 @@ function montarHeader() {
 }
 
 describe("Header", () => {
-  it("Categorías no declara role=menu ni role=menuitem", () => {
+  it("Explorar no declara role=menu ni role=menuitem", () => {
     // El patrón ARIA de menú **exige** teclado de menú: ArrowUp/Down, Home/End y
     // gestión de `tabIndex`. Aquí no hay nada de eso, así que al activarlo el lector
     // entra en modo navegación de menú donde Tab no recorre y las flechas no hacen
     // nada: peor que no declarar el rol. Es una lista de enlaces de navegación, y
     // como lista se declara.
     const { act, vista } = montarHeader();
-    const boton = vista.botonPorNombre("Categorías")!;
+    const boton = vista.botonPorNombre("Explorar")!;
     act(() => boton.click());
 
     expect(vista.consultar('[role="menu"]')).toBeNull();
@@ -42,7 +42,7 @@ describe("Header", () => {
 
   it("el panel son listas de enlaces con aria-expanded y aria-controls", () => {
     const { act, vista } = montarHeader();
-    const boton = vista.botonPorNombre("Categorías")!;
+    const boton = vista.botonPorNombre("Explorar")!;
     act(() => boton.click());
 
     expect(boton.getAttribute("aria-expanded")).toBe("true");
@@ -52,7 +52,7 @@ describe("Header", () => {
     expect(panel).not.toBeNull();
 
     const enlaces = panel!.querySelectorAll("a");
-    expect(enlaces).toHaveLength(16);
+    expect(enlaces).toHaveLength(14);
     for (const enlace of Array.from(enlaces)) {
       expect(enlace.closest("ul")).not.toBeNull();
       expect(enlace.getAttribute("role")).toBeNull();
@@ -62,11 +62,11 @@ describe("Header", () => {
   });
 
   it("Escape cierra el desplegable y devuelve el foco al botón", () => {
-    // Antes el foco se perdía: `setCategoriesOpen(false)` desmontaba el panel con el
+    // Antes el foco se perdía: `setExplorarOpen(false)` desmontaba el panel con el
     // foco dentro, `document.activeElement` caía a `body` y el siguiente Tab
     // reiniciaba desde el principio del documento.
     const { act, vista } = montarHeader();
-    const boton = vista.botonPorNombre("Categorías")!;
+    const boton = vista.botonPorNombre("Explorar")!;
     act(() => boton.click());
 
     const panelId = boton.getAttribute("aria-controls")!;

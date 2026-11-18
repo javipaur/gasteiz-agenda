@@ -46,12 +46,10 @@ const navItems = [
   { name: "Recomendados", href: "/hoy" },
   { name: "La Blanca", href: "/fiestas-blanca", accent: true },
   { name: "Conciertos", href: "/conciertos" },
-  { name: "Cartelera", href: "/movies" },
-  { name: "Niños", href: "/kids" },
   { name: "Cultura", href: "/culture" },
   { name: "Deporte", href: "/deporte" },
-  { name: "Turismo", href: "/turismo" },
-  { name: "Gastronomía", href: "/gastronomia" },
+  { name: "Cartelera", href: "/movies" },
+  { name: "Niños", href: "/kids" },
 ];
 
 /** Id estable del panel, para que el botón pueda apuntarlo con `aria-controls`. */
@@ -335,7 +333,7 @@ export default function Header() {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    router.push(`/culture?q=${encodeURIComponent(q)}`);
+    router.push(`/buscar?q=${encodeURIComponent(q)}`);
     setSearchQuery("");
     setSearchOpen(false);
     setResults([]);
@@ -617,7 +615,7 @@ export default function Header() {
                           })}
                         </ul>
                         <Link
-                          href={`/culture?q=${encodeURIComponent(searchQuery.trim())}`}
+                          href={`/buscar?q=${encodeURIComponent(searchQuery.trim())}`}
                           onClick={() => {
                             setSearchOpen(false);
                             setResults([]);

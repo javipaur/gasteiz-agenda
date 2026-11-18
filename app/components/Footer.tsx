@@ -20,8 +20,8 @@ export default function Footer() {
 
   const exploreLinks = [
     { label: "Inicio", href: "/" },
+    { label: "Recomendados", href: "/hoy" },
     { label: "Conciertos", href: "/conciertos" },
-    { label: "La Blanca", href: "/fiestas-blanca" },
     { label: "Cultura", href: "/culture" },
     { label: "Deporte", href: "/deporte" },
     { label: "Cartelera", href: "/movies" },
@@ -30,11 +30,8 @@ export default function Footer() {
 
   const categoryLinks = [
     { label: "Teatro", href: "/culture/teatro" },
-    { label: "Conciertos", href: "/culture/conciertos" },
     { label: "Exposiciones", href: "/culture/exposiciones" },
     { label: "Agenda cultural", href: "/culture/agenda" },
-    { label: "Cines", href: "/movies" },
-    { label: "Carreras", href: "/deporte" },
   ];
 
   const aboutLinks = [

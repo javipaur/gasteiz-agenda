@@ -63,6 +63,15 @@ export async function generateMetadata({
   if (!isValidCategoria(categoria)) return { title: "Categoría no encontrada" };
 
   const label = CULTURA_CATEGORIAS.find((c) => c.slug === categoria)!.label;
+  if (categoria === "conciertos") {
+    return {
+      title: `${label} en Vitoria-Gasteiz · Agenda Cultural`,
+      description: `${label} en Vitoria-Gasteiz: fechas, lugares y entradas. Agenda actualizada a diario con todos los eventos de ${label.toLowerCase()} en la ciudad.`,
+      alternates: { canonical: "/conciertos" },
+      robots: { index: false, follow: true },
+    };
+  }
+
   return {
     title: `${label} en Vitoria-Gasteiz · Agenda Cultural`,
     description: `${label} en Vitoria-Gasteiz: fechas, lugares y entradas. Agenda actualizada a diario con todos los eventos de ${label.toLowerCase()} en la ciudad.`,
@@ -91,7 +100,7 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
           // hay nada que recalcular ni que pueda separarse de él.
           eventos.filter((e) => e.link).slice(0, 50),
           `${label} en Vitoria-Gasteiz`,
-          `/culture/${categoria}`
+          categoria === "conciertos" ? "/conciertos" : `/culture/${categoria}`
         )}
       />
 
@@ -111,23 +120,26 @@ export default async function CulturaCategoriaPage({ params }: PageProps) {
           </p>
 
           <nav aria-label="Categorías" className="flex gap-2 flex-wrap">
-            {CULTURA_CATEGORIAS.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/culture/${c.slug}`}
-                /* Es una navegación de enlaces, no un filtro de botones: lo que
-                   corresponde es `aria-current="page"`. Sin él, la categoría activa
-                   se distinguía solo por el color de fondo. */
-                aria-current={c.slug === categoria ? "page" : undefined}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
-                  c.slug === categoria
-                    ? "bg-accent text-white"
-                    : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
-                }`}
-              >
-                {c.label}
-              </Link>
-            ))}
+            {CULTURA_CATEGORIAS.map((c) => {
+              const href = c.slug === "conciertos" ? "/conciertos" : `/culture/${c.slug}`;
+              return (
+                <Link
+                  key={c.slug}
+                  href={href}
+                  /* Es una navegación de enlaces, no un filtro de botones: lo que
+                     corresponde es `aria-current="page"`. Sin él, la categoría activa
+                     se distinguía solo por el color de fondo. */
+                  aria-current={c.slug === categoria ? "page" : undefined}
+                  className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 ${
+                    c.slug === categoria
+                      ? "bg-accent text-white"
+                      : "bg-bg-muted text-fg-muted hover:text-fg hover:bg-border"
+                  }`}
+                >
+                  {c.label}
+                </Link>
+              );
+            })}
           </nav>
         </header>
 
