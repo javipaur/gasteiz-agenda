@@ -29,6 +29,7 @@ import { formatDate } from "@/lib/utils";
 import { isBlancaSeason } from "@/lib/blanca";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
+import { esIOS } from "@/lib/install";
 import { ejecutarAtajo, useAtajoBusqueda } from "@/lib/search-shortcut";
 import ShortcutHint from "./ShortcutHint";
 import { LogoMarkReducido } from "./LogoMarkReducido";
@@ -121,6 +122,16 @@ function getVisibleNavItems() {
     : navItems.filter((item) => !item.accent);
 }
 
+/**
+ * Accesos rápidos de la barra superior. El menú «Explorar» ya reúne toda la
+ * navegación; aquí solo quedan los destinos principales para no duplicar ni
+ * saturar la cabecera en escritorio.
+ */
+function getQuickNavItems() {
+  const hrefs = new Set(["/", "/hoy", "/conciertos", "/culture", "/movies"]);
+  return getVisibleNavItems().filter((item) => item.accent || hrefs.has(item.href));
+}
+
 function DownloadIcon({ className }: { className?: string }) {
   return (
     <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -169,8 +180,14 @@ export default function Header() {
   // componente y `InstallBanner` no lo consultaba, con lo que un usuario con la
   // PWA instalada seguía viendo el banner pidiéndole instalarla.
   const isStandalone = useInstalado();
+  const [esDispositivoIOS, setEsDispositivoIOS] = useState(false);
+
+  useEffect(() => {
+    // Detección de plataforma solo en cliente para ocultar el enlace a Play Store en iOS.
+    setEsDispositivoIOS(esIOS(navigator.userAgent, navigator.maxTouchPoints));
+  }, []);
   const { count } = useFavorites();
-  const visibleNavItems = getVisibleNavItems();
+  const quickNavItems = getQuickNavItems();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
   const explorarRef = useRef<HTMLDivElement>(null);
@@ -509,7 +526,7 @@ export default function Header() {
                 )}
               </div>
 
-              {visibleNavItems.map((item) => {
+              {quickNavItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
@@ -677,7 +694,7 @@ export default function Header() {
                 </button>
               )}
 
-              {!isStandalone && (
+              {!isStandalone && !esDispositivoIOS && (
                 <a
                   href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
                   target="_blank"
@@ -871,7 +888,7 @@ export default function Header() {
                   </Link>
                 </li>
               )}
-              {!isStandalone && (
+              {!isStandalone && !esDispositivoIOS && (
                 <li>
                   <a
                     href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"

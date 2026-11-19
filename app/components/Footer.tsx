@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { InstallButton } from "./InstallButton";
 import { LogoMark } from "./LogoMark";
+import { esIOS } from "@/lib/install";
+import { useInstalado } from "@/lib/useInstallPrompt";
 
 function PlayStoreIcon({ className }: { className?: string }) {
   return (
@@ -15,6 +18,15 @@ function PlayStoreIcon({ className }: { className?: string }) {
 
 export default function Footer() {
   const now = new Date();
+  const instalado = useInstalado();
+  const [muestraAndroid, setMuestraAndroid] = useState(false);
+
+  useEffect(() => {
+    // Se lee en cliente tras montar: `navigator` no existe en servidor y el valor
+    // depende del dispositivo, así que no puede derivarse en render sin desajuste.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- detección de plataforma solo en cliente
+    setMuestraAndroid(!instalado && !esIOS(navigator.userAgent, navigator.maxTouchPoints));
+  }, [instalado]);
 
   const agendaUrl = `/agenda/${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -38,6 +50,7 @@ export default function Footer() {
     { label: "Sobre Gasteiz Click", href: "/sobre" },
     { label: "Privacidad", href: "/privacidad" },
     { label: "Aviso legal", href: "/aviso-legal" },
+    { label: "Eliminar mis datos", href: "/eliminar-datos" },
     { label: "API pública", href: "/docs" },
     { label: "Feed RSS", href: "/feed.xml" },
     { label: "Newsletter", href: "/suscribete" },
@@ -60,18 +73,20 @@ export default function Footer() {
               deporte y planes familiares, actualizados a diario.
             </p>
             <div className="flex flex-col gap-2.5 max-w-md">
-              <a
-                href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] px-4 py-3 rounded-xl text-sm text-white"
-              >
-                <PlayStoreIcon className="w-5 h-5 shrink-0" />
-                <span className="flex flex-col leading-tight">
-                  <span className="text-[10px] text-white/70 uppercase tracking-[0.1em]">Disponible en</span>
-                  <span className="font-semibold">Google Play</span>
-                </span>
-              </a>
+              {muestraAndroid && (
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.javipaurdev.gasteizclick"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-white/10 hover:bg-white/20 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] px-4 py-3 rounded-xl text-sm text-white"
+                >
+                  <PlayStoreIcon className="w-5 h-5 shrink-0" />
+                  <span className="flex flex-col leading-tight">
+                    <span className="text-[10px] text-white/70 uppercase tracking-[0.1em]">Disponible en</span>
+                    <span className="font-semibold">Google Play</span>
+                  </span>
+                </a>
+              )}
               <InstallButton />
             </div>
           </div>
@@ -167,6 +182,9 @@ export default function Footer() {
               </Link>
               <Link href="/aviso-legal" className="hover:text-white transition-colors duration-300">
                 Aviso legal
+              </Link>
+              <Link href="/eliminar-datos" className="hover:text-white transition-colors duration-300">
+                Eliminar datos
               </Link>
               <a href="/feed.xml" className="hover:text-white transition-colors duration-300">
                 RSS

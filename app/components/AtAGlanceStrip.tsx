@@ -53,7 +53,7 @@ export default function AtAGlanceStrip({
               <Link
                 key={c.href}
                 href={c.href}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-fg transition-colors duration-300 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-fg transition-all duration-300 hover:-translate-y-0.5 hover:bg-bg-elevated"
                 /*
                  * Contorno y no relleno, y por qué: son **siete** de golpe.
                  *

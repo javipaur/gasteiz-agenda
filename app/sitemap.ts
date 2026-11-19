@@ -94,6 +94,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.2,
     },
+    {
+      url: `${BASE_URL}/eliminar-datos`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
   ];
 
   const categoryRoutes: MetadataRoute.Sitemap = [
