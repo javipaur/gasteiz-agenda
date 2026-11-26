@@ -7,9 +7,9 @@ import {
   PALETA_PROMO,
   TAMANO_PROMO,
   fechaCortaPromo,
-  urlImagenPromo,
   ventanaDelDia,
 } from "@/lib/promo";
+import { resolverImagenPromo } from "@/lib/promo-espejos";
 import { paraInstagramJpeg } from "@/lib/promo-image";
 import { CabeceraPromo, MarcaPromo } from "@/lib/promo-marca";
 
@@ -43,11 +43,12 @@ export async function GET(request: Request, { params }: Ctx) {
   // poder romperse de forma visible, no servir un rectángulo que no dice nada.
   if (!evento) return new Response("no encontrado", { status: 404 });
 
-  // `urlImagenPromo` y no `radioImagenPromo`: el renderizador descarga con el `fetch` de
-  // Node y La Genterula devuelve 403 a cualquier User-Agent con "node", así que la URL
-  // cruda dejaba un rectángulo del color del fondo en la tarjeta. La función lo manda
-  // por `/api/img`. El motivo entero está en `lib/promo.ts`, no aquí.
-  const imagen = urlImagenPromo(evento.image);
+  // El resolutor decidió ya por dónde se descarga la foto: La Genterula va por
+  // `/api/img` porque su WAF rechaza al User-Agent de Node, y las fotos municipales
+  // caídas se cambian por la copia de GasteizHoy. Sin la segunda parte, el 26 de
+  // noviembre de 2026 diez diapositivas esperaron 12 s cada una y Graph rechazó el
+  // carrusel. Los dos motivos están escritos en `lib/promo-espejos.ts`.
+  const imagen = await resolverImagenPromo(evento.image);
 
   /*
    * **El puesto en el carrusel se calcula con el mismo selector que lo ordenó.**

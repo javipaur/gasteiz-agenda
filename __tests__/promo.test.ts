@@ -133,6 +133,21 @@ describe("la imagen que la tarjeta le da a satori", () => {
 
     expect(usos).toEqual([]);
   });
+
+  it("las dos tarjetas pasan la foto por el resolutor de espejos", () => {
+    // El 26 de noviembre de 2026 las nueve fotos municipales agotaron el timeout y
+    // Satori pintó un rectángulo: el carrusel fue rechazado por Graph. Llamar a
+    // `urlImagenPromo` directo es volver al fallo, y el tipo de retorno no avisa.
+    const rutas = [
+      "app/api/promo/[fecha]/evento/[slug]/route.tsx",
+      "app/api/promo/[fecha]/portada/route.tsx",
+    ];
+    for (const ruta of rutas) {
+      const codigo = readFileSync(join(process.cwd(), ruta), "utf8");
+      expect(codigo).toContain("resolverImagenPromo(");
+      expect(codigo).not.toContain("urlImagenPromo(");
+    }
+  });
 });
 
 describe("el pie de foto", () => {

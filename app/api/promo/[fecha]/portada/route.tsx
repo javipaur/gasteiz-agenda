@@ -5,10 +5,10 @@ import {
   MAX_DIAPOSITIVAS,
   PALETA_PROMO,
   TAMANO_PROMO,
-  urlImagenPromo,
   ventanaCortaPromo,
   ventanaDelDia,
 } from "@/lib/promo";
+import { resolverImagenPromo } from "@/lib/promo-espejos";
 import { paraInstagramJpeg } from "@/lib/promo-image";
 import { CabeceraPromo, MarcaPromo } from "@/lib/promo-marca";
 
@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: Ctx) {
   const lista = recomendados(eventos, { desde, hasta, limite: MAX_DIAPOSITIVAS });
   const principal = lista[0];
 
-  const imagen = urlImagenPromo(principal?.image);
+  const imagen = await resolverImagenPromo(principal?.image);
 
   // Todo lo que se interpola se calcula aquí y se pinta como una sola cadena: un
   // ternario que pueda devolver número o cadena rompe Satori con un 502 sin cuerpo.

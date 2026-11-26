@@ -1575,3 +1575,22 @@ que nadie había escrito.
   los 51 eventos, así que fallaba por un recuento de 0 lejos de la causa. No se
   extendió `loadFixtureWithFutureDates` porque cada ficha reparte día, mes y año
   en tres `<span>` y el helper solo entiende el literal `"Fecha: …"`.
+
+## Regla: todo vídeo con HyperFrames es a coste cero (2026-11-26)
+
+Decisión de la persona que publica, escrita aquí para que no haya sustos:
+**cualquier vídeo que se haga con HyperFrames en este proyecto tiene que usar
+solo planes gratuitos**. No se contrata nada, no se gastan créditos de pago y no
+se activa ninguna función de pago «para probar» sin preguntar antes. Si la
+manera de hacer el vídeo pasa por un plan de pago, se para y se pregunta; no se
+decide por su cuenta. Vale también para renderizados, voces, música y cualquier
+servicio auxiliar que HyperFrames llame.
+
+## Reintento del Ayuntamiento (2026-11-26)
+
+Se volvió a probar el host en vivo, con `curl --max-time 25`: la imagen
+`gi_93095.jpg` y `CalendarioServlet` devuelven `000`, cero bytes, a los ~21 s.
+Sigue caído, así que el carrusel del 26 se prepara con las copias de GasteizHoy
+y la tarjeta sin imagen donde no hay copia. El reintento no cambia la decisión;
+si el host vuelve, el resolutor sigue prefiriendo el espejo por el tiempo de
+render que implica esperar al municipal.
