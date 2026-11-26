@@ -4,7 +4,9 @@ import Link from "next/link";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Sobre Gasteiz Click",
+  // El layout ya añade «| Gasteiz Click»: repetir la marca aquí produce
+  // «Sobre Gasteiz Click | Gasteiz Click» en la pestaña y en el SERP.
+  title: "Sobre la agenda",
   description:
     "Qué es Gasteiz Click, qué puedes encontrar, fuentes de información y aviso de independencia respecto de entidades gubernamentales.",
   alternates: { canonical: "/sobre" },

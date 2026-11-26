@@ -228,6 +228,11 @@ describe("ninguna vista escribe el id de la fuente a mano", () => {
       })
       // Datos recuperados/archivados contrastados: su `source` es procedencia, no id de scraper.
       .filter((file) => relative(ROOT, file).replace(/\\/g, "/") !== "lib/archived-events.ts")
+      // Navidad es difusión editorial: sus eventos se escriben a mano desde fuentes
+      // oficiales verificadas y no salen de los 28 scrapers. `source: "navidad-2026"`
+      // es la procedencia del paquete, no un id del registro; las fuentes reales de
+      // cada plan están en `fuentes[]`, con URL y fecha de consulta.
+      .filter((file) => relative(ROOT, file).replace(/\\/g, "/") !== "lib/navidad-vitoria.ts")
       .filter((file) => !/(__tests__|e2e)[\\/]/.test(file))
       .map((file) => ({
         file: relative(ROOT, file).replace(/\\/g, "/"),

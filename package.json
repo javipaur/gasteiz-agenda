@@ -18,7 +18,8 @@
     "promo:casting": "tsx scripts/casting.ts",
     "promo:presentacion": "tsx scripts/enviar-presentacion.ts",
     "doctor": "tsx scripts/doctor.ts",
-    "push": "node scripts/send-push.mjs"
+    "push": "node scripts/send-push.mjs",
+    "reel:navidad": "tsx scripts/reel-navidad.ts"
   },
   "dependencies": {
     "@axiomhq/js": "^1.8.0",
@@ -35,7 +36,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
-    "sharp": "^0.35.5",
+    "sharp": "0.34.5",
     "tsx": "^4.23.15",
     "web-push": "^3.6.7"
   },
@@ -53,7 +54,8 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
-    "ffmpeg-static": "^5.3.0",
+    "ffmpeg-static": "5.3.0",
+    "ffprobe-static": "3.1.0",
     "jest": "^30.5.1",
     "jest-environment-jsdom": "^30.5.2",
     "tailwindcss": "^4",

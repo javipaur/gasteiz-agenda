@@ -71,6 +71,19 @@ export function middleware(request: NextRequest) {
     "unknown";
 
   /*
+   * La limpieza va aquí y no al final de la función: las rutas públicas vuelven
+   * antes de la comprobación de clave, así que si solo se limpiara en el camino
+   * protegido, una IP que solo pidiera a `/api/v1/*` dejaría su entrada en el
+   * `Map` para siempre. Ahora que la rama pública **sí cuenta**, tiene que poder
+   * soltar también.
+   */
+  const ahora = Date.now();
+  if (ahora - lastCleanup > CLEANUP_INTERVAL) {
+    cleanupRateLimit();
+    lastCleanup = ahora;
+  }
+
+  /*
    * **El limitador va antes de la exención de clave**, y es lo que hace que
    * abrir las rutas de la agenda no sea abrirlo de par en par.
    *
@@ -105,6 +118,15 @@ export function middleware(request: NextRequest) {
     // `Cache-Control`**, y un intermediario podía guardarlas o no según le
     // pareciera. La caché de la agenda es la misma para todas: cinco minutos.
     const respuesta = NextResponse.next();
+    // `isRateLimited()` solo lee: sin esta llamada el contador nunca se
+    // incrementaba y el 429 de arriba era inalcanzable. Las cabeceras se ponen
+    // en la respuesta permitida por la misma razón por la que se ponen en la
+    // protegida: el cliente debe saber cuánto le queda antes de agotarlo.
+    for (const [k, v] of Object.entries(
+      getRateLimitHeaders(clientIp, LIMITE_AGENDA_POR_MINUTO),
+    )) {
+      respuesta.headers.set(k, v);
+    }
     setCacheHeaders(respuesta, pathname);
     return respuesta;
   }
@@ -186,10 +208,6 @@ export function middleware(request: NextRequest) {
   }
 
   const now = Date.now();
-  if (now - lastCleanup > CLEANUP_INTERVAL) {
-    cleanupRateLimit();
-    lastCleanup = now;
-  }
 
   if (isRateLimited(clientIp)) {
     const entry = rateLimitMap.get(clientIp)!;

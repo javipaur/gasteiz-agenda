@@ -13,8 +13,15 @@ import type { Evento } from "@/lib/eventos";
 export default function HeroSection({
   eventos,
   ahora,
+  navidad = [],
 }: {
   eventos: Evento[];
+  /**
+   * Los planes de Navidad ya filtrados por día en el servidor. Este componente no
+   * decide qué día es ni abre la ventana: solo pinta lo que le llega, igual que
+   * hace con `ahora`.
+   */
+  navidad?: Evento[];
   /**
    * El instante contra el que se cuenta la semana, en ms.
    *
@@ -157,6 +164,47 @@ export default function HeroSection({
                   </span>
                 </Link>
               ))}
+            </div>
+          </InViewWrapper>
+        )}
+
+        {navidad.length > 0 && (
+          <InViewWrapper delay={0.15}>
+            {/*
+              Navidad no entra en el registro de 28 fuentes, así que no tiene
+              `/evento/[slug]`: cada línea abre directamente la fuente oficial que se
+              verificó. Y la hora que no se publicó se dice «por confirmar» en vez
+              de quedarse en blanco, que parece un olvido.
+            */}
+            <div className="mt-10 rounded-2xl border border-border bg-surface p-5">
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-fg-subtle">
+                Navidad 2026
+              </p>
+              <ul className="mt-3 space-y-2">
+                {navidad.map((evento) => {
+                  const { day, month } = formatDate(evento.date);
+                  const time = shortTime(evento.time);
+                  return (
+                    <li key={evento.id} className="py-1">
+                      <a
+                        href={evento.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-baseline justify-between gap-3 text-sm text-fg hover:text-accent"
+                      >
+                        <span className="min-w-0 truncate">{evento.title}</span>
+                        <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle">
+                          {day} {month}
+                          {time ? ` · ${time}` : " · hora por confirmar"}
+                        </span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-subtle">
+                Consulta cambios en la web oficial
+              </p>
             </div>
           </InViewWrapper>
         )}

@@ -621,7 +621,7 @@ describe("la cobertura del documento", () => {
     expect(fantasma).toEqual([]);
   });
 
-  it("la política entera son 49 rutas: 32 públicas y 17 protegidas", () => {
+  it("la política entera son 58 rutas: 41 públicas y 17 protegidas", () => {
     // El número que resume la fase 2. Si sube o baja, alguien ha añadido o
     // quitado una ruta y tiene que decidir dónde encaja.
     //
@@ -672,11 +672,29 @@ describe("la cobertura del documento", () => {
     // su bundle, así que sin esta ruta o se inventa sus propios sitios —y la web y la app
     // dicen dos cosas distintas de la misma ciudad— o no tiene sección de dónde comer.
     // De 32 a 33 públicas.
+    //
+    // 54 = 50 + las cuatro de `/api/promo/moradillos-2027/`: `post`, `historia`,
+    // `paquete` y `cartel`. Son difusión editorial, no un contrato con un
+    // integrador, y por eso no están en el YAML —su consumidor es el correo y
+    // quien publica a mano—. Sí son públicas por el espacio de nombres
+    // `/api/promo`, el mismo motivo por el que lo son la presentación y la
+    // historia del carrusel: n8n y un `<img>` no pueden traer `API_KEY`. De 33 a
+    // 37 públicas. La frontera editorial no cambia: ninguna de las cuatro
+    // publica en Instagram, solo prepara las piezas.
+    //
+    // 58 = 54 + las cuatro de `/api/promo/navidad-vitoria/`: `paquete`, `portada`,
+    // `diapositiva/[numero]` y `reel`. Son difusión editorial por los mismos dos
+    // motivos que Moradillos: n8n y Meta descargan las piezas sin `x-api-key`, y el
+    // carousel y el reel los prepara una persona antes de publicarlos a mano. No
+    // están en el YAML —su consumidor es un post, no un integrador— y por eso la
+    // política sigue teniendo 17 protegidas: las cuatro nuevas son públicas. De
+    // 37 a 41 públicas. La ruta del reel sirve un MP4 ya montado; esto no publica
+    // nada en Instagram ni guarda ningún token.
     expect({
       total: RUTAS_EN_DISCO.length,
       publicas: RUTAS_EN_DISCO.filter(isPublicApiRoute).length,
       protegidas: PROTEGIDAS_EN_DISCO.length,
-    }).toEqual({ total: 50, publicas: 33, protegidas: ProtectedCount });
+    }).toEqual({ total: 58, publicas: 41, protegidas: ProtectedCount });
   });
 });
 

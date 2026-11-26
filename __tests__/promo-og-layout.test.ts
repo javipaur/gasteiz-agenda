@@ -37,6 +37,12 @@ const RUTAS_IMAGEN = [
   // La historia entró después y comparte las dos reglas: su lugar y su número son
   // interpolaciones calculadas antes, y el `cid` de la imagen del evento tampoco.
   "app/api/promo/[fecha]/historia/route.tsx",
+  // Las dos piezas de Moradillos 2027 son difusión editorial, no el carrusel de la
+  // agenda, pero Satori no distingue unas de otras: las mismas dos reglas se aplican.
+  "app/api/promo/moradillos-2027/post/route.tsx",
+  "app/api/promo/moradillos-2027/historia/route.tsx",
+  "app/api/promo/navidad-vitoria/portada/route.tsx",
+  "app/api/promo/navidad-vitoria/diapositiva/[numero]/route.tsx",
 ];
 
 /** Un `<div>` con estos `display` es válido con cualquier número de hijos. */

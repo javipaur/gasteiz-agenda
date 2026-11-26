@@ -238,12 +238,17 @@ describe("el predicado está cableado en todos los sitios que pintan imágenes",
       "app/components/Header.tsx",
       "app/components/HeroSearch.tsx",
       "app/components/KidsPageClient.tsx",
+      // La ficha de Moradillos y su bloque de portada pintan imágenes locales
+      // fijas de la sala de prensa. No tienen host que mirar, pero siguen
+      // pasando por `propsImagen` para que el `quality` tenga un solo dueño.
+      "app/components/Moradillos2027Strip.tsx",
       "app/components/MovieCard.tsx",
       "app/components/NextDaysSection.tsx",
       "app/components/SectionsHub.tsx",
       "app/components/SportPageClient.tsx",
       "app/components/TopEventsSection.tsx",
       "app/evento/[slug]/page.tsx",
+      "app/moradillos-2027/page.tsx",
       "lib/shared.tsx",
     ];
 

@@ -12,6 +12,7 @@ import FiestasBlancaSection from "./components/FiestasBlancaSection";
 import PartidosSection from "./components/PartidosSection";
 import HomeEventsClient from "./components/HomeEventsClient";
 import InstallBanner from "./components/InstallBanner";
+import Moradillos2027Strip from "./components/Moradillos2027Strip";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos, type Evento } from "@/lib/eventos";
 import { getProximosPartidos } from "@/lib/partidos";
@@ -24,6 +25,8 @@ import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
 import { JsonLd, itemListJsonLd } from "@/lib/seo";
 import { CATEGORY_COLORS } from "@/lib/categories";
+import { mostrarEnPortada } from "@/lib/moradillos-2027";
+import { navidadDelDia } from "@/lib/navidad-vitoria";
 
 export const revalidate = 300;
 
@@ -112,7 +115,12 @@ async function HeroWithData() {
   // antes leía el reloj dentro del memo y podía devolver la cuenta cacheada
   // indefinidamente. Mismo tratamiento que `app/culture/page.tsx`.
   // eslint-disable-next-line react-hooks/purity
-  return <HeroSection eventos={eventos} ahora={Date.now()} />;
+  const ahora = Date.now();
+  // La ventana de Navidad se decide aquí, en el servidor y en Europe/Madrid. Si el
+  // cliente la calculara por su cuenta tendríamos dos relojes y dos husos para la
+  // misma lista, que es justo lo que evita el prop `ahora`.
+  const navidad = navidadDelDia(new Date(ahora));
+  return <HeroSection eventos={eventos} ahora={ahora} navidad={navidad} />;
 }
 
 /**
@@ -259,6 +267,13 @@ async function FiestasWithData() {
   return <FiestasBlancaSection fiestas={fiestas} ahora={Date.now()} />;
 }
 
+function MoradillosWithData() {
+  // La fecha se pasa como dato y no se lee dentro del componente que pinta,
+  // igual que en `HeroWithData` y en `FiestasWithData`. El bloque desaparece
+  // solo pasado julio de 2027: no depende de que alguien recuerde quitarlo.
+  return mostrarEnPortada(new Date()) ? <Moradillos2027Strip /> : null;
+}
+
 export default async function HomeEventsPage() {
   return (
     <>
@@ -359,6 +374,8 @@ export default async function HomeEventsPage() {
       <Suspense fallback={<FiestasSkeleton />}>
         <FiestasWithData />
       </Suspense>
+
+      <MoradillosWithData />
 
       <Suspense fallback={<EventsSkeleton />}>
         <EventsWithData />

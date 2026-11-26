@@ -35,7 +35,6 @@ function fuente(relativo: string): string {
 const PAGINAS_QUE_SON_UNA_LISTA = [
   "app/components/CulturePageClient.tsx",
   "app/components/KidsPageClient.tsx",
-  "app/components/GastronomiaPageClient.tsx",
   "app/components/TurismoPageClient.tsx",
   "app/components/SportPageClient.tsx",
   "app/components/BusPageClient.tsx",
@@ -73,6 +72,17 @@ describe("la jerarquía de encabezados", () => {
     );
 
     expect(conSalto).toEqual([]);
+  });
+
+  it("/gastronomía anida sus zonas bajo un h2 en vez de saltar del h1", () => {
+    // No es una lista plana: abre con un campeonato que es su propio `h2` y
+    // debajo cuelgan las zonas como `h3`. Exigir que no haya `h3` obligaría a
+    // aplanar una sección real que sí existe.
+    const gastronomia = fuente("app/components/GastronomiaPageClient.tsx");
+
+    expect(gastronomia.match(/<h2/g)?.length).toBeGreaterThan(0);
+    expect(gastronomia.match(/<h3/g)?.length).toBeGreaterThan(0);
+    expect(gastronomia.indexOf("<h2")).toBeLessThan(gastronomia.indexOf("<h3"));
   });
 
   it("las listas de tarjetas piden el nivel 2 explícitamente", () => {

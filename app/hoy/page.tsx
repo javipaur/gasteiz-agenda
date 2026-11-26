@@ -4,6 +4,7 @@ import { recomendados } from "@/lib/recomendados";
 import { EventCard, InViewWrapper } from "@/lib/shared";
 import { localDateStr } from "@/lib/utils";
 import { MAX_DIAPOSITIVAS } from "@/lib/promo";
+import { navidadEnVentana, recomendadosNavidad } from "@/lib/navidad-vitoria";
 
 /**
  * El título y la descripción dependen de la ventana, así que van en `generateMetadata`.
@@ -99,12 +100,27 @@ export default async function HoyPage({ searchParams }: Props) {
   const { desde, hasta } = ventanaDe(q);
 
   const eventos = await getAgendaEventos();
+  // La ventana pedida se interpreta a mediodía para que el huso no mueva el día,
+  // igual que en la cabecera. Dentro de la campaña se añaden los planes verificados
+  // de Navidad: no están en las 28 fuentes, pero son los que anuncia el post.
+  const ahora = new Date(`${desde}T12:00:00`);
+  const navidad = navidadEnVentana(ahora)
+    ? recomendadosNavidad(ahora).filter(
+        (e) => e.date <= hasta && (e.dateEnd ?? e.date) >= desde
+      )
+    : [];
   // `MAX_DIAPOSITIVAS` y no el `LIMITE_POR_DEFECTO` del selector, que son 8. **Esta
   // página es la que lleva el post de Instagram**, así que no puede enseñar menos de
   // lo que el post enseña: con 9 planes en el finde, la novena diapositiva prometía una
   // tarjeta que no estaba. Medido el 9 de octubre de 2026 sobre el finde del 10 y 11: el
   // paquete daba 9 imágenes y esta página pintaba 8.
-  const lista = recomendados(eventos, { desde, hasta, limite: MAX_DIAPOSITIVAS });
+  // El orden lo sigue decidiendo `recomendados()`, también para la Navidad.
+  const lista = recomendados([...eventos, ...navidad], {
+    desde,
+    hasta,
+    hoy: ahora,
+    limite: MAX_DIAPOSITIVAS,
+  });
 
   return (
     // Un `<div>` y no un `<main>`: `app/layout.tsx` ya envuelve la página en
@@ -131,7 +147,13 @@ export default async function HoyPage({ searchParams }: Props) {
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {lista.map((evento) => (
             <InViewWrapper key={evento.id}>
-              <EventCard evento={evento} nivel={2} />
+              {/* Los de Navidad no tienen ficha en el registro de 28 fuentes: un
+                  `/evento/[slug]` suyo daría 404. Su tarjeta abre la fuente oficial. */}
+              <EventCard
+                evento={evento}
+                nivel={2}
+                href={evento.source === "navidad-2026" ? evento.link : undefined}
+              />
             </InViewWrapper>
           ))}
         </div>

@@ -126,10 +126,49 @@ describe("/hoy", () => {
     // parámetro no está, la ventana es hoy. Con el fixture puesto en `FECHA` el estado
     // vacío es la respuesta correcta, y por eso este caso fija que la página **no**
     // inventa una lista para tapar el hueco.
-    const html = await texto(await renderizar({}));
+    //
+    // El reloj se fija fuera de la ventana de Navidad a propósito: si este test
+    // corriera el 26 de noviembre de 2026, la página sí tendría planes verificados
+    // hoy y el estado vacío sería mentira. Lo que se prueba es que un día sin nada
+    // no se rellena, no que la Navidad no exista.
+    jest.useFakeTimers().setSystemTime(new Date("2026-10-20T12:00:00+02:00"));
+    try {
+      const html = await texto(await renderizar({}));
 
-    expect(html).toMatch(/No hay nada recomendado/);
-    expect(titulos(html)).toHaveLength(0);
+      expect(html).toMatch(/No hay nada recomendado/);
+      expect(titulos(html)).toHaveLength(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("la Navidad del día entra en /hoy con enlace a la fuente, no a un detalle inexistente", async () => {
+    // Los eventos de Navidad no están en el registro de 28 fuentes, así que
+    // `/evento/[slug]` no puede resolverlos: un `EventCard` con su slug por defecto
+    // llevaría a un 404. La tarjeta tiene que abrir la fuente oficial verificada.
+    jest.useFakeTimers().setSystemTime(new Date("2026-11-26T12:00:00+01:00"));
+    try {
+      const html = await texto(await renderizar({ fecha: "2026-11-26" }));
+
+      expect(html).toContain("Encendido de las luces de Navidad");
+      expect(html).toContain(
+        'href="https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?idioma=es&amp;uid=u_73d895a5_1a205d099cd_232f"'
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("fuera de la ventana de Navidad no se cuela ningún plan de Navidad", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-10-20T12:00:00+02:00"));
+    try {
+      const html = await texto(await renderizar({ fecha: "2026-10-20" }));
+
+      expect(html).not.toContain("Navidad");
+      expect(html).toMatch(/No hay nada recomendado/);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("acepta `?desde=` y `?hasta=` para la ventana larga de semana o finde", async () => {

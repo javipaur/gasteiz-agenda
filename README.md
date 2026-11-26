@@ -116,6 +116,46 @@ Las imágenes del finde las genera el sitio en `/api/promo/<fecha>/portada` y
 `/api/promo/presentacion`; y la vertical de historia, en `/api/promo/<fecha>/historia`.
 Todas son públicas a propósito, porque el correo las baja sin credencial.
 
+### Moradillos 2027: difusión editorial, no una fuente de la agenda
+
+Es un festival de Préjano (La Rioja) de otra comunidad con una fecha concreta, así que
+**no entra en el registro de 28 fuentes** ni en el contador de planes de Vitoria. Tiene
+su ficha en `/moradillos-2027` y un bloque discreto en la portada que se retira solo
+pasado julio de 2027. La ficha dice explícitamente que es difusión editorial.
+
+El paquete para n8n está en `/api/promo/moradillos-2027/paquete`: dice las tres piezas
+y dónde están, y no publica nada. El post (1080×1350) y la historia (1080×1920) se
+piden en `/post` y `/historia`; `?format=jpeg` los convierte para Instagram, y `/cartel`
+sirve el original de 1600×1600. Las cuatro rutas son públicas por el espacio de nombres
+`/api/promo`, igual que las del carrusel: un `<img>` y un flujo de n8n no pueden traer
+`API_KEY`. La frontera sigue siendo la misma que arriba: **una persona decide si se
+publica y n8n publica**; aquí solo se prepara el material.
+
+Las imágenes son por ahora las de la sala de prensa del festival, guardadas en
+`public/moradillos-2027/`; sigue pendiente que el organizador confirme si habrá
+material nuevo. La historia lee el cartel
+del disco como data URI: `ImageResponse` no resuelve rutas relativas y `urlImagenPromo`
+apunta a producción, donde un fichero nuevo todavía no existe. Así funciona también en
+desarrollo y en preview, sin depender de un despliegue previo.
+
+`sharp` está fijado a **0.34.5** en `package.json`, sin `^`, porque es la misma versión
+que trae Next dentro para `next/og`. Con dos copias distintas, `paraInstagramJpeg`
+estaba parcheando rutas privadas del paquete interno de Next: eso aguanta hasta la
+siguiente actualización y entonces falla sin aviso. Alinear la versión quita el parche;
+el pin evita que un `npm update` vuelva a separarlas.
+
+Los tests de Jest sustituyen `ImageResponse` por un señuelo (su `import()` dinámico no
+corre bajo CJS), así que `e2e/moradillos.spec.ts` pide las cuatro rutas por HTTP, lee
+**el cuerpo** y comprueba firma y dimensiones con `sharp`. Es la misma diferencia que
+ya existe entre `npm run doctor` y un test de cabeceras: una imagen cortada a mitad del
+stream también sale 200.
+
+Dos cambios que acompañan a este trabajo y no son Moradillos: `app/sobre/page.tsx`
+declaraba un `title` que no correspondía al `h1` que renderiza, y `e2e/descubre.spec.ts`
+hacía clic antes de la hidratación y esperaba con un sueño fijo. Estaban rompiendo la
+suite base; se arreglan aquí para poder verificar el resto, no porque formen parte de
+la difusión.
+
 ### Comprobar que todo está en su sitio
 
 ```bash

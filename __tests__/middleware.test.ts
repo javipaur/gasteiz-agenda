@@ -192,6 +192,60 @@ describe("con API_KEY en el entorno", () => {
 });
 
 /**
+ * El limitador de las rutas públicas.
+ *
+ * `isRateLimited()` solo lee el `Map`: si la rama pública no llama a
+ * `getRateLimitHeaders()` al dejar pasar, el contador nunca se incrementa y el
+ * `429` es inalcanzable. Un test que mirara solo las cabeceras de la respuesta
+ * no lo vería, porque la rama pública sí ponía `Cache-Control`; lo que se mide
+ * aquí es la **61.ª petición**.
+ */
+describe("el limitador de las rutas públicas", () => {
+  const IP = "203.0.113.17";
+  const cabecerasIp = { "x-forwarded-for": IP };
+
+  it("cuenta las peticiones que deja pasar y rechaza la 61", () => {
+    conApiKey(CLAVE, (middleware) => {
+      for (let i = 0; i < 60; i++) {
+        const res = middleware(pedir("/api/v1/events", cabecerasIp));
+        expect({ i, status: res.status }).toEqual({ i, status: 200 });
+      }
+
+      const res = middleware(pedir("/api/v1/events", cabecerasIp));
+      expect(res.status).toBe(429);
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("60");
+      expect(res.headers.get("X-RateLimit-Remaining")).toBe("0");
+    });
+  });
+
+  it("no confunde dos IP distintas", () => {
+    conApiKey(CLAVE, (middleware) => {
+      for (let i = 0; i < 60; i++) {
+        middleware(pedir("/api/v1/events", cabecerasIp));
+      }
+      const otra = middleware(
+        pedir("/api/v1/events", { "x-forwarded-for": "203.0.113.18" })
+      );
+      expect(otra.status).toBe(200);
+    });
+  });
+
+  it("el límite propio de /api/metric sigue siendo 60, no 30", () => {
+    // El middleware y `lib/api-rate-limit.ts` llevan cuentas distintas con el
+    // mismo techo. Si alguien «suma» los dos al contar peticiones, el contador
+    // de visitas se quedaría a la mitad sin ningún error: por eso se comprueba
+    // que las sesenta primeras pasan por el middleware.
+    conApiKey(CLAVE, (middleware) => {
+      for (let i = 0; i < 60; i++) {
+        const res = middleware(conMetodo("POST", "/api/metric", cabecerasIp));
+        expect({ i, status: res.status }).toEqual({ i, status: 200 });
+      }
+      expect(middleware(conMetodo("POST", "/api/metric", cabecerasIp)).status).toBe(429);
+    });
+  });
+});
+
+/**
  * El preflight de CORS no puede llevar la clave, y el middleware se la pedía.
  *
  * Un `OPTIONS` de preflight lleva `Origin`, `Access-Control-Request-Method` y

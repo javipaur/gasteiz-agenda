@@ -17,7 +17,17 @@ test.describe("Turismo & Gastronomía", () => {
   test("página de gastronomía carga con rutas de pintxos", async ({ page }) => {
     await page.goto("/gastronomia");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await page.getByRole("tab", { name: /rutas de pintxos/i }).click();
+    const tab = page.getByRole("tab", { name: /rutas de pintxos/i });
+    // `goto` espera al `load`, no a la hidratación: en desarrollo el primer clic
+    // puede caer sobre el HTML del servidor, antes de que React enganche el
+    // manejador, y no hacer nada. Reintentar hasta que `aria-selected` cambia
+    // mide la interacción, no la velocidad de compilación del dev server.
+    await expect
+      .poll(async () => {
+        await tab.click();
+        return await tab.getAttribute("aria-selected");
+      }, { timeout: 15_000 })
+      .toBe("true");
     await expect(page.getByRole("heading", { name: /casco viejo/i }).first()).toBeVisible();
   });
 });
