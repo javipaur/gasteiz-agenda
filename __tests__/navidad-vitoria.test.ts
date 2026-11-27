@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { PLANOS_REEL_NAVIDAD } from "@/lib/navidad-reel";
+
 import {
   AVISO_CAMBIOS,
   NAVIDAD_2026,
@@ -133,14 +135,46 @@ describe("datos verificados de Navidad 2026 en Vitoria-Gasteiz", () => {
     }
   });
 
-  it("el guion del reel existe y manda añadir la musica fuera del MP4", () => {
+  it("el reel cuenta todos los eventos, con fecha y hora de inicio", () => {
+    expect(PLANOS_REEL_NAVIDAD).toHaveLength(NAVIDAD_2026.eventos.length);
+    expect(new Set(PLANOS_REEL_NAVIDAD.map((plano) => plano.id)).size).toBe(
+      NAVIDAD_2026.eventos.length,
+    );
+    for (const [i, plano] of PLANOS_REEL_NAVIDAD.entries()) {
+      expect(plano.numero).toBe(i + 1);
+      expect(plano.fechaInicio).toBeTruthy();
+      expect(plano.horaInicio).toBeTruthy();
+      expect(plano.fuente).toBe(NAVIDAD_2026.eventos[i]!.fuentes[0]!.titulo);
+      expect(plano.titulo).toBe(NAVIDAD_2026.eventos[i]!.titulo);
+    }
+    const carmen = PLANOS_REEL_NAVIDAD.find((plano) => plano.id === "belenes-carmen");
+    expect(carmen?.fechaInicio).toBe(POR_CONFIRMAR);
+    expect(carmen?.horaInicio).toBe(POR_CONFIRMAR);
+    expect(carmen?.pendiente).toBe(true);
+  });
+
+  it("el generador del reel no puede leer solo las ocho diapositivas del carrusel", () => {
+    const codigo = readFileSync(
+      join(process.cwd(), "scripts", "reel-navidad.ts"),
+      "utf8",
+    );
+    expect(codigo).toContain("PLANOS_REEL_NAVIDAD");
+    expect(codigo).not.toContain("NAVIDAD_2026.diapositivas");
+    expect(codigo).toContain("duracion < 24 || duracion > 30");
+  });
+
+  it("el guion del reel existe, dice 13 planos y manda añadir la musica fuera del MP4", () => {
     const guion = readFileSync(
       join(process.cwd(), "docs", "navidad-2026-guion-reel.md"),
       "utf8",
     );
     expect(guion).toContain("0:00");
     expect(guion).toContain("120 bpm");
+    expect(guion).toContain("26 s");
+    expect(guion).toContain("13 planos");
     expect(guion).toMatch(/m[uú]sica/i);
     expect(guion).toContain("npm run reel:navidad");
+    expect(guion).toContain("n8n");
+    expect(guion).not.toMatch(/sube|subir|a mano/i);
   });
 });

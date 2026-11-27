@@ -4,13 +4,17 @@
  * la persona añade la música desde Instagram, que es quien tiene la licencia.
  *
  * Los cortes van a 120 bpm —una imagen cada medio segundo— y el vídeo dura
- * 16 s: ocho planes, cuatro latidos por plan. Cada plano es un SVG dibujado
- * con `sharp`, así que no hay material de terceros dentro del MP4.
+ * 26 s: un plano por evento de la agenda de Navidad, cuatro latidos por plan.
+ * No se usan las ocho diapositivas del carrusel: aquí tienen que salir todos
+ * los planes, con su fecha y su hora de inicio, aunque no estén en el carrusel.
+ * Cada plano es un SVG dibujado con `sharp`, así que no hay material de
+ * terceros dentro del MP4.
  *
  *    npm run reel:navidad
  *
- * La salida se comprueba con `ffprobe-static`: 1080×1920, 15–20 s. Un vídeo
- * más corto deja el gancho a medias; uno más largo se corta en Instagram.
+ * La salida se comprueba con `ffprobe-static`: 1080×1920, 24–30 s. Un vídeo
+ * más corto no deja leer la fecha y la hora de cada plan; uno más largo se
+ * corta en Instagram.
  */
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -75,6 +79,7 @@ async function main(): Promise<void> {
   const { AVISO_CAMBIOS, NAVIDAD_2026, POR_CONFIRMAR, diaCortoNavidad } = await import(
     "../lib/navidad-vitoria"
   );
+  const { PLANOS_REEL_NAVIDAD } = await import("../lib/navidad-reel");
   const { PALETA_PROMO } = await import("../lib/promo");
 
   const marca = (await readFile(join(process.cwd(), "public", "brand-mark.svg"))).toString("base64");
@@ -83,25 +88,17 @@ async function main(): Promise<void> {
 
   try {
     let indice = 1;
-    for (const diapositiva of NAVIDAD_2026.diapositivas) {
-      const evento = NAVIDAD_2026.eventos.find((e) => e.id === diapositiva.evento);
-      if (!evento) throw new Error(`La diapositiva ${diapositiva.numero} no tiene evento`);
-
-      const pendiente = [evento.fecha, evento.hora, evento.lugar, evento.precio].some(
-        (dato) => dato === POR_CONFIRMAR,
-      );
-      const hora = evento.horaFin ? `${evento.hora}–${evento.horaFin}` : evento.hora;
-      const cuando =
-        evento.fecha === POR_CONFIRMAR ? POR_CONFIRMAR : diaCortoNavidad(evento.fecha);
-      const detalles = [hora, evento.lugar, evento.precio].filter(Boolean).join(" · ");
+    for (const plano of PLANOS_REEL_NAVIDAD) {
+      const fechaHasta = plano.fechaFin ? `Hasta el ${plano.fechaFin}` : "";
+      const horaHasta = plano.horaFin ? `Hasta las ${plano.horaFin}` : "";
 
       for (let latido = 0; latido < LATIDOS_POR_PLAN; latido += 1) {
         const fondo = latido % 2 === 0 ? PALETA_PROMO.papel : PALETA_PROMO.marco;
         const barra = 36 + latido * (936 / LATIDOS_POR_PLAN);
-        const insignia = pendiente
-          ? `<rect x="72" y="1490" width="410" height="74" rx="37" fill="none" stroke="${PALETA_PROMO.rojo}" stroke-width="3"/>` +
+        const insignia = plano.pendiente
+          ? `<rect x="72" y="1270" width="410" height="70" rx="35" fill="none" stroke="${PALETA_PROMO.rojo}" stroke-width="3"/>` +
             textoEnLineas(POR_CONFIRMAR, {
-              x: 100, y: 1540, tamano: 36, maximo: 40, interlineado: 44, color: PALETA_PROMO.rojo, peso: 700,
+              x: 100, y: 1318, tamano: 34, maximo: 40, interlineado: 42, color: PALETA_PROMO.rojo, peso: 700,
             })
           : "";
 
@@ -110,18 +107,24 @@ async function main(): Promise<void> {
   <image href="data:image/svg+xml;base64,${marca}" x="72" y="72" width="128" height="128"/>
   ${textoEnLineas("Gasteiz", { x: 226, y: 160, tamano: 54, maximo: 20, interlineado: 60, color: PALETA_PROMO.tinta, peso: 900 })}
   <text x="452" y="160" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="900" fill="${PALETA_PROMO.rojo}">Click</text>
-  <text x="${ANCHO - 72}" y="160" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="${PALETA_PROMO.tintaSuave}">${diapositiva.numero}/${NAVIDAD_2026.diapositivas.length}</text>
+  <text x="${ANCHO - 72}" y="160" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="${PALETA_PROMO.tintaSuave}">${plano.numero}/${PLANOS_REEL_NAVIDAD.length}</text>
   <rect x="72" y="290" width="160" height="6" fill="${PALETA_PROMO.rojo}"/>
-  ${textoEnLineas(cuando, { x: 72, y: 390, tamano: 36, maximo: 40, interlineado: 48, color: PALETA_PROMO.rojo, peso: 700 })}
-  ${textoEnLineas(diapositiva.titulo, { x: 72, y: 560, tamano: 96, maximo: 18, interlineado: 108, color: PALETA_PROMO.tinta, peso: 700 })}
-  ${textoEnLineas(diapositiva.texto, { x: 72, y: 1010, tamano: 46, maximo: 26, interlineado: 60, color: PALETA_PROMO.tintaSuave })}
-  ${textoEnLineas(detalles, { x: 72, y: 1240, tamano: 36, maximo: 30, interlineado: 52, color: PALETA_PROMO.tinta })}
+  ${textoEnLineas("FECHA DE INICIO", { x: 72, y: 350, tamano: 28, maximo: 40, interlineado: 34, color: PALETA_PROMO.tintaSuave, peso: 700 })}
+  ${textoEnLineas(plano.fechaInicio, { x: 72, y: 410, tamano: 46, maximo: 32, interlineado: 54, color: PALETA_PROMO.rojo, peso: 700 })}
+  ${fechaHasta ? textoEnLineas(fechaHasta, { x: 72, y: 466, tamano: 30, maximo: 40, interlineado: 38, color: PALETA_PROMO.tintaSuave }) : ""}
+  ${textoEnLineas(plano.titulo, { x: 72, y: 570, tamano: 76, maximo: 20, interlineado: 88, color: PALETA_PROMO.tinta, peso: 700 })}
+  ${textoEnLineas("EMPIEZA A LAS", { x: 72, y: 900, tamano: 28, maximo: 40, interlineado: 34, color: PALETA_PROMO.tintaSuave, peso: 700 })}
+  ${textoEnLineas(plano.horaInicio, { x: 72, y: 960, tamano: 54, maximo: 30, interlineado: 60, color: PALETA_PROMO.tinta, peso: 700 })}
+  ${horaHasta ? textoEnLineas(horaHasta, { x: 72, y: 1010, tamano: 30, maximo: 40, interlineado: 38, color: PALETA_PROMO.tintaSuave }) : ""}
+  ${textoEnLineas(plano.lugar, { x: 72, y: 1090, tamano: 36, maximo: 30, interlineado: 46, color: PALETA_PROMO.tinta })}
+  ${textoEnLineas(plano.precio, { x: 72, y: 1190, tamano: 32, maximo: 30, interlineado: 42, color: PALETA_PROMO.tintaSuave })}
   ${insignia}
+  <rect x="72" y="1390" width="936" height="2" fill="${PALETA_PROMO.filete}"/>
+  ${textoEnLineas(plano.fuente, { x: 72, y: 1460, tamano: 28, maximo: 42, interlineado: 38, color: PALETA_PROMO.tintaSuave })}
+  ${textoEnLineas(AVISO_CAMBIOS, { x: 72, y: 1540, tamano: 28, maximo: 42, interlineado: 38, color: PALETA_PROMO.tintaSuave })}
+  ${textoEnLineas(`Consultado el ${diaCortoNavidad(NAVIDAD_2026.consultado)}`, { x: 72, y: 1600, tamano: 26, maximo: 42, interlineado: 34, color: PALETA_PROMO.tintaTenue })}
   <rect x="72" y="1680" width="936" height="2" fill="${PALETA_PROMO.filete}"/>
   <rect x="72" y="1680" width="${barra}" height="6" fill="${PALETA_PROMO.rojo}"/>
-  ${textoEnLineas(diapositiva.fuente, { x: 72, y: 1750, tamano: 30, maximo: 40, interlineado: 42, color: PALETA_PROMO.tintaSuave })}
-  ${textoEnLineas(AVISO_CAMBIOS, { x: 72, y: 1820, tamano: 30, maximo: 40, interlineado: 42, color: PALETA_PROMO.tintaSuave })}
-  ${textoEnLineas(`Consultado el ${diaCortoNavidad(NAVIDAD_2026.consultado)}`, { x: 72, y: 1880, tamano: 26, maximo: 40, interlineado: 34, color: PALETA_PROMO.tintaTenue })}
 </svg>`;
 
         await sharp(Buffer.from(svg))
@@ -166,8 +169,8 @@ async function main(): Promise<void> {
     if (!video || video.width !== ANCHO || video.height !== ALTO) {
       throw new Error(`El vídeo no es ${ANCHO}×${ALTO}: ${JSON.stringify(sonda.streams)}`);
     }
-    if (duracion < 15 || duracion > 20) {
-      throw new Error(`El vídeo dura ${duracion}s y tiene que estar entre 15 y 20`);
+    if (duracion < 24 || duracion > 30) {
+      throw new Error(`El vídeo dura ${duracion}s y tiene que estar entre 24 y 30`);
     }
     if (sonda.streams.some((s) => s.codec_type === "audio")) {
       throw new Error("El MP4 lleva audio: la música la añade la persona en Instagram");
