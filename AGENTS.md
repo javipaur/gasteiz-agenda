@@ -1625,3 +1625,16 @@ tenía `errorWorkflow=null`, y un cron que no dispara no deja rastro.
   falta para dejar de revisar a diario si se publicó.
 - La clave API de n8n está cifrada con DPAPI en
   `C:\Users\javie\.config\opencode\n8n-api-key.enc`, fuera del repositorio.
+
+### Verificado el 27 de noviembre de 2026
+
+- El watchdog se probó con el cron a las 10:26: ejecución `95` en verde, los
+  tres primeros nodos corrieron y el nodo de correo **no** se ejecutó. Con post
+  del día, no hay aviso. Se devolvió a `15 9 * * *` y se reactivó.
+- El cableado de errores se probó con un workflow temporal que fallaba a propósito
+  y apuntaba a `18q3UKSJ0viyB2yz`: ejecución `99` en rojo y ejecución `100` del
+  aviso. Los tres nodos del aviso corrieron; el correo paró en `EAUTH 535`.
+  El workflow temporal se borró después de desactivarlo.
+- **La API no deja borrar un workflow publicado**: antes hay que llamar a
+  `/deactivate`. Y un `PUT` desactiva, así que toda prueba termina con `/activate`
+  y una lectura que confirme el estado.
