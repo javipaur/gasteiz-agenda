@@ -1594,3 +1594,34 @@ Sigue caído, así que el carrusel del 26 se prepara con las copias de GasteizHo
 y la tarjeta sin imagen donde no hay copia. El reintento no cambia la decisión;
 si el host vuelve, el resolutor sigue prefiriendo el espejo por el tiempo de
 render que implica esperar al municipal.
+
+## Hecho: el aviso de fallo ya está cableado (2026-11-27)
+
+El carrusel publica en n8n y **nunca** por MCP ni a mano. Lo que faltaba no era
+la publicación, sino enterarse cuando no salía: el flujo `hWsqESXb6FY9F0Bl`
+tenía `errorWorkflow=null`, y un cron que no dispara no deja rastro.
+
+- `18q3UKSJ0viyB2yz` («Avisos — cuando algo falla») está activo y puesto en
+  `settings.errorWorkflow` del carrusel, con PUT UTF-8. El campo se llama
+  **`errorWorkflow` y va dentro de `settings`**: un `errorWorkflowId` suelto en
+  el cuerpo lo rechaza la API, y el workflow de destino tiene que estar activo
+  o responde «The selected error workflow has no published version».
+- **Cuidado con la API:** un `PUT /workflows/{id}` desactiva el flujo. Hay que
+  volver a llamar a `/activate` y comprobar `active=true` después de cada PUT.
+- Un aviso de error cubre el flujo que termina en rojo, pero **no** cubre el cron
+  que no llega a arrancar. Por eso existe además
+  `Rb3rHn5NktlL6kqV` («Vigilancia — avisar si no se publica el carrusel»):
+  consulta a las 09:15 de Madrid los 25 posts recientes de Graph con la misma
+  credencial que el carrusel, compara la fecha en `Europe/Madrid` y solo emite
+  correo si **no** hay ningún post del día. Si hay post, el nodo de código no
+  devuelve items y el correo ni se ejecuta. El aviso no publica ni reintenta:
+  la decisión sigue siendo de una persona.
+- **Kill switch:** desactivar `18q3UKSJ0viyB2yz` y `Rb3rHn5NktlL6kqV` desde la
+  API de n8n (o quitar `settings.errorWorkflow` del carrusel). Ninguno de los
+  dos toca la publicación: el cron de las 08:45 sigue igual.
+- La credencial SMTP `fMFdNAtNnDG2lLCR` está rota: el 17 de noviembre envió y el
+  27 devuelve `EAUTH 535-5.7.8`. **Los avisos están cableados pero no llegan**
+  hasta renovar la contraseña de aplicación de Gmail. Es la única pieza que
+  falta para dejar de revisar a diario si se publicó.
+- La clave API de n8n está cifrada con DPAPI en
+  `C:\Users\javie\.config\opencode\n8n-api-key.enc`, fuera del repositorio.
