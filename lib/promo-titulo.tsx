@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { normalizarTituloPromo } from "./promo";
 
 /**
  * El título de una diapositiva del carrusel, sin recortes.
@@ -13,6 +14,16 @@ import type { ReactElement } from "react";
  * para que el texto quepa en los 952 px del marco sin llegar a ser pequeño: un título
  * de 133 caracteres a 32 px ocupa tres líneas, y el de «Cobardes» se queda en 52.
  */
+/**
+ * El título que se pinta en la diapositiva y el que anuncia el paquete tienen que
+ * salir de la misma normalización. El 27 de noviembre de 2026 el paquete decía
+ * «Cobardes» y la imagen, leyendo el título crudo del agregado, decía «Cobardes (27
+ * de noviembre, Vitoria-Gasteiz)». La fecha no es parte del nombre del plan.
+ */
+export function tituloDeDiapositiva(titulo: string): string {
+  return normalizarTituloPromo(titulo).replace(/\s+/g, " ").trim();
+}
+
 export function tamanoTituloPromo(titulo: string): number {
   const longitud = titulo.trim().length;
   if (longitud <= 60) return 52;

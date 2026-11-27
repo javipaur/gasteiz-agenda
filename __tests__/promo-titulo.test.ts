@@ -1,4 +1,4 @@
-import { TituloPromo, tamanoTituloPromo } from "@/lib/promo-titulo";
+import { TituloPromo, tamanoTituloPromo, tituloDeDiapositiva } from "@/lib/promo-titulo";
 
 /**
  * El carrusel del 27 de noviembre de 2026 enseñó este título partido en la mitad de la
@@ -35,5 +35,14 @@ describe("título de una diapositiva del carrusel", () => {
       fontSize: 52,
       lineHeight: 1.1,
     });
+  });
+
+  it("quita del título pintado la fecha que el registro pegó al nombre", () => {
+    // El paquete ya decía «Cobardes», pero la diapositiva leía el título crudo del
+    // agregado y pintaba «Cobardes (27 de noviembre, Vitoria-Gasteiz)». Dos sitios
+    // contando distinto el mismo plan es un dato que no cuadra, aunque se lea bien.
+    expect(tituloDeDiapositiva("Cobardes (27 de noviembre, Vitoria-Gasteiz)")).toBe(
+      "Cobardes"
+    );
   });
 });
