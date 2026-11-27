@@ -48,7 +48,7 @@ export async function GET(request: Request, { params }: Ctx) {
   // caídas se cambian por la copia de GasteizHoy. Sin la segunda parte, el 26 de
   // noviembre de 2026 diez diapositivas esperaron 12 s cada una y Graph rechazó el
   // carrusel. Los dos motivos están escritos en `lib/promo-espejos.ts`.
-  const imagen = await resolverImagenPromo(evento.image);
+  const imagen = await resolverImagenPromo(evento.image, evento.date);
 
   /*
    * **El puesto en el carrusel se calcula con el mismo selector que lo ordenó.**

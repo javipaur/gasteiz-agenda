@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: Ctx) {
   const lista = recomendados(eventos, { desde, hasta, limite: MAX_DIAPOSITIVAS });
   const principal = lista[0];
 
-  const imagen = await resolverImagenPromo(principal?.image);
+  const imagen = await resolverImagenPromo(principal?.image, principal?.date);
 
   // Todo lo que se interpola se calcula aquí y se pinta como una sola cadena: un
   // ternario que pueda devolver número o cadena rompe Satori con un 502 sin cuerpo.
