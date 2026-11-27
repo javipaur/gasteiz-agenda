@@ -12,6 +12,7 @@ import {
 import { resolverImagenPromo } from "@/lib/promo-espejos";
 import { paraInstagramJpeg } from "@/lib/promo-image";
 import { CabeceraPromo, MarcaPromo } from "@/lib/promo-marca";
+import { TituloPromo } from "@/lib/promo-titulo";
 
 export const runtime = "nodejs";
 export const revalidate = 1800;
@@ -65,7 +66,7 @@ export async function GET(request: Request, { params }: Ctx) {
   const cuando = hora
     ? `${fechaCortaPromo(evento.date)} · ${hora}`
     : fechaCortaPromo(evento.date);
-  const titulo = recortar(evento.title, 96);
+  const titulo = evento.title.replace(/\s+/g, " ").trim();
   const sitio = recortar(evento.location ?? "", 64);
   const precio = recortar(evento.price ?? "", 40);
 
@@ -149,18 +150,7 @@ export async function GET(request: Request, { params }: Ctx) {
           {cuando}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            fontSize: 52,
-            fontWeight: 800,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-            marginTop: 14,
-          }}
-        >
-          {titulo}
-        </div>
+        <TituloPromo titulo={titulo} />
 
         <div
           style={{
