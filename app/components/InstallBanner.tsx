@@ -77,9 +77,9 @@ export default function InstallBanner() {
           </div>
 
           <div className="flex-1">
-            <h3 className="font-display text-lg md:text-xl font-semibold text-white mb-1">
+            <h2 className="font-display text-lg md:text-xl font-semibold text-white mb-1">
               Instala Gasteiz Click
-            </h3>
+            </h2>
             <p className="text-sm text-white/60 leading-relaxed">
               Acceso directo desde tu pantalla de inicio. Sin abrir el navegador, sin buscar la web.
             </p>

@@ -2,6 +2,17 @@ import { test, expect } from "@playwright/test";
 import { quitarAvisoCookies } from "./helpers";
 
 test.describe("Homepage", () => {
+  /**
+   * Solo este fichero, y no la config global: la portada en desarrollo pide
+   * imágenes a fuentes externas y una de ellas puede tardar más de 30 s en
+   * responder, así que `page.goto("/", { waitUntil: "load" })` agotaba el tiempo
+   * antes de empezar la aserción. Medido el 24 de noviembre de 2026: cuatro
+   * casos fallaron por `page.goto` y los cuatro pasaron al reintentar con el
+   * servidor caliente. El resto de la suite conserva el techo de 30 s.
+   */
+  test.describe.configure({ timeout: 60_000 });
+  test.use({ navigationTimeout: 60_000 });
+
   test("loads the homepage and shows the hero + navigation", async ({ page }) => {
     await page.goto("/");
 
@@ -18,9 +29,12 @@ test.describe("Homepage", () => {
     await expect(eventLinks).toBeVisible({ timeout: 30_000 });
   });
 
-  test("navigates to the conciertos page", async ({ page }) => {
+  test("navigates to the conciertos page from Explorar", async ({ page }) => {
     await page.goto("/");
-    await page.locator('a[href="/conciertos"]').first().click();
+    // Los accesos rápidos que había al lado de «Explorar» se quitaron: ya
+    // estaban dentro del panel. La navegación se comprueba por su puerta real.
+    await page.getByRole("button", { name: /Explorar/i }).click();
+    await page.locator('#explorar-panel a[href="/conciertos"]').click();
 
     await page.waitForURL(/\/conciertos/i);
     await expect(page).toHaveURL(/\/conciertos/i);
@@ -56,64 +70,62 @@ test.describe("Homepage", () => {
     expect(bg).not.toBe("rgba(0, 0, 0, 0)");
   });
 
-  test("shows the fever section headers across the home", async ({ page }) => {
+  test("shows the three central blocks in order: day, picks, week", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // "Hoy en Gasteiz" ya no está: el teaser que repetía los mismos 35 eventos
-    // que la rejilla de "Próximos 7 días" se quitó, porque una home que enseña
-    // dos veces lo mismo no explica nada. Las dos cabeceras que quedan son las
-    // que se comprueban.
-    await expect(page.getByRole("heading", { name: /Próximos 7 días/i })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("heading", { name: /¿Qué te apetece\?/i })).toBeVisible();
+    // La home ya no se ordena por fuentes sino por preguntas: cuándo, qué
+    // merece la pena y todo lo que queda. «¿Qué te apetece?» desapareció con
+    // `MoodFilter`, que era otra rejilla con los mismos datos.
+    await expect(page.getByRole("heading", { name: /Hoy en Vitoria/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: /Qué recomendamos/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Próximos 7 días/i })).toBeVisible();
+
+    const hoy = await page.getByRole("heading", { name: /Hoy en Vitoria/i }).boundingBox();
+    const recomendados = await page.getByRole("heading", { name: /Qué recomendamos/i }).boundingBox();
+    const semana = await page.getByRole("heading", { name: /Próximos 7 días/i }).boundingBox();
+    expect(hoy!.y).toBeLessThan(recomendados!.y);
+    expect(recomendados!.y).toBeLessThan(semana!.y);
   });
 
-  test("shows the at-a-glance strip with live date and counters", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await expect(page.locator(".e2e-ataglance")).toBeVisible({ timeout: 30_000 });
-  });
-
-  test("hero shows the search and a featured plan card on desktop", async ({ page }) => {
+  test("hero shows the search and live counters, not a featured card", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator('input[aria-label="Buscar eventos"]').first()).toBeVisible({ timeout: 30_000 });
-    // El destacado ya no es una etiqueta con nombre: es la primera tarjeta del
-    // hero, que enlaza a su evento. Se comprueba el enlace y no un
-    // `aria-label` que hace meses que no existe.
-    const destacado = page.locator('section a[href^="/evento/"]').first();
-    await expect(destacado).toBeVisible();
+    await expect(page.getByText(/planes hoy/i).first()).toBeVisible();
+    await expect(page.getByText(/esta semana/i).first()).toBeVisible();
   });
 
-  test("hub links cover the main categories", async ({ page }) => {
+  test("Explorar covers the main categories", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    for (const href of ["/conciertos", "/movies", "/kids", "/culture", "/deporte", "/turismo", "/gastronomia"]) {
-      await expect(page.locator(`[data-testid="e2e-hub"] a[href="${href}"]`).first()).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: /Explorar/i }).click();
+    // El panel no ofrece un `/culture` genérico: abre directamente en las vistas
+    // que existen —`/culture/agenda`, `/culture/teatro`, `/culture/exposiciones`—.
+    // Escribir `/culture` aquí era un test que seguía la home anterior, no un fallo.
+    for (const href of [
+      "/conciertos",
+      "/movies",
+      "/kids",
+      "/culture/agenda",
+      "/deporte",
+      "/turismo",
+      "/gastronomia",
+    ]) {
+      await expect(page.locator(`#explorar-panel a[href="${href}"]`).first()).toBeVisible({ timeout: 30_000 });
     }
   });
 
-  test("shows carousels, top10 and events headers", async ({ page }) => {
+  test("shows carousels, recommendations and future events headers", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // El riel ya no es el "Top 10": son los recomendados de hoy. El rótulo
-    // cambió a propósito, con el motivo escrito en `TopEventsSection.tsx`, y
-    // decir "Top 10" sobre una lista de un solo día es mentira en la primera
-    // pantalla, que es donde más se lee.
-    await expect(page.getByRole("heading", { name: /Lo que recomendamos para hoy/i })).toBeVisible({ timeout: 30_000 });
+    // El riel ya no es el "Top 10": son los recomendados de hoy, con el mismo
+    // criterio que `/hoy` y el post. El rótulo cambió a propósito.
+    await expect(page.getByRole("heading", { name: /Qué recomendamos/i })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("heading", { name: /Más adelante/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Conciertos/i }).first()).toBeVisible();
-  });
-
-  test("shows Gasteiz Click en cifras with the sports metric", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await expect(page.getByRole("heading", { name: /Gasteiz Click en cifras/i })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/3 clubes · 2 deportes · 1 ciudad/i)).toBeVisible();
   });
 
   test("newsletter panel is visible with subscribe form", async ({ page }) => {

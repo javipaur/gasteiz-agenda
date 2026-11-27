@@ -48,8 +48,8 @@ export default function TopEventsSection({
                 arreglo que nadie revisa. */}
             <SectionHead
               tag="Recomendados"
-              title="Lo que recomendamos para hoy"
-              subtitle="Los planes que más fuentes confirman"
+              title="Qué recomendamos"
+              subtitle="Los planes que más fuentes confirman para hoy"
               color="var(--amber)"
             />
             <div className="flex items-center gap-2 shrink-0">

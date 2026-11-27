@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { useFavorites } from "@/app/context/FavoritesContext";
 import { formatDate } from "@/lib/utils";
-import { isBlancaSeason } from "@/lib/blanca";
 import { CATEGORY_COLORS } from "@/lib/categories";
 import { useInstallPrompt, promptInstall, useInstalado } from "@/lib/useInstallPrompt";
 import { esIOS } from "@/lib/install";
@@ -42,16 +41,19 @@ type SearchHit = {
   location?: string;
 };
 
-const navItems = [
-  { name: "Inicio", href: "/" },
-  { name: "Recomendados", href: "/hoy" },
-  { name: "La Blanca", href: "/fiestas-blanca", accent: true },
-  { name: "Conciertos", href: "/conciertos" },
-  { name: "Cultura", href: "/culture" },
-  { name: "Deporte", href: "/deporte" },
-  { name: "Cartelera", href: "/movies" },
-  { name: "Niños", href: "/kids" },
-];
+/**
+ * La cabecera tiene **una sola acción principal**: «Qué hacer hoy».
+ *
+ * Antes traía cinco accesos rápidos al lado de «Explorar» —Inicio, Hoy,
+ * Conciertos, Cultura y Cartelera— que ya estaban dentro del panel, más un
+ * buscador que se abría con un botón y un cartel de atajo. Siete controles para
+ * la misma pregunta, y en móvil todo eso se convertía en un menú con quince
+ * enlados donde el que importaba —hoy— no se distinguía de «Farmacias».
+ *
+ * Lo que queda en escritorio: marca, «Explorar», «Hoy» como acción con color,
+ * buscador y favoritos. El atajo sigue teniendo un solo dueño (`lib/search-shortcut.ts`)
+ * y el drawer de móvil conserva su foco, su `Escape` y su `aria-current`.
+ */
 
 /** Id estable del panel, para que el botón pueda apuntarlo con `aria-controls`. */
 const EXPLORAR_PANEL_ID = "explorar-panel";
@@ -116,22 +118,6 @@ function colorDeItem(item: ExplorarItem): string {
   return "var(--accent)";
 }
 
-function getVisibleNavItems() {
-  return isBlancaSeason()
-    ? navItems
-    : navItems.filter((item) => !item.accent);
-}
-
-/**
- * Accesos rápidos de la barra superior. El menú «Explorar» ya reúne toda la
- * navegación; aquí solo quedan los destinos principales para no duplicar ni
- * saturar la cabecera en escritorio.
- */
-function getQuickNavItems() {
-  const hrefs = new Set(["/", "/hoy", "/conciertos", "/culture", "/movies"]);
-  return getVisibleNavItems().filter((item) => item.accent || hrefs.has(item.href));
-}
-
 function DownloadIcon({ className }: { className?: string }) {
   return (
     <svg aria-hidden="true" focusable="false" className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -187,7 +173,6 @@ export default function Header() {
     setEsDispositivoIOS(esIOS(navigator.userAgent, navigator.maxTouchPoints));
   }, []);
   const { count } = useFavorites();
-  const quickNavItems = getQuickNavItems();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFormRef = useRef<HTMLFormElement>(null);
   const explorarRef = useRef<HTMLDivElement>(null);
@@ -526,23 +511,21 @@ export default function Header() {
                 )}
               </div>
 
-              {quickNavItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`px-3 py-1.5 text-sm whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                      isActive
-                        ? "bg-fg text-bg font-medium"
-                        : "text-fg-muted hover:text-fg hover:bg-bg-muted"
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                );
-              })}
+              {/* Una sola acción principal. El resto de destinos vive en
+                  «Explorar», que ya está a la izquierda; repetirlos aquí no los
+                  hace más accesibles, solo hace más estrecho el buscador. */}
+              <Link
+                href="/hoy"
+                aria-current={pathname === "/hoy" ? "page" : undefined}
+                className={`ml-1 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap rounded-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                  pathname === "/hoy"
+                    ? "bg-accent text-white"
+                    : "bg-accent-soft text-accent hover:bg-accent hover:text-white"
+                }`}
+              >
+                <Sparkles size={14} strokeWidth={2} aria-hidden="true" />
+                Hoy
+              </Link>
             </nav>
 
             <div className="flex items-center gap-1">
@@ -573,7 +556,7 @@ export default function Header() {
                         setResults([]);
                       }
                     }}
-                    className="w-full pl-9 pr-12 py-1.5 text-sm bg-bg-muted border border-border text-fg placeholder:text-fg-subtle focus:outline-none focus:border-accent transition-all duration-300"
+                    className="w-full pl-9 pr-12 py-1.5 text-sm bg-bg-muted border border-border text-fg placeholder:text-fg-subtle focus:border-accent transition-all duration-300"
                     style={{ borderRadius: '999px' }}
                     aria-label="Buscar eventos"
                   />
@@ -754,7 +737,7 @@ export default function Header() {
                 placeholder="Buscar eventos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 text-base bg-white/10 rounded-2xl border border-white/20 text-white placeholder:text-white/70 focus:outline-none focus:border-white/50 transition-all duration-300"
+                className="w-full pl-12 pr-4 py-3.5 text-base bg-white/10 rounded-2xl border border-white/20 text-white placeholder:text-white/70 focus:border-white/50 transition-all duration-300"
                 aria-label="Buscar eventos"
               />
             </div>

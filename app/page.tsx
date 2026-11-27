@@ -1,13 +1,10 @@
 import { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import HeroSection from "./components/HeroSection";
-import AtAGlanceStrip from "./components/AtAGlanceStrip";
-import SectionsHub from "./components/SectionsHub";
+import TodayDecision from "./components/TodayDecision";
 import NextDaysSection from "./components/NextDaysSection";
-import MoodFilter from "./components/MoodFilter";
 import TopEventsSection from "./components/TopEventsSection";
 import CategoryCarousel from "./components/CategoryCarousel";
-import SocialProof from "./components/SocialProof";
 import FiestasBlancaSection from "./components/FiestasBlancaSection";
 import PartidosSection from "./components/PartidosSection";
 import HomeEventsClient from "./components/HomeEventsClient";
@@ -15,11 +12,7 @@ import InstallBanner from "./components/InstallBanner";
 import Moradillos2027Strip from "./components/Moradillos2027Strip";
 import Newsletter from "./components/NewsLetter";
 import { getProximosEventos, type Evento } from "@/lib/eventos";
-import { getProximosPartidos } from "@/lib/partidos";
-import { getPeliculas } from "@/lib/cines";
-import { getKidsEventos } from "@/lib/kids";
-import { getDeporteEventos } from "@/lib/deporte";
-import { recomendados } from "@/lib/recomendados";
+import { seleccionHome } from "@/lib/home-seleccion";
 import { localDateStr, partirEnSemana } from "@/lib/utils";
 import { scrapeFiestasBlanca } from "@/lib/sources/fiestas-blanca";
 import { isBlancaSeason } from "@/lib/blanca";
@@ -35,6 +28,19 @@ export const metadata: Metadata = {
 };
 
 const getCachedEventos = cache(getProximosEventos);
+
+/**
+ * La decisión de los dos bloques centrales se calcula **una sola vez por
+ * petición**. `HoyWithData` y `TopWithData` son hermanos bajo `Suspense`, así que
+ * cada uno leía el agregado y el reloj por su cuenta: con dos `Date.now()` y dos
+ * listas de hoy, el mismo evento podía aparecer arriba y abajo sin que nada
+ * fallara. `cache` de React los ata a la misma respuesta; `seleccionHome` decide
+ * cuáles seis van arriba y excluye ese conjunto del riel.
+ */
+const getSeleccionHome = cache(async () => {
+  const eventos = await getCachedEventos();
+  return seleccionHome(eventos, Date.now());
+});
 
 const CONCIERTOS_CATS = new Set(["Conciertos", "Música"]);
 const CULTURA_CATS = new Set(["Teatro", "Exposiciones", "Cultura", "Visitas", "Danza", "Conferencias", "Talleres"]);
@@ -124,77 +130,34 @@ async function HeroWithData() {
 }
 
 /**
- * **Aquí estaba `TodayWithData`, y ya no.**
- *
- * `TodayStrip` pintaba **los mismos 35 eventos** que la rejilla de `Próximos 7 días`,
- * medido en producción el 9 de octubre de 2026: cuarenta y dos eventos únicos en la
- * página y treinta y cinco repetidos en tres secciones. Era un carrusel horizontal de
- * 222 px delante de una rejilla de 3.845 px, y además el peor de los dos porque
- * `scrollbar-none` ocultaba la barra, de modo que lo único que decía que se podía
- * arrastrar era la tarjeta que quedaba cortada.
- *
- * El lugar lo ocupa ahora `TopWithData`, el riel de recomendados: mismo criterio que
- * el post de Instagram y el único que ordena por algo, así que el día queda en una
- * jerarquía —primero lo que recomendamos, después todo lo que hay— en vez de tres
- * veces lo mismo.
+ * `Hoy en Vitoria` responde a «¿qué hago hoy?» con una lista corta y el total
+ * visible. No es un horario: medido el 24 de noviembre de 2026 solo 20 de los 69
+ * eventos del día traen hora, así que una barra de franjas horarias mentiría
+ * sobre los otros 49. Cuáles seis se eligen —y cómo se excluyen del riel de
+ * abajo— lo decide `lib/home-seleccion.ts`; el motivo del formato está en
+ * `TodayDecision.tsx`.
  */
+async function TodayWithData() {
+  const { planesDeHoy, totalDeHoy } = await getSeleccionHome();
+  return <TodayDecision planesDeHoy={planesDeHoy} totalDeHoy={totalDeHoy} />;
+}
+
 async function NextDaysWithData() {
   const eventos = await getCachedEventos();
   // eslint-disable-next-line react-hooks/purity
   return <NextDaysSection eventos={eventos} ahora={Date.now()} />;
 }
 
-async function MoodWithData() {
-  // El segundo elemento de `getPeliculas` son los cines que fallaron y el
-  // componente no lo necesita: `MoodFilter` solo pinta peliculas, asi que se
-  // descarta aqui en vez de propagar el detalle por toda la pagina.
-  const [eventos, { peliculas }, infantil, deporte] = await Promise.all([
-    getCachedEventos(),
-    getPeliculas(),
-    getKidsEventos(),
-    getDeporteEventos(),
-  ]);
-  return (
-    <MoodFilter
-      eventos={eventos}
-      peliculas={peliculas}
-      infantil={infantil}
-      deporte={deporte}
-    />
-  );
-}
-
 async function TopWithData() {
-  const eventos = await getCachedEventos();
-  // `recomendados()` y no `getPopularEvents()`: el riel ya no es "los diez más
-  // populares de toda la agenda" sino "lo que recomendamos **hoy**", y es el mismo
-  // criterio que usan `/hoy` y el paquete de redes, para que la home y el post de
-  // Instagram no digan dos cosas distintas sobre el mismo día. El rótulo de
-  // `TopEventsSection` se cambió con esto, porque "Top 10" sobre una lista de un día
-  // era mentira.
-  //
-  // `getPopularEvents` **no** desaparece: `HeroSection` lo sigue usando para el
-  // destacado, y allí el criterio sin ventana es el correcto, porque una única tarjeta
-  // protagonista quiere "lo más popular de todo" y no "lo de hoy".
-  //
-  // El `hoy` va como argumento y no con el `new Date()` por defecto del selector, por el
-  // mismo motivo que en `HeroSection` y `NextDaysSection`: la home tiene `revalidate =
-  // 300`, así que un reloj leído aquí dentro se congela contra el día con el que se
-  // calculó el primer render —abrir la web antes de medianoche y dejarla abierta te
-  // deja el día nuevo puntuando con el de ayer.
-  // eslint-disable-next-line react-hooks/purity
-  const ahora = Date.now();
-  const top = recomendados(eventos, {
-    desde: localDateStr(new Date(ahora)),
-    hasta: localDateStr(new Date(ahora)),
-    limite: 10,
-    hoy: new Date(ahora),
-  });
-  return (
-    <TopEventsSection
-      events={top.map((e, i) => ({ ...e, ranking: i + 1 }))}
-    />
-  );
+  const { recomendadosDeHoy } = await getSeleccionHome();
+  // El riel no es "los diez más populares de toda la agenda" sino "lo que
+  // recomendamos **hoy** sin lo que ya se ha enseñado en el bloque de arriba". Es
+  // el mismo criterio que usan `/hoy` y el paquete de redes, para que la home y
+  // el post de Instagram no digan dos cosas distintas sobre el mismo día. El
+  // rótulo de `TopEventsSection` se cambió con esto, porque "Top 10" sobre una
+  // lista de un día era mentira. La ventana y la exclusión viven en
+  // `lib/home-seleccion.ts`, que es el único sitio que decide las dos listas.
+  return <TopEventsSection events={recomendadosDeHoy} />;
 }
 
 function filterByCats(eventos: Evento[], cats: Set<string>) {
@@ -281,12 +244,11 @@ export default async function HomeEventsPage() {
         <AgendaJsonLd />
       </Suspense>
 
+      {/* 1. La puerta: identidad, buscador y dos contadores. Sin tarjetas, para
+          que el primer dato de la página sea una pregunta y no un plan que luego
+          se repetiría tres veces más abajo. */}
       <Suspense fallback={<HeroSkeleton />}>
         <HeroWithData />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <AtAGlanceWithData />
       </Suspense>
 
       {/* Va aquí y no al final de la lista de eventos porque, al final, en un
@@ -295,19 +257,55 @@ export default async function HomeEventsPage() {
           instalable sin hacer scroll. Arriba de la agenda es donde se ve. */}
       <InstallBanner />
 
+      {/* 2. Cuándo: los planes de hoy en una lista corta. Sin pestañas de hora:
+          solo 20 de 69 eventos la traen. */}
       <Suspense
         fallback={
-          <section className="px-5 sm:px-6 py-8 md:py-12 max-w-7xl mx-auto">
-            <div className="h-6 w-40 bg-surface rounded-lg animate-pulse mb-6" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="h-[132px] bg-surface rounded-2xl animate-pulse" />
+          <section className="px-5 sm:px-6 py-10 md:py-14 bg-bg-muted">
+            <div className="max-w-7xl mx-auto">
+              <div className="h-6 w-56 bg-surface rounded-lg animate-pulse mb-6" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-[84px] bg-surface rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </section>
+        }
+      >
+        <TodayWithData />
+      </Suspense>
+
+      {/* 3. Qué merece la pena: el mismo criterio que `/hoy` y el post. Antes
+          esta lista se llamaba «Top 10» y salía antes del día; ahora el día va
+          primero porque es la pregunta con la que llega quien no sabe qué hacer. */}
+      <Suspense fallback={<CarouselSkeleton />}>
+        <TopWithData />
+      </Suspense>
+
+      {/* 4. Todo lo que queda en la semana, con la pestaña «Hoy» quitada: el
+          bloque 2 ya responde a hoy y no tiene sentido pedir lo mismo dos veces. */}
+      <Suspense
+        fallback={
+          <section className="px-5 sm:px-6 py-8 md:py-14 max-w-5xl mx-auto">
+            <div className="h-7 w-56 bg-surface rounded-lg animate-pulse mb-6" />
+            <div className="flex gap-2 overflow-hidden">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-16 h-9 bg-surface rounded-full animate-pulse" />
               ))}
             </div>
           </section>
         }
       >
-        <SectionsHub />
+        <NextDaysWithData />
+      </Suspense>
+
+      {/* 5. Por categoria: los carruseles y los partidos en un solo sitio.
+          `SectionsHub` era la tercera puerta a las mismas categorias y hacia su
+          propio `getPeliculas()`; con el buscador del hero y el menu de la
+          cabecera no hace falta, y quitarlo ahorra una peticion. */}
+      <Suspense fallback={<CarouselSkeleton />}>
+        <ConciertosCarousel />
       </Suspense>
 
       <Suspense
@@ -327,43 +325,6 @@ export default async function HomeEventsPage() {
       </Suspense>
 
       <Suspense fallback={<CarouselSkeleton />}>
-        <TopWithData />
-      </Suspense>
-
-      <Suspense
-        fallback={
-          <section className="px-5 sm:px-6 py-8 md:py-14 max-w-5xl mx-auto">
-            <div className="h-7 w-56 bg-surface rounded-lg animate-pulse mb-6" />
-            <div className="flex gap-2 overflow-hidden">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-16 h-9 bg-surface rounded-full animate-pulse" />
-              ))}
-            </div>
-          </section>
-        }
-      >
-        <NextDaysWithData />
-      </Suspense>
-
-      <Suspense
-        fallback={
-          <section className="px-5 sm:px-6 py-8 md:py-10 max-w-7xl mx-auto">
-            <div className="h-6 w-40 bg-surface rounded-lg animate-pulse" />
-          </section>
-        }
-      >
-        <MoodWithData />
-      </Suspense>
-
-      <Suspense fallback={<CarouselSkeleton />}>
-        <ConciertosCarousel />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <SocialProofWithData />
-      </Suspense>
-
-      <Suspense fallback={<CarouselSkeleton />}>
         <CulturaCarousel />
       </Suspense>
 
@@ -377,6 +338,8 @@ export default async function HomeEventsPage() {
 
       <MoradillosWithData />
 
+      {/* 6. Alcance y cierre: lo que queda después de la semana, sin repetirla,
+          y la newsletter. */}
       <Suspense fallback={<EventsSkeleton />}>
         <EventsWithData />
       </Suspense>
@@ -435,32 +398,4 @@ async function EventsWithData() {
       mesHref={`/agenda/${localDateStr(new Date(ahora)).slice(0, 7)}`}
     />
   );
-}
-
-async function AtAGlanceWithData() {
-  const [eventos, partidos] = await Promise.all([
-    getCachedEventos(),
-    getProximosPartidos(1),
-  ]);
-  return <AtAGlanceStrip eventos={eventos} partidos={partidos.length} />;
-}
-
-async function SocialProofWithData() {
-  const eventos = await getCachedEventos();
-  // Sin `since`. `SocialProof` ya no lleva `FreshnessBadge`: el badge mide
-  // `Date.now() - since`, así que un `since` tomado aquí sería el instante del
-  // render y la etiqueta daría "Actualizado hace 0 s" al abrir, subiendo luego
-  // mientras la pestaña siga abierta aunque los datos no cambien. El `since` de
-  // verdad es el `fetchedAt` que llega en la respuesta de la API, y eso sólo lo
-  // tienen `/farmacias` y `/bus`. Aquí la cifra honesta es la de "Diaria /
-  // actualización", que ya está en el propio componente.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const horizon = new Date(today);
-  horizon.setDate(horizon.getDate() + 7);
-  const thisWeek = eventos.filter((e) => {
-    const d = new Date(e.date);
-    return !isNaN(d.getTime()) && d >= today && d < horizon;
-  }).length;
-  return <SocialProof eventCount={eventos.length} thisWeekCount={thisWeek} />;
 }

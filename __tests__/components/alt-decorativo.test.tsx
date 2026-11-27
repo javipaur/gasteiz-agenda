@@ -92,8 +92,12 @@ describe("alt dentro del enlace del título", () => {
   });
 
   it("NextDaysSection pone alt vacío en el destacado", () => {
+    // El panel abre en **mañana**: hoy ya lo responde el bloque «Hoy en Vitoria» y
+    // dejar la pestaña de hoy aquí pintaría los mismos planes dos veces. Un evento
+    // del día de `ahora` no renderiza nada y el test pasaría sin probar el `alt`.
+    const manana = { ...EVENTO, date: "2099-03-05" };
     const { vista } = montar("@/app/components/NextDaysSection", {
-      eventos: [EVENTO],
+      eventos: [manana],
       ahora: Date.UTC(2099, 2, 4),
     });
 

@@ -1,214 +1,128 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
 import { InViewWrapper } from "@/lib/shared";
 import HeroSearch from "./HeroSearch";
-import HeroCard from "./HeroCard";
-import { getPopularEvents } from "@/lib/popularity";
+import { esEstaSemana, esHoy } from "@/lib/at-a-glance";
 import { formatDate, shortTime } from "@/lib/utils";
-import { CATEGORY_COLORS, normalizeCategory } from "@/lib/categories";
 import type { Evento } from "@/lib/eventos";
 
+/**
+ * La portada abre con una **pregunta**, no con un plan elegido por nadie.
+ *
+ * ## Por qué el hero ya no pinta tarjetas
+ *
+ * El hero tenía tres destacados y, debajo, «Próximos 7 días» y el riel de
+ * recomendados volvían a pintar los mismos eventos. Medido el 23 de octubre de
+ * 2026, doce tarjetas de la última sección eran las doce de la anterior; con el
+ * hero pasaba lo mismo en la primera pantalla. Tres sitios distintos
+ * enseñando el mismo dato no dan tres formas de mirarlo: dan una home que
+ * parece no tener nada nuevo que decir.
+ *
+ * Aquí solo quedan identidad, buscador y dos contadores. La decisión de qué
+ * hacer con el día va al bloque «Hoy en Vitoria», y la de qué merece la pena va
+ * a «Qué recomendamos». El hero es la puerta, no el contenido.
+ *
+ * ## Los contadores son agregados, no tarjetas
+ *
+ * `N planes hoy · N esta semana` dicen si la agenda está viva sin ocupar el
+ * sitio de un evento. Se calculan con las mismas funciones que `lib/at-a-glance`
+ * usa en el resto del sitio, para que el número del hero y el de la tira no
+ * puedan divergir. El instante llega como prop: un `useMemo` que leyera
+ * `Date.now()` es impuro y puede devolver su valor cacheado para siempre.
+ *
+ * ## Navidad no es un destacado
+ *
+ * Los planes de Navidad llegan ya filtrados por día desde el servidor. Este
+ * componente no decide qué día es ni abre la ventana: solo pinta lo que le
+ * llega, igual que hace con `ahora`. No entran en el registro de 28 fuentes,
+ * así que cada línea abre directamente su fuente oficial y no un detalle que
+ * no existe.
+ */
 export default function HeroSection({
   eventos,
   ahora,
   navidad = [],
 }: {
   eventos: Evento[];
-  /**
-   * Los planes de Navidad ya filtrados por día en el servidor. Este componente no
-   * decide qué día es ni abre la ventana: solo pinta lo que le llega, igual que
-   * hace con `ahora`.
-   */
+  /** Los planes de Navidad ya filtrados por día en el servidor. */
   navidad?: Evento[];
-  /**
-   * El instante contra el que se cuenta la semana, en ms.
-   *
-   * Antes se leía `new Date()` **dentro** de los dos `useMemo`, y eso es un memo
-   * impuro: puede devolver su valor cacheado indefinidamente. La home tiene
-   * `revalidate = 300`, así que la cuenta "N planes esta semana" y el destacado
-   * se congelaban contra el día con el que se calculó el primer render —abrir la
-   * web a las 23:50 y dejarla abierta te dejaba el martes entero en lunes—. Por
-   * si fuera poco, `getPopularEvents` sin tercer argumento puntúa con su propio
-   * `new Date()`, o sea que el arreglo had de llegar por los dos caminos.
-   *
-   * `app/page.tsx` (servidor) pasa `Date.now()` como prop, igual que hace
-   * `app/culture/page.tsx` con su `eslint-disable react-hooks/purity` justificado.
-   * El prop es lo que hace el memo puro: sus deps no incluyen el reloj.
-   */
+  /** El instante contra el que se cuentan el día y la semana, en ms. */
   ahora: number;
 }) {
-  const totalThisWeek = useMemo(() => {
-    const today = new Date(ahora);
-    today.setHours(0, 0, 0, 0);
-    const horizon = new Date(today);
-    horizon.setDate(horizon.getDate() + 7);
-    return eventos.filter((ev) => {
-      const d = new Date(ev.date);
-      return !isNaN(d.getTime()) && d >= today && d < horizon;
-    }).length;
+  const { hoy, semana } = useMemo(() => {
+    const instante = new Date(ahora);
+    return {
+      hoy: eventos.filter((e) => esHoy(e.date, instante)).length,
+      semana: eventos.filter((e) => esEstaSemana(e.date, instante)).length,
+    };
   }, [eventos, ahora]);
 
-  /**
-   * Cuántos sale. **Tres, no uno, y el motivo es de percepción y no de maquetación.**
-   *
-   * Una tarjeta sola con foto, fecha y una flecha a la derecha es exactamente la
-   * gramática de un hueco patrocinado: un elemento destacado en la primera pantalla
-   * parece comprado. Tres de la misma categoría y del mismo estilo se leen como una
-   * selección editorial, que es lo que es.
-   *
-   * El criterio no cambia: sigue siendo `getPopularEvents` **sin ventana**, así que
-   * puede sacar algo de dentro de la semana. Eso se mantiene a propósito — un destacado
-   * que solo puede ser de hoy esconde lo mejor de la semana — y lo que cambia es
-   * cuántos se enseñan, no cuáles.
-   */
-  const CUANTOS_DESTACADOS = 3;
-
-  const destacados = useMemo(
-    () => getPopularEvents(eventos, CUANTOS_DESTACADOS, new Date(ahora)),
-    [eventos, ahora]
-  );
-
   return (
-    <section className="relative px-5 sm:px-6 pt-28 pb-10 md:pt-36 md:pb-14 overflow-hidden">
-      <div className="aurora" aria-hidden="true" />
-      <div className="relative max-w-5xl mx-auto">
-        <InViewWrapper eager>
-          <p className="flex items-center gap-3 mb-6">
-            <span className="inline-flex items-center font-mono text-[11px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-fg text-bg">
-              {totalThisWeek > 0 ? `${totalThisWeek} planes esta semana` : "Agenda de la ciudad"}
-            </span>
-            <span aria-hidden="true" className="h-px w-10 bg-border" />
-            <span className="font-mono text-[11px] text-fg-subtle">Vitoria-Gasteiz</span>
-          </p>
-        </InViewWrapper>
-
-        <InViewWrapper eager>
-          <h1 className="font-display text-[clamp(2.5rem,7vw,4.75rem)] font-bold uppercase tracking-[-0.02em] leading-[1.02] text-fg mb-5 max-w-3xl">
+    <section className="px-5 sm:px-6 pt-28 pb-12 md:pt-36 md:pb-16">
+      <InViewWrapper>
+        <div className="max-w-5xl mx-auto">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-accent mb-6">
             La agenda de Vitoria-Gasteiz
+          </p>
+          <h1 className="font-display text-[clamp(2.75rem,8vw,6rem)] font-black uppercase tracking-[-0.04em] text-fg leading-[0.9] text-balance">
+            Qué hacer en Gasteiz
           </h1>
-
-          <p className="text-base md:text-lg text-fg-muted max-w-md leading-relaxed mb-8">
-            {totalThisWeek > 0
-              ? `Conciertos, teatro, cine, deporte y planes familiares: ${totalThisWeek} propuestas confirmadas.`
-              : "Conciertos, exposiciones, cine, deporte y planes familiares, recogidos en un solo sitio."}
+          <p className="text-base md:text-xl text-fg-muted mt-5 max-w-xl text-pretty">
+            Todo lo que pasa en la ciudad, en un solo sitio. Empieza por hoy o
+            dinos qué te apetece.
           </p>
 
-          <div className="mb-10 max-w-xl">
+          <div className="mt-10 max-w-2xl">
             <HeroSearch />
           </div>
-        </InViewWrapper>
 
-        {destacados.length > 0 && (
-          <InViewWrapper eager delay={0.1}>
-            {/* **Una lista y no un carrusel**, a propósito. Con una sola tarjeta el
-                hueco parece un patrocinio; con tres apiladas se lee como una selección.
-                Un carrusel aquí volvería al problema que estamos evitando, porque el
-                item que no se ve es el que hace sospechar. */}
-            <div className="flex flex-col gap-3">
+          <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle" aria-live="polite">
+            {hoy} planes hoy <span aria-hidden="true">·</span> {semana} esta semana
+          </p>
+
+          {navidad.length > 0 && (
+            <InViewWrapper delay={0.15}>
               {/*
-                El primero de los destacados se lleva la tarjeta grande y los otros
-                dos se quedan en la lista compacta.
-
-                La razón de que sea **uno** y no todos es que la tarjeta grande es
-                un centerpiece: poner tres seguidas serian tres centerpiece, y
-                entonces no es ninguno. La referencia hace lo mismo: una baraja, y el plan que
-                enseñas es uno.
+                Navidad no entra en el registro de 28 fuentes, así que no tiene
+                `/evento/[slug]`: cada línea abre directamente la fuente oficial que se
+                verificó. Y la hora que no se publicó se dice «por confirmar» en vez
+                de quedarse en blanco, que parece un olvido.
               */}
-              {destacados[0] ? (
-                <InViewWrapper eager>
-                  <HeroCard evento={destacados[0]} />
-                </InViewWrapper>
-              ) : null}
-              {destacados.slice(1).map((destacado) => (
-                <Link
-                  key={destacado.id}
-                  href={`/evento/${destacado.slug}`}
-                  className="group double-bezel rounded-2xl p-4 flex items-center gap-4 card-hover"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={destacado.image}
-                    alt=""
-                    className="h-20 w-20 rounded-xl object-cover shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <span
-                      className="inline-flex items-center font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{
-                        backgroundColor:
-                          CATEGORY_COLORS[normalizeCategory(destacado.category)] ||
-                          "var(--fg-subtle)",
-                        color: "#FFFFFF",
-                      }}
-                    >
-                      {normalizeCategory(destacado.category)}
-                    </span>
-                    <h3 className="font-display text-lg font-bold text-fg leading-tight mt-1.5 line-clamp-2">
-                      {destacado.title}
-                    </h3>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle mt-1 truncate">
-                      {(() => {
-                        const { day, month } = formatDate(destacado.date);
-                        const time = shortTime(destacado.time);
-                        return `${day} ${month}${time ? ` · ${time}` : ""}${destacado.location ? ` · ${destacado.location}` : ""}`;
-                      })()}
-                    </p>
-                  </div>
-                  <span
-                    aria-hidden="true"
-                    className="ml-auto text-2xl text-fg-subtle group-hover:text-accent transition-colors shrink-0"
-                  >
-                    →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </InViewWrapper>
-        )}
-
-        {navidad.length > 0 && (
-          <InViewWrapper delay={0.15}>
-            {/*
-              Navidad no entra en el registro de 28 fuentes, así que no tiene
-              `/evento/[slug]`: cada línea abre directamente la fuente oficial que se
-              verificó. Y la hora que no se publicó se dice «por confirmar» en vez
-              de quedarse en blanco, que parece un olvido.
-            */}
-            <div className="mt-10 rounded-2xl border border-border bg-surface p-5">
-              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-fg-subtle">
-                Navidad 2026
-              </p>
-              <ul className="mt-3 space-y-2">
-                {navidad.map((evento) => {
-                  const { day, month } = formatDate(evento.date);
-                  const time = shortTime(evento.time);
-                  return (
-                    <li key={evento.id} className="py-1">
-                      <a
-                        href={evento.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-baseline justify-between gap-3 text-sm text-fg hover:text-accent"
-                      >
-                        <span className="min-w-0 truncate">{evento.title}</span>
-                        <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle">
-                          {day} {month}
-                          {time ? ` · ${time}` : " · hora por confirmar"}
-                        </span>
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-subtle">
-                Consulta cambios en la web oficial
-              </p>
-            </div>
-          </InViewWrapper>
-        )}
-      </div>
+              <div className="mt-10 rounded-2xl border border-border bg-surface p-5">
+                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-fg-subtle">
+                  Navidad 2026
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {navidad.map((evento) => {
+                    const { day, month } = formatDate(evento.date);
+                    const time = shortTime(evento.time);
+                    return (
+                      <li key={evento.id} className="py-1">
+                        <a
+                          href={evento.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex items-baseline justify-between gap-3 text-sm text-fg hover:text-accent"
+                        >
+                          <span className="min-w-0 truncate">{evento.title}</span>
+                          <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-fg-subtle">
+                            {day} {month}
+                            {time ? ` · ${time}` : " · hora por confirmar"}
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-subtle">
+                  Consulta cambios en la web oficial
+                </p>
+              </div>
+            </InViewWrapper>
+          )}
+        </div>
+      </InViewWrapper>
     </section>
   );
 }

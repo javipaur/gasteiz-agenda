@@ -41,6 +41,14 @@ const PAGINAS_QUE_SON_UNA_LISTA = [
 ];
 
 /**
+ * `/gastronomia` no está en la lista de arriba **a propósito**. No es una lista
+ * y nada más: abre con un campeonato que es su propio `h2`, y debajo cuelgan las
+ * zonas como `h3` (`GastronomiaPageClient.tsx:162` y `:178`). Ese `h3` no salta
+ * ningún nivel; exigir que no exista obligaría a aplanar una sección real.
+ */
+const PAGINA_CON_SECCIONES_ANIDADAS = "app/components/GastronomiaPageClient.tsx";
+
+/**
  * Las páginas que pintan tarjetas con el `EventCard` o el `MovieCard` **compartidos**.
  *
  * Aquí el nivel no está en el fichero de la tarjeta —que se usa también en la
@@ -74,11 +82,21 @@ describe("la jerarquía de encabezados", () => {
     expect(conSalto).toEqual([]);
   });
 
+  it("el banner de instalación no salta del h1 de la portada", () => {
+    // Va entre el hero y «Hoy en Vitoria». Con un `h3` ahí, un lector de
+    // pantalla pasa del `h1` a un nivel tres sin que haya un dos en medio;
+    // es el mismo salto que arreglaron las columnas del pie.
+    const banner = fuente("app/components/InstallBanner.tsx");
+
+    expect(banner).toContain("<h2");
+    expect(banner).not.toContain("<h3");
+  });
+
   it("/gastronomía anida sus zonas bajo un h2 en vez de saltar del h1", () => {
     // No es una lista plana: abre con un campeonato que es su propio `h2` y
     // debajo cuelgan las zonas como `h3`. Exigir que no haya `h3` obligaría a
     // aplanar una sección real que sí existe.
-    const gastronomia = fuente("app/components/GastronomiaPageClient.tsx");
+    const gastronomia = fuente(PAGINA_CON_SECCIONES_ANIDADAS);
 
     expect(gastronomia.match(/<h2/g)?.length).toBeGreaterThan(0);
     expect(gastronomia.match(/<h3/g)?.length).toBeGreaterThan(0);

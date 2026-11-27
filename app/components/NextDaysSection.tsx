@@ -69,6 +69,8 @@ export default function NextDaysSection({
    */
   ahora: number;
 }) {
+  // El panel abre en el primer día de la lista, que es **mañana**: hoy ya lo
+  // enseña el bloque anterior y no tiene sentido abrir aquí con un duplicado.
   const [selectedDay, setSelectedDay] = useState<number | null>(0);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   // Nace cerrado y se cierra solo al cambiar de día o de categoría: expandir
@@ -80,15 +82,21 @@ export default function NextDaysSection({
     today.setHours(0, 0, 0, 0);
     const groups: DayGroup[] = [];
 
-    for (let i = 0; i < 7; i++) {
+    /*
+     * Empieza en 1, no en 0. El bloque «Hoy en Vitoria» de la portada ya
+     * responde a hoy con su propia lista, así que dejar la pestaña «Hoy» aquí
+     * pintaría los mismos planes dos veces en la misma pantalla. Los seis días
+     * siguientes siguen enteros, y el botón «Este finde» sigue funcionando.
+     */
+    for (let i = 1; i < 7; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
       const dateStr = localDateStr(date);
       const daysOfWeek = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
       groups.push({
         date: dateStr,
-        label: i === 0 ? "Hoy" : daysOfWeek[date.getDay()],
-        isToday: i === 0,
+        label: daysOfWeek[date.getDay()],
+        isToday: false,
         count: 0,
         events: [],
       });
@@ -121,14 +129,15 @@ export default function NextDaysSection({
       e.preventDefault();
       const dir = e.key === "ArrowRight" ? 1 : -1;
       setSelectedDay((prev) => {
-        const next = prev === null ? (dir > 0 ? 0 : 6) : (prev + dir + 7) % 7;
+        const total = weekDays.length;
+        const next = prev === null ? (dir > 0 ? 0 : total - 1) : (prev + dir + total) % total;
         requestAnimationFrame(() => dayRefs.current[next]?.focus());
         return next;
       });
       setCategoryFilter("all");
       setExpandido(false);
     },
-    []
+    [weekDays.length]
   );
 
   const dayEvents = useMemo(() => {
@@ -176,12 +185,11 @@ export default function NextDaysSection({
 
   const visibles = expandido ? gridEvents : gridEvents.slice(0, TOPE_TARJETAS);
 
-  const weekendIdx = weekDays.findIndex((d, i) => {
+  const weekendIdx = weekDays.findIndex((d) => {
     const wd = new Date(d.date).getDay();
-    return i > 0 ? wd === 5 || wd === 6 : wd === 6 || wd === 0;
+    return wd === 5 || wd === 6;
   });
-  const hasWeekend = weekendIdx > 0;
-  const todaySelected = selectedDay === 0;
+  const hasWeekend = weekendIdx >= 0;
   const weekendSelected = selectedDay === weekendIdx;
 
   return (
@@ -190,24 +198,13 @@ export default function NextDaysSection({
         <SectionHead
           tag="Esta semana"
           title="Próximos 7 días"
-          subtitle="Planes confirmados en los próximos días en Vitoria-Gasteiz."
+          subtitle="Mañana y los cinco días siguientes. Hoy ya está arriba."
           color="var(--teal)"
         />
       </InViewWrapper>
 
       <InViewWrapper>
         <div className="flex items-center gap-2 mb-4">
-          {!todaySelected && (
-            <button
-              onClick={() => { setSelectedDay(0); setCategoryFilter("all"); setExpandido(false); }}
-              // `min-h-[44px]` en lugar de `h-9`: eran 36 px de alto. La fila de
-              // pestañas es la forma principal de elegir día, y 36 es justo lo
-              // que hace fallar un dedo gordo.
-              className="min-h-[44px] px-4 rounded-full bg-bg-muted border border-border text-sm font-semibold text-fg-muted hover:text-fg hover:border-border-hover transition-all duration-300 cursor-pointer active:scale-[0.97]"
-            >
-              Hoy
-            </button>
-          )}
           {hasWeekend && !weekendSelected && (
             <button
               onClick={() => { setSelectedDay(weekendIdx); setCategoryFilter("all"); setExpandido(false); }}
@@ -228,7 +225,7 @@ export default function NextDaysSection({
             const isSelected = selectedDay === idx;
             const dateObj = new Date(dayItem.date);
             const dayNum = dateObj.getDate();
-            const dayName = dayItem.isToday ? "Hoy" : ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][dateObj.getDay()];
+            const dayName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][dateObj.getDay()];
 
             return (
               <button

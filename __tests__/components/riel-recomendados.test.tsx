@@ -117,13 +117,14 @@ const CUATRO = [ev({ id: "a" }), ev({ id: "b" }), ev({ id: "c" }), ev({ id: "d" 
 });
 
 /**
- * Y la casa del otro lado del ranking.
+ * El otro criterio sigue vivo, aunque ya no tenga tarjetas en la home.
  *
- * `getPopularEvents` sigue usando su criterio **sin ventana**, que es el correcto para
- * el destacado del hero: una única tarjeta protagonista quiere "lo más popular de
- * todo", no "lo más popular de hoy". Con este caso, que alguien enxerte `recomendados`
- * dentro de `getPopularEvents` —o le pase una ventana— pone el test en rojo en vez de
- * dejar dos listas con el mismo nombre y reglas distintas.
+ * `getPopularEvents` ordena **sin ventana**. Antes alimentaba el destacado del hero;
+ * ahora el hero es solo la puerta —identidad, buscador y contadores— y no pinta
+ * eventos. La función sigue siendo la casa del ranking sin fecha para quien la
+ * necesite, y este caso impide que alguien le meta una ventana "para que case con
+ * el riel": son dos preguntas distintas y las dos tienen que seguir teniendo una
+ * respuesta distinta.
  *
  * La comparación de las dos listas sobre la agenda real **no cabe aquí**: eso necesita
  * `fetch` y el registro de los 28 scrapers, y este fichero es de jsdom — donde no hay
@@ -131,7 +132,7 @@ const CUATRO = [ev({ id: "a" }), ev({ id: "b" }), ev({ id: "c" }), ev({ id: "d" 
  * es de node.
  */
 describe("las dos casas del ranking", () => {
-  it("getPopularEvents no mira la fecha: el destacado del hero no la necesita", async () => {
+  it("getPopularEvents no mira la fecha, aunque la home ya no lo use", async () => {
     const { getPopularEvents } = await import("@/lib/popularity");
 
     // Un evento de dentro de seis meses y otro de hoy, con el mismo peso y categoría.

@@ -44,6 +44,7 @@ import Link from "next/link";
  * se permite el peso alto, y lleva `font-bold` con mayúsculas.
  */
 export default function SectionHead({
+  id,
   tag,
   title,
   subtitle,
@@ -51,6 +52,8 @@ export default function SectionHead({
   linkLabel = "Ver todo",
   color,
 }: {
+  /** Identificador del `h2`, para que `aria-labelledby` apunte al titular real. */
+  id?: string;
   tag?: string;
   title: string;
   subtitle?: string;
@@ -102,9 +105,11 @@ export default function SectionHead({
       {/*
         El titular, en sentence case. `text-balance` ya está en el `base` de
         Tailwind, así que un título de dos líneas equilibra las líneas y uno de
-        tres no, sin que haya que pedirlo aquí.
+        tres no, sin que haya que pedirlo aquí. El `id` va en el `h2` y no en un
+        envoltorio: `aria-labelledby` tiene que nombrar el titular real, no un
+        `<div>` que lo contiene junto con la etiqueta y el subtítulo.
       */}
-      <h2 className="font-display text-3xl md:text-5xl font-bold tracking-[-0.02em] text-fg leading-[1.05]">
+      <h2 id={id} className="font-display text-3xl md:text-5xl font-bold tracking-[-0.02em] text-fg leading-[1.05]">
         {title}
       </h2>
 
